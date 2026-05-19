@@ -174,6 +174,17 @@ body {
 
 #grid tbody tr:hover { background: var(--row-hover); }
 
+/* 그룹 (회차) 경계 — 첫 트랜치 행 위에 굵은 선 */
+#grid tbody tr.group-start td {
+  border-top: 2px solid #c8d0d8;
+}
+
+/* 그룹 병합 셀 (발행한도/회차합산) — 세로 가운데 정렬 + 살짝 다른 배경으로 시각 구분 */
+#grid tbody td.group-cell {
+  vertical-align: middle;
+  background: #fafbfc;
+}
+
 .empty {
   padding: 40px;
   text-align: center;

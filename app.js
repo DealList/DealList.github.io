@@ -154,6 +154,19 @@
     return Number(v).toFixed(3);
   }
 
+  function fmtUw(uw, withAmount) {
+    // uw = { "삼성": 300, "DB": 50, ... }
+    if (!uw || typeof uw !== "object") return "";
+    const entries = Object.entries(uw);
+    if (!entries.length) return "";
+    if (withAmount) {
+      // 툴팁용: "삼성 300억, DB 50억, ..."
+      return entries.map(([k, v]) => `${k} ${fmtNum(v)}억`).join(", ");
+    }
+    // 표 표시용: 인수사 이름만 ", " join
+    return entries.map(([k]) => k).join(", ");
+  }
+
   function render() {
     const total = filtered.length;
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -175,10 +188,16 @@
         "<td>" + esc(r.type) + "</td>" +
         "<td>" + esc(r.rating) + "</td>" +
         "<td>" + esc(r.maturity) + "</td>" +
+        '<td class="num">' + fmtNum(r.init) + "</td>" +
+        '<td class="num">' + fmtNum(r.limit) + "</td>" +
+        '<td class="num">' + fmtNum(r.demand) + "</td>" +
         '<td class="num">' + fmtNum(r.final) + "</td>" +
-        '<td class="num">' + fmtRate(r.r_final) + "</td>" +
+        '<td class="num">' + fmtNum(r.series_total) + "</td>" +
         "<td>" + esc(r.r_target) + "</td>" +
-        "<td>" + esc((r.leads || []).join(", ")) + "</td>";
+        "<td>" + esc(r.r_demand) + "</td>" +
+        '<td class="num">' + fmtRate(r.r_final) + "</td>" +
+        "<td>" + esc((r.leads || []).join(", ")) + "</td>" +
+        '<td title="' + esc(fmtUw(r.uw, true)) + '">' + esc(fmtUw(r.uw, false)) + "</td>";
       frag.appendChild(tr);
     }
     tbody.appendChild(frag);

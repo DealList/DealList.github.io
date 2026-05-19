@@ -165,6 +165,13 @@ body {
   color: var(--num-color);
 }
 
+/* 인수사 컬럼 (마지막) — 길어질 경우 자르고 hover 시 툴팁 */
+#grid tbody td:last-child {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #grid tbody tr:hover { background: var(--row-hover); }
 
 .empty {

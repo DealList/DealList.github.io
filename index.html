@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DealList — 국내 회사채 발행 정보</title>
+  <title>DealList — 국내 공모 회사채 발행 정보</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -11,7 +11,7 @@
   <header class="topbar">
     <div class="brand">
       <h1>DealList</h1>
-      <span class="tagline">국내 회사채 발행 정보</span>
+      <span class="tagline">국내 공모 회사채 발행 정보</span>
     </div>
     <div class="meta">
       <span id="updated">로딩 중…</span>
@@ -22,25 +22,52 @@
 
   <section class="filters">
     <div class="filter-row">
-      <label>연도
-        <select id="f-year" multiple size="4"></select>
+      <label>기간
+        <div class="date-range">
+          <input type="date" id="f-date-start" />
+          <span class="dash">~</span>
+          <input type="date" id="f-date-end" />
+        </div>
+        <div class="date-presets">
+          <button type="button" data-preset="3m">최근 3개월</button>
+          <button type="button" data-preset="6m">최근 6개월</button>
+          <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="all">전체</button>
+        </div>
       </label>
       <label>발행사 검색
-        <input id="f-issuer" type="search" placeholder="예: 삼성, SK, 현대" />
+        <input id="f-issuer" type="search" placeholder="예: 미래에셋증권 (엔터로 추가)" />
+        <div class="issuer-chips" id="f-issuer-chips"></div>
+        <div class="filter-hint">최대 10개까지 추가 가능</div>
       </label>
-      <label>종류
-        <select id="f-type" multiple size="4"></select>
-      </label>
-      <label>신용등급
-        <select id="f-rating" multiple size="4"></select>
-      </label>
-      <label>대표주관
-        <select id="f-lead" multiple size="4"></select>
-      </label>
+      <div class="filter-col">
+        <label>종류
+          <select id="f-type"></select>
+        </label>
+        <label>신용등급
+          <div class="rating-range">
+            <select id="f-rating-min"></select>
+            <span class="dash">~</span>
+            <select id="f-rating-max"></select>
+          </div>
+        </label>
+      </div>
+      <div class="filter-col">
+        <label>주관 증권사
+          <select id="f-lead-select"></select>
+          <div class="issuer-chips" id="f-lead-chips"></div>
+        </label>
+        <label>인수 증권사
+          <select id="f-uw-select"></select>
+          <div class="issuer-chips" id="f-uw-chips"></div>
+          <div class="filter-hint">각각 최대 5개까지 추가 가능</div>
+        </label>
+      </div>
     </div>
     <div class="filter-actions">
+      <button id="btn-search" class="btn primary">조회</button>
       <button id="btn-reset" class="btn">필터 초기화</button>
-      <button id="btn-download" class="btn primary">Excel 다운로드</button>
+      <button id="btn-download" class="btn">이대로 Excel 다운로드</button>
       <span id="result-count" class="result-count"></span>
     </div>
   </section>
@@ -63,7 +90,7 @@
           <th data-sort="r_target">희망금리</th>
           <th data-sort="r_demand">수요금리</th>
           <th data-sort="r_final" class="num">최종금리(%)</th>
-          <th>대표주관</th>
+          <th>주관사</th>
           <th>인수사</th>
         </tr>
       </thead>

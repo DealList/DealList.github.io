@@ -4,6 +4,74 @@
 
   const PAGE_SIZE = 50;
 
+  // 신용등급 ranking — 숫자 작을수록 좋음 (AAA=1, D=22)
+  const RATING_RANK = {
+    "AAA": 1,
+    "AA+": 2, "AA": 3, "AA-": 4,
+    "A+": 5, "A": 6, "A-": 7,
+    "BBB+": 8, "BBB": 9, "BBB-": 10,
+    "BB+": 11, "BB": 12, "BB-": 13,
+    "B+": 14, "B": 15, "B-": 16,
+    "CCC+": 17, "CCC": 18, "CCC-": 19,
+    "CC": 20, "C": 21, "D": 22,
+  };
+  // 드롭다운에 표시할 standard 등급 (공모 회사채 실용 범위: AAA ~ BBB-)
+  const RATING_OPTIONS = [
+    "AAA", "AA+", "AA", "AA-",
+    "A+", "A", "A-",
+    "BBB+", "BBB", "BBB-",
+  ];
+
+  // 증권사 alias → 풀네임 매핑 (드롭다운/chip 표시용. 데이터/필터링은 alias 그대로)
+  const BROKER_FULL_NAME = {
+    "BNK": "BNK투자증권",
+    "DB": "DB금융투자",
+    "IBK": "IBK투자증권",
+    "KB": "KB증권",
+    "KR": "KR투자증권",
+    "LS": "LS증권",
+    "NH": "NH투자증권",
+    "SK": "SK증권",
+    "iM": "iM증권",
+    "교보": "교보증권",
+    "다올": "다올투자증권",
+    "대신": "대신증권",
+    "디에스": "DS투자증권",
+    "리딩": "리딩투자증권",
+    "메리츠": "메리츠증권",
+    "미래": "미래에셋증권",
+    "부국": "부국증권",
+    "산은": "한국산업은행",
+    "삼성": "삼성증권",
+    "상상인": "상상인증권",
+    "신영": "신영증권",
+    "신한": "신한투자증권",
+    "우리": "우리투자증권",
+    "유안타": "유안타증권",
+    "유진": "유진투자증권",
+    "케이프": "케이프투자증권",
+    "코리아에셋": "코리아에셋투자증권",
+    "키움": "키움증권",
+    "하나": "하나증권",
+    "한양": "한양증권",
+    "한투": "한국투자증권",
+    "한화": "한화투자증권",
+    "현차": "현대차증권",
+    "흥국": "흥국증권",
+  };
+
+  // 효과적 등급 rank — 범위(A+~AA-) 는 첫 번째(=low, 낮은 등급) 기준
+  // 사용자 룰: 신용등급 표기 "low~high" 중 하단(low)이 필터 기준
+  function effectiveRatingRank(s) {
+    if (!s) return null;
+    if (s.includes("~")) {
+      const parts = s.split("~").map((x) => x.trim());
+      const low = parts[0];  // 첫 번째 = low (낮은 등급) = 필터 기준
+      return RATING_RANK[low] ?? null;
+    }
+    return RATING_RANK[s.trim()] ?? null;
+  }
+
   let DATA = [];
   let META = {};
   let filtered = [];          // 트랜치 단위 (필터링 직후)
@@ -11,6 +79,11 @@
   let currentPage = 1;
   let sortKey = "date";
   let sortDir = "desc";
+  let issuerKeywords = [];    // 발행사 검색 chip 배열
+  let leadKeywords = [];      // 주관 증권사 chip 배열
+  let uwKeywords = [];        // 인수 증권사 chip 배열
+  const MAX_ISSUER_CHIPS = 10;
+  const MAX_BROKER_CHIPS = 5;
 
   const $ = (id) => document.getElementById(id);
 
@@ -34,9 +107,15 @@
   }
 
   // ============== 필터 옵션 초기화 ==============
-  function fillSelect(id, values) {
+  function fillSelect(id, values, withAll) {
     const sel = $(id);
     sel.innerHTML = "";
+    if (withAll) {
+      const o = document.createElement("option");
+      o.value = "";
+      o.textContent = "전체";
+      sel.appendChild(o);
+    }
     for (const v of values) {
       const o = document.createElement("option");
       o.value = v;
@@ -46,29 +125,127 @@
   }
 
   function initFilters() {
-    fillSelect("f-year", META.years || []);
-    fillSelect("f-type", META.types || []);
-    fillSelect("f-rating", META.ratings || []);
-    fillSelect("f-lead", META.leads || []);
+    // 종류 순서: 무보증 → 신종자본 → 후순위채 → 보증 (사용자 지정)
+    const TYPE_ORDER = ["무보증", "신종자본", "후순위채", "보증"];
+    const types = META.types || [];
+    const orderedTypes = [
+      ...TYPE_ORDER.filter((t) => types.includes(t)),
+      ...types.filter((t) => !TYPE_ORDER.includes(t)),  // 새 종류는 뒤에
+    ];
+    fillSelect("f-type", orderedTypes, true);   // 단일 선택 + "전체"
+    fillSelect("f-rating-min", RATING_OPTIONS, true);  // low end
+    fillSelect("f-rating-max", RATING_OPTIONS, true);  // high end
+    // 주관/인수 증권사는 setupChipDropdown 이 옵션 채움
 
-    ["f-year", "f-type", "f-rating", "f-lead"].forEach((id) => {
+    // 데이터 max 청약일 (preset 계산 기준)
+    const maxDate = DATA.reduce((a, r) => (r.date && r.date > a ? r.date : a), "");
+
+    // 초기 화면: 최근 1년치
+    applyDatePreset("1y", maxDate);
+
+    // 모든 필터 change 이벤트는 즉각 적용 안 함 — "조회" 버튼 클릭 시만 반영
+    // (chip / preset 버튼 등은 UI 만 갱신, 데이터는 그대로)
+
+    // 주관/인수 chip 드롭다운 셋업
+    setupChipDropdown({
+      selectId: "f-lead-select",
+      chipsId: "f-lead-chips",
+      max: MAX_BROKER_CHIPS,
+      values: META.leads || [],
+      displayMap: BROKER_FULL_NAME,
+      getArr: () => leadKeywords,
+      setArr: (arr) => { leadKeywords = arr; },
+    });
+    setupChipDropdown({
+      selectId: "f-uw-select",
+      chipsId: "f-uw-chips",
+      max: MAX_BROKER_CHIPS,
+      values: META.underwriters || [],
+      displayMap: BROKER_FULL_NAME,
+      getArr: () => uwKeywords,
+      setArr: (arr) => { uwKeywords = arr; },
+    });
+    ["f-date-start", "f-date-end"].forEach((id) => {
       $(id).addEventListener("change", () => {
-        currentPage = 1;
-        applyFilters();
+        clearPresetActive();
       });
     });
-    $("f-issuer").addEventListener("input", debounce(() => {
-      currentPage = 1;
-      applyFilters();
-    }, 200));
+    // 발행사 목록 (정확한 발행사명 검증용)
+    const issuerSet = new Map(
+      (META.issuers || []).map((s) => [s.toLowerCase(), s]),
+    );
+
+    // 발행사 검색: 엔터로 chip 추가 — 데이터에 정확히 일치하는 발행사명만 허용
+    $("f-issuer").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const val = $("f-issuer").value.trim();
+      if (!val) return;
+      const canonical = issuerSet.get(val.toLowerCase());
+      if (!canonical) {
+        alert(
+          "'" + val + "' 발행사를 찾을 수 없습니다.\n\n" +
+          "금융감독원 DART 공시 기준의 정확한 전체 기업명을 입력해 주세요.\n" +
+          "(예: SK, SK네트웍스, 에스케이에코플랜트 등)"
+        );
+        return;
+      }
+      if (issuerKeywords.length >= MAX_ISSUER_CHIPS) {
+        $("f-issuer").value = "";
+        return;
+      }
+      if (issuerKeywords.includes(canonical)) {
+        $("f-issuer").value = "";
+        return;
+      }
+      issuerKeywords.push(canonical);
+      $("f-issuer").value = "";
+      renderIssuerChips();
+    });
+
+    // 기간 preset 버튼 — 날짜 input 만 갱신, 데이터는 "조회" 눌러야 반영
+    document.querySelectorAll(".date-presets button[data-preset]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyDatePreset(btn.dataset.preset, maxDate);
+      });
+    });
+
+    // 조회 버튼 — 짧은 로딩 표시 후 필터 적용
+    $("btn-search").addEventListener("click", () => {
+      const btn = $("btn-search");
+      const tableWrap = document.querySelector(".table-wrap");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>조회 중';
+      tableWrap.classList.add("loading");
+      // 다음 paint 후 + 짧은 딜레이로 시각적 피드백
+      setTimeout(() => {
+        currentPage = 1;
+        applyFilters();
+        btn.disabled = false;
+        btn.textContent = "조회";
+        tableWrap.classList.remove("loading");
+      }, 250);
+    });
 
     $("btn-reset").addEventListener("click", () => {
-      ["f-year", "f-type", "f-rating", "f-lead"].forEach((id) => {
-        Array.from($(id).options).forEach((o) => (o.selected = false));
-      });
+      // 종류 / 신용등급 범위: 단일 선택 → "전체" (value="") 로 복원
+      $("f-type").value = "";
+      $("f-rating-min").value = "";
+      $("f-rating-max").value = "";
+      applyDatePreset("1y", maxDate);
+      // chip 인풋들 비움
       $("f-issuer").value = "";
-      currentPage = 1;
-      applyFilters();
+      issuerKeywords = [];
+      renderIssuerChips();
+      leadKeywords = [];
+      $("f-lead-chips").innerHTML = "";
+      $("f-lead-select").value = "";
+      Array.from($("f-lead-select").options).forEach((o) => (o.disabled = false));
+      uwKeywords = [];
+      $("f-uw-chips").innerHTML = "";
+      $("f-uw-select").value = "";
+      Array.from($("f-uw-select").options).forEach((o) => (o.disabled = false));
+      // 필터 초기화는 UI 만 — 데이터는 "조회" 눌러야 반영
     });
 
     $("btn-download").addEventListener("click", downloadExcel);
@@ -88,6 +265,110 @@
     });
   }
 
+  function renderIssuerChips() {
+    const wrap = $("f-issuer-chips");
+    wrap.innerHTML = "";
+    for (const kw of issuerKeywords) {
+      const chip = document.createElement("span");
+      chip.className = "issuer-chip";
+      chip.innerHTML = esc(kw) +
+        '<button type="button" class="remove" title="제거">×</button>';
+      chip.querySelector(".remove").addEventListener("click", () => {
+        issuerKeywords = issuerKeywords.filter((k) => k !== kw);
+        renderIssuerChips();
+      });
+      wrap.appendChild(chip);
+    }
+  }
+
+  // chip + 드롭다운 셋업 (주관/인수 증권사용)
+  function setupChipDropdown(opts) {
+    const sel = $(opts.selectId);
+
+    // 표시값 함수 (displayMap 있으면 풀네임, 없으면 그대로)
+    const displayOf = (v) => (opts.displayMap && opts.displayMap[v]) || v;
+
+    // 옵션 채움 — 풀네임 가나다 순 정렬, 첫 항목은 빈 placeholder
+    const sortedValues = [...opts.values].sort((a, b) =>
+      displayOf(a).localeCompare(displayOf(b), "ko"));
+    sel.innerHTML = '<option value="">선택</option>';
+    for (const v of sortedValues) {
+      const o = document.createElement("option");
+      o.value = v;
+      o.textContent = displayOf(v);
+      sel.appendChild(o);
+    }
+
+    const syncDisable = () => {
+      const kws = new Set(opts.getArr());
+      Array.from(sel.options).forEach((o) => {
+        o.disabled = o.value !== "" && kws.has(o.value);
+      });
+    };
+
+    const render = () => {
+      const wrap = $(opts.chipsId);
+      wrap.innerHTML = "";
+      for (const kw of opts.getArr()) {
+        const chip = document.createElement("span");
+        chip.className = "issuer-chip";
+        chip.innerHTML = esc(displayOf(kw)) +
+          '<button type="button" class="remove" title="제거">×</button>';
+        chip.querySelector(".remove").addEventListener("click", () => {
+          opts.setArr(opts.getArr().filter((k) => k !== kw));
+          render();
+          syncDisable();
+        });
+        wrap.appendChild(chip);
+      }
+    };
+
+    sel.addEventListener("change", () => {
+      const val = sel.value;
+      if (!val) return;
+      const kws = opts.getArr();
+      if (kws.length >= opts.max) { sel.value = ""; return; }
+      if (kws.includes(val)) { sel.value = ""; return; }
+      kws.push(val);
+      sel.value = "";
+      render();
+      syncDisable();
+    });
+
+    render();
+    syncDisable();
+  }
+
+  function clearPresetActive() {
+    document.querySelectorAll(".date-presets button").forEach((b) =>
+      b.classList.remove("active"));
+  }
+
+  function applyDatePreset(preset, maxDate) {
+    clearPresetActive();
+    const btn = document.querySelector(`.date-presets button[data-preset="${preset}"]`);
+    if (btn) btn.classList.add("active");
+
+    if (preset === "all") {
+      $("f-date-start").value = "";
+      $("f-date-end").value = "";
+      return;
+    }
+    if (!maxDate) return;
+    const d = new Date(maxDate);
+    const start = new Date(d);
+    if (preset === "1m") start.setMonth(start.getMonth() - 1);
+    else if (preset === "3m") start.setMonth(start.getMonth() - 3);
+    else if (preset === "6m") start.setMonth(start.getMonth() - 6);
+    else if (preset === "9m") start.setMonth(start.getMonth() - 9);
+    else if (preset === "1y") start.setFullYear(start.getFullYear() - 1);
+    else if (preset === "2y") start.setFullYear(start.getFullYear() - 2);
+    else if (preset === "3y") start.setFullYear(start.getFullYear() - 3);
+    start.setDate(start.getDate() + 1);
+    $("f-date-end").value = maxDate;
+    $("f-date-start").value = start.toISOString().slice(0, 10);
+  }
+
   function debounce(fn, ms) {
     let t;
     return function (...args) {
@@ -102,22 +383,44 @@
   }
 
   function applyFilters() {
-    const years = selectedValues("f-year");
-    const types = selectedValues("f-type");
-    const ratings = selectedValues("f-rating");
-    const leads = selectedValues("f-lead");
-    const issuerQ = ($("f-issuer").value || "").trim().toLowerCase();
+    const dateStart = $("f-date-start").value || "";
+    const dateEnd = $("f-date-end").value || "";
+    const typeVal = $("f-type").value || "";   // 단일 선택 ("" = 전체)
+    const ratingMin = $("f-rating-min").value || "";  // low end (나쁜 등급 쪽)
+    const ratingMax = $("f-rating-max").value || "";  // high end (좋은 등급 쪽)
+    const minRank = ratingMin ? RATING_RANK[ratingMin] : null;  // rank 큰 값 = 나쁜
+    const maxRank = ratingMax ? RATING_RANK[ratingMax] : null;  // rank 작은 값 = 좋은
+    // 발행사 / 주관 / 인수: chip 으로 추가된 정확한 alias 만 (exact match, 대소문자 무관)
+    const issuerSet = new Set(issuerKeywords.map((k) => k.toLowerCase()));
+    const leadSet = new Set(leadKeywords.map((k) => k.toLowerCase()));
+    const uwSet = new Set(uwKeywords.map((k) => k.toLowerCase()));
 
     // 1) 트랜치 단위 필터링. 매치되는 트랜치가 한 개라도 있으면 그룹 전체 표시 위해
     //    그룹 키 단위로 한 번 더 확장.
     const matchTranche = (r) => {
-      if (years.length && !years.includes((r.date || "").slice(0, 4))) return false;
-      if (types.length && !types.includes(r.type)) return false;
-      if (ratings.length && !ratings.includes(r.rating)) return false;
-      if (leads.length && !r.leads.some((l) => leads.includes(l))) return false;
-      if (issuerQ) {
-        const hay = (r.issuer + " " + (r.issuer_full || "")).toLowerCase();
-        if (!hay.includes(issuerQ)) return false;
+      const d = r.date || "";
+      if (dateStart && d && d < dateStart) return false;
+      if (dateEnd && d && d > dateEnd) return false;
+      if (typeVal && r.type !== typeVal) return false;
+      if (minRank !== null || maxRank !== null) {
+        const effRank = effectiveRatingRank(r.rating);
+        if (effRank == null) return false;
+        // 범위: maxRank(좋은 등급, 작은 숫자) ≤ effRank ≤ minRank(나쁜 등급, 큰 숫자)
+        if (maxRank !== null && effRank < maxRank) return false;
+        if (minRank !== null && effRank > minRank) return false;
+      }
+      if (leadSet.size) {
+        // 주관 증권사: r.leads 의 alias 중 하나가 chip 에 있으면 통과 (OR)
+        if (!(r.leads || []).some((l) => leadSet.has(l.toLowerCase()))) return false;
+      }
+      if (uwSet.size) {
+        // 인수 증권사: r.uw (dict) 의 키 중 하나가 chip 에 있으면 통과 (OR)
+        const uwAliases = Object.keys(r.uw || {});
+        if (!uwAliases.some((a) => uwSet.has(a.toLowerCase()))) return false;
+      }
+      if (issuerSet.size) {
+        // 정확한 발행사명 매치 (chip 으로 등록된 것 OR)
+        if (!issuerSet.has((r.issuer || "").toLowerCase())) return false;
       }
       return true;
     };
@@ -248,16 +551,23 @@
         // 그룹 첫 트랜치엔 시각적 구분선
         if (isFirst && gIdx > 0) tr.classList.add("group-start");
 
-        let html =
-          "<td>" + (r.date || "") + "</td>" +
-          "<td>" + esc(r.issuer) + "</td>" +
+        let html = "";
+
+        // 청약일 + 발행사 — 그룹 공통, 첫 트랜치에만 rowspan
+        if (isFirst) {
+          html += '<td class="group-cell" rowspan="' + N + '">' + (r.date || "") + "</td>";
+          html += '<td class="group-cell" rowspan="' + N + '">' + esc(r.issuer) + "</td>";
+        }
+
+        // 트랜치별 표시
+        html +=
           "<td>" + esc(r.series) + "</td>" +
           "<td>" + esc(r.type) + "</td>" +
           "<td>" + esc(r.rating) + "</td>" +
           "<td>" + esc(r.maturity) + "</td>" +
           '<td class="num">' + fmtNum(r.init) + "</td>";
 
-        // 발행한도 — 그룹 공통, 첫 트랜치에만 rowspan
+        // 발행한도 — 그룹 공통
         if (isFirst) {
           html += '<td class="num group-cell" rowspan="' + N + '">' + fmtNum(r.limit) + "</td>";
         }
@@ -266,14 +576,14 @@
           '<td class="num">' + fmtNum(r.demand) + "</td>" +
           '<td class="num">' + fmtNum(r.final) + "</td>";
 
-        // 회차합산 — 그룹 공통, 첫 트랜치에만 rowspan
+        // 회차합산 — 그룹 공통
         if (isFirst) {
           html += '<td class="num group-cell" rowspan="' + N + '">' + fmtNum(r.series_total) + "</td>";
         }
 
         html +=
-          "<td>" + esc(r.r_target) + "</td>" +
-          "<td>" + esc(r.r_demand) + "</td>" +
+          '<td class="center">' + esc(r.r_target) + "</td>" +
+          '<td class="center">' + esc(r.r_demand) + "</td>" +
           '<td class="num">' + fmtRate(r.r_final) + "</td>" +
           "<td>" + esc((r.leads || []).join(", ")) + "</td>" +
           '<td title="' + esc(fmtUw(r.uw, true)) + '">' + esc(fmtUw(r.uw, false)) + "</td>";

@@ -137,11 +137,13 @@
     fillSelect("f-rating-max", RATING_OPTIONS, true);  // high end
     // 주관/인수 증권사는 setupChipDropdown 이 옵션 채움
 
-    // 데이터 max 청약일 (preset 계산 기준)
+    // 데이터 max/min 청약일 (preset 계산 기준)
     const maxDate = DATA.reduce((a, r) => (r.date && r.date > a ? r.date : a), "");
+    const minDate = DATA.reduce(
+      (a, r) => (r.date && (!a || r.date < a) ? r.date : a), "");
 
     // 초기 화면: 최근 1년치
-    applyDatePreset("1y", maxDate);
+    applyDatePreset("1y", maxDate, minDate);
 
     // 모든 필터 change 이벤트는 즉각 적용 안 함 — "조회" 버튼 클릭 시만 반영
     // (chip / preset 버튼 등은 UI 만 갱신, 데이터는 그대로)
@@ -186,7 +188,8 @@
         alert(
           "'" + val + "' 발행사를 찾을 수 없습니다.\n\n" +
           "금융감독원 DART 공시 기준의 정확한 전체 기업명을 입력해 주세요.\n" +
-          "(예: SK, SK네트웍스, 에스케이에코플랜트 등)"
+          "(예: SK, SK네트웍스, 에스케이에코플랜트 등)\n\n" +
+          "기업명이 올바르더라도 발행 내역이 없으면 조회가 되지 않습니다."
         );
         return;
       }
@@ -206,7 +209,7 @@
     // 기간 preset 버튼 — 날짜 input 만 갱신, 데이터는 "조회" 눌러야 반영
     document.querySelectorAll(".date-presets button[data-preset]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        applyDatePreset(btn.dataset.preset, maxDate);
+        applyDatePreset(btn.dataset.preset, maxDate, minDate);
       });
     });
 
@@ -232,7 +235,7 @@
       $("f-type").value = "";
       $("f-rating-min").value = "";
       $("f-rating-max").value = "";
-      applyDatePreset("1y", maxDate);
+      applyDatePreset("1y", maxDate, minDate);
       // chip 인풋들 비움
       $("f-issuer").value = "";
       issuerKeywords = [];
@@ -344,14 +347,23 @@
       b.classList.remove("active"));
   }
 
-  function applyDatePreset(preset, maxDate) {
+  function todayLocal() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
+  function applyDatePreset(preset, maxDate, minDate) {
     clearPresetActive();
     const btn = document.querySelector(`.date-presets button[data-preset="${preset}"]`);
     if (btn) btn.classList.add("active");
 
     if (preset === "all") {
-      $("f-date-start").value = "";
-      $("f-date-end").value = "";
+      // 데이터 최초 청약일 ~ 오늘
+      $("f-date-start").value = minDate || "";
+      $("f-date-end").value = todayLocal();
       return;
     }
     if (!maxDate) return;

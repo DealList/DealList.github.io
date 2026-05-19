@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealList — 국내 회사채 발행 정보</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>DealList</h1>
+      <span class="tagline">국내 회사채 발행 정보</span>
+    </div>
+    <div class="meta">
+      <span id="updated">로딩 중…</span>
+      <span class="sep">|</span>
+      <span id="count"></span>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-row">
+      <label>연도
+        <select id="f-year" multiple size="4"></select>
+      </label>
+      <label>발행사 검색
+        <input id="f-issuer" type="search" placeholder="예: 삼성, SK, 현대" />
+      </label>
+      <label>종류
+        <select id="f-type" multiple size="4"></select>
+      </label>
+      <label>신용등급
+        <select id="f-rating" multiple size="4"></select>
+      </label>
+      <label>대표주관
+        <select id="f-lead" multiple size="4"></select>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button id="btn-reset" class="btn">필터 초기화</button>
+      <button id="btn-download" class="btn primary">Excel 다운로드</button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+  </section>
+
+  <section class="table-wrap">
+    <table id="grid">
+      <thead>
+        <tr>
+          <th data-sort="date">청약일</th>
+          <th data-sort="issuer">발행사</th>
+          <th data-sort="series">회차</th>
+          <th data-sort="type">종류</th>
+          <th data-sort="rating">신용등급</th>
+          <th data-sort="maturity">만기일</th>
+          <th data-sort="final" class="num">최종발행(억)</th>
+          <th data-sort="r_final" class="num">최종금리(%)</th>
+          <th data-sort="r_target">희망금리</th>
+          <th>대표주관</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty hidden">조건에 맞는 발행 건이 없습니다.</div>
+  </section>
+
+  <nav id="pager" class="pager"></nav>
+
+  <footer class="footer">
+    <small>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

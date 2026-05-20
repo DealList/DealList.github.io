@@ -291,26 +291,6 @@ async function parseXlsxFile(file) {
     }
     sheetsRead++;
 
-    // 첫 시트에서만: 산식 셀 전체 스캔 (디버그)
-    if (sheetsRead === 1) {
-      const formulaCells = [];
-      const stringEqCells = [];
-      for (const addr in ws) {
-        if (addr.startsWith("!")) continue;
-        const c = ws[addr];
-        if (c.f) formulaCells.push({ addr, f: String(c.f).slice(0, 40) });
-        else if (typeof c.v === "string" && c.v.startsWith("=")) {
-          stringEqCells.push({ addr, v: c.v.slice(0, 40) });
-        }
-      }
-      console.log(`[scan] 시트 "${sheetName}": cell.f 있는 셀 ${formulaCells.length}건, "="로 시작하는 string 셀 ${stringEqCells.length}건`);
-      if (formulaCells.length > 0) console.log("  formula 샘플:", formulaCells.slice(0, 5));
-      if (stringEqCells.length > 0) console.log("  string-eq 샘플:", stringEqCells.slice(0, 5));
-      // AA3 직접 확인
-      console.log(`  ws["AA3"] =`, ws["AA3"]);
-      console.log(`  ws["P4"] =`, ws["P4"]);
-    }
-
     // 데이터 행 추출
     const dataRows = [];
     for (let i = 1; i < rows.length; i++) {
@@ -344,11 +324,10 @@ async function parseXlsxFile(file) {
       if (hasBrokerCols) {
         const alloc = {};
         const leadsSet = new Set();
-        let debugThisRow = (allParsed.length < 3);  // 첫 3행 디버그 출력
 
-        // Lead section (col P~AN) — 산식 셀.
-        // openpyxl 은 formula 를 cell.value="=..." (string) 으로 저장하기도 함.
-        // SheetJS 도 케이스별로 cell.f 또는 cell.v 에 담음.
+        // Lead section (col P~AN) — 산식 셀. 산식 존재 = lead.
+        // (openpyxl 이 cached value 없이 산식만 저장 → SheetJS 가
+        //  sheetStubs:true 옵션 있어야 인식. cell.f 에 산식 텍스트, cell.v=0 또는 undefined)
         for (const { name, colIdx0 } of leadCols) {
           const cellAddr = XLSX.utils.encode_cell({ c: colIdx0, r: rowIdx1 - 1 });
           const cell = ws[cellAddr];
@@ -356,19 +335,14 @@ async function parseXlsxFile(file) {
           const v = cell.v;
           const f = cell.f;
           const isFormulaLike =
-            !!f ||
-            (typeof v === "string" && v.startsWith("="));
+            !!f || (typeof v === "string" && v.startsWith("="));
           const isPositiveNum = typeof v === "number" && v > 0;
           if (isFormulaLike || isPositiveNum) {
             leadsSet.add(name);
-            if (debugThisRow) {
-              console.log(`  [lead] ${cellAddr} ${name}: f=${f}, v=${typeof v === "string" ? v.slice(0, 40) : v}`);
-            }
           }
         }
         // Underwriter section (col AO~BT) — raw 값.
         for (const { name, colIdx0 } of uwCols) {
-          // sheet_to_json 결과의 r[colIdx0] 도 시도, 안 되면 셀 직접 접근
           let v = toNum(r[colIdx0]);
           if (v === null) {
             const cellAddr = XLSX.utils.encode_cell({ c: colIdx0, r: rowIdx1 - 1 });
@@ -377,16 +351,7 @@ async function parseXlsxFile(file) {
           }
           if (v && v > 0) {
             alloc[name] = (alloc[name] || 0) + v;
-            if (debugThisRow) {
-              console.log(`  [uw] col ${colIdx0 + 1} ${name}: ${v}`);
-            }
           }
-        }
-        if (debugThisRow) {
-          console.log(
-            `[debug row${rowIdx1}] leads=[${Array.from(leadsSet).join(",")}], ` +
-            `alloc keys=[${Object.keys(alloc).join(",")}]`
-          );
         }
         rec.lead_managers = Array.from(leadsSet);
         rec.underwriter_alloc = alloc;

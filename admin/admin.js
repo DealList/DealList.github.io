@@ -30,6 +30,10 @@ const XLSX_COL = {
 };
 
 const SHEET_NAME = "발행조건확정";  // xlsx 의 데이터 시트 이름
+const BROKER_COL_START = 16;  // 1-indexed (excel_writer.config.COL["주관_시작"])
+
+// mappings.json (사이트 /auto/mappings.json) 에서 fetch — 브로커 컬럼 매핑용
+let mappingsData = null;     // { lead_managers: [...], underwriters: [...] }
 
 // =========================== INIT ===========================
 // 변수명을 'sb' 로 — CDN 의 window.supabase (SDK namespace) 와 충돌 방지
@@ -63,6 +67,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setupAuthButtons();
     setupFileUpload();
+
+    // mappings.json 비동기 로드 (xlsx 브로커 파싱용) — 실패해도 페이지 작동 OK
+    fetchMappings();
   } catch (e) {
     console.error("admin.js init 실패:", e);
     // 초기화 실패 시에도 로그인 화면이라도 노출 (사용자가 새로고침 시도 가능)
@@ -212,6 +219,25 @@ async function parseJsonFile(file) {
   parsedRecords = records.map(normalizeRecord);
 }
 
+async function fetchMappings() {
+  try {
+    const r = await fetch("/auto/mappings.json", { cache: "no-store" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    mappingsData = {
+      lead_managers: Array.isArray(data.lead_managers) ? data.lead_managers : [],
+      underwriters:  Array.isArray(data.underwriters)  ? data.underwriters  : [],
+    };
+    console.log(
+      `[mappings] lead=${mappingsData.lead_managers.length}, ` +
+      `uw=${mappingsData.underwriters.length}`
+    );
+  } catch (e) {
+    console.warn("mappings.json fetch 실패 — xlsx 의 브로커 컬럼은 파싱 불가:", e);
+    mappingsData = null;
+  }
+}
+
 async function parseXlsxFile(file) {
   const buf = await file.arrayBuffer();
   const wb = XLSX.read(buf, { type: "array", cellDates: true });
@@ -223,29 +249,98 @@ async function parseXlsxFile(file) {
   });
   if (rows.length < 2) throw new Error("xlsx 의 행이 헤더만 있거나 비어있음");
 
-  // 첫 줄 = 헤더, 이후가 데이터
+  // 헤더 row 와 데이터 row 분리
+  const headerRow = rows[0] || [];
   const dataRows = rows.slice(1).filter(r =>
     r && (r[XLSX_COL.issuer_alias] || r[XLSX_COL.subscription_date]));
 
-  parsedRecords = dataRows.map(r => normalizeRecord({
-    subscription_date: r[XLSX_COL.subscription_date],
-    issuer_alias:      r[XLSX_COL.issuer_alias],
-    series:            r[XLSX_COL.series],
-    bond_type:         r[XLSX_COL.bond_type],
-    credit_rating:     r[XLSX_COL.credit_rating],
-    maturity:          r[XLSX_COL.maturity],
-    initial_amount:    r[XLSX_COL.initial_amount],
-    issue_limit:       r[XLSX_COL.issue_limit],
-    demand_amount:     r[XLSX_COL.demand_amount],
-    final_amount:      r[XLSX_COL.final_amount],
-    series_total:      r[XLSX_COL.series_total],
-    rate_target:       r[XLSX_COL.rate_target],
-    rate_demand:       r[XLSX_COL.rate_demand],
-    rate_final:        r[XLSX_COL.rate_final],
-    // 브로커 정보는 xlsx 동적 컬럼이라 파싱 안 함 — 별도 안내
-    lead_managers:     [],
-    underwriter_alloc: {},
-  }));
+  // mappings.json 이 없으면 브로커 컬럼 파싱 불가 — 한 번 더 시도
+  if (!mappingsData) {
+    await fetchMappings();
+  }
+
+  // 브로커 컬럼 인덱스 매핑 구축
+  // 우선 mappings.json 의 lead_managers + underwriters 순서를 가정
+  // 안 되면 헤더 row 에서 이름 매칭
+  let leadCols = [];   // [{ name, colIdx0 }]
+  let uwCols = [];     // [{ name, colIdx0 }]
+
+  if (mappingsData) {
+    const leadStart0 = BROKER_COL_START - 1;  // 0-indexed (xlsx 컬럼 16 → idx 15)
+    const uwStart0 = leadStart0 + mappingsData.lead_managers.length;
+
+    leadCols = mappingsData.lead_managers.map((name, i) => ({
+      name, colIdx0: leadStart0 + i,
+    }));
+    uwCols = mappingsData.underwriters.map((name, i) => ({
+      name, colIdx0: uwStart0 + i,
+    }));
+
+    // sanity check — 헤더의 실제 이름과 일치하는지 확인 (불일치 경고만)
+    const mismatches = [];
+    leadCols.concat(uwCols).forEach(({ name, colIdx0 }) => {
+      const headerName = (headerRow[colIdx0] || "").toString().trim();
+      if (headerName && headerName !== name && !headerName.includes(name)) {
+        mismatches.push(`col ${colIdx0 + 1}: 헤더="${headerName}" vs 예상="${name}"`);
+      }
+    });
+    if (mismatches.length > 0) {
+      console.warn(
+        `[xlsx 브로커] mappings.json 순서와 헤더 불일치 ${mismatches.length}건:`,
+        mismatches.slice(0, 5)
+      );
+    }
+  }
+
+  const hasBrokerCols = leadCols.length > 0;
+
+  parsedRecords = dataRows.map(r => {
+    // 기본 필드
+    const rec = {
+      subscription_date: r[XLSX_COL.subscription_date],
+      issuer_alias:      r[XLSX_COL.issuer_alias],
+      series:            r[XLSX_COL.series],
+      bond_type:         r[XLSX_COL.bond_type],
+      credit_rating:     r[XLSX_COL.credit_rating],
+      maturity:          r[XLSX_COL.maturity],
+      initial_amount:    r[XLSX_COL.initial_amount],
+      issue_limit:       r[XLSX_COL.issue_limit],
+      demand_amount:     r[XLSX_COL.demand_amount],
+      final_amount:      r[XLSX_COL.final_amount],
+      series_total:      r[XLSX_COL.series_total],
+      rate_target:       r[XLSX_COL.rate_target],
+      rate_demand:       r[XLSX_COL.rate_demand],
+      rate_final:        r[XLSX_COL.rate_final],
+      lead_managers:     [],
+      underwriter_alloc: {},
+    };
+
+    if (!hasBrokerCols) return normalizeRecord(rec);
+
+    // 브로커 컬럼 파싱
+    const alloc = {};       // broker_name → total amount (lead + uw 합쳐서)
+    const leadsSet = new Set();
+
+    // Lead section
+    for (const { name, colIdx0 } of leadCols) {
+      const v = toNum(r[colIdx0]);
+      if (v && v > 0) {
+        alloc[name] = (alloc[name] || 0) + v;
+        leadsSet.add(name);
+      }
+    }
+    // Underwriter section
+    for (const { name, colIdx0 } of uwCols) {
+      const v = toNum(r[colIdx0]);
+      if (v && v > 0) {
+        alloc[name] = (alloc[name] || 0) + v;
+      }
+    }
+
+    rec.lead_managers = Array.from(leadsSet);
+    rec.underwriter_alloc = alloc;
+    return normalizeRecord(rec);
+  });
 }
 
 function normalizeRecord(r) {
@@ -324,7 +419,13 @@ function renderPreview() {
   grid.appendChild(statCell("에러", stats.errors, stats.errors > 0 ? "error" : ""));
   grid.appendChild(statCell("경고", stats.warnings, stats.warnings > 0 ? "warn" : ""));
   if (parseSource === "xlsx") {
-    grid.appendChild(statCell("주의", "브로커 정보 제외", "warn"));
+    if (mappingsData) {
+      const withBrokers = parsedRecords.filter(r =>
+        (r.lead_managers || []).length > 0).length;
+      grid.appendChild(statCell("브로커 정보 포함", `${withBrokers}건`, "ok"));
+    } else {
+      grid.appendChild(statCell("주의", "브로커 제외 (mappings 없음)", "warn"));
+    }
   }
 
   // validation panel
@@ -475,9 +576,11 @@ async function uploadToSupabase() {
   log("info", `=== 완료 ===`);
   log("success", `  성공: ${success}건`);
   if (failed > 0) log("error", `  실패: ${failed}건`);
-  if (parseSource === "xlsx") {
+  if (parseSource === "xlsx" && !mappingsData) {
     log("warn", `  ⚠ xlsx 업로드 — 브로커 정보(주관/인수)는 업로드되지 않았습니다.`);
-    log("warn", `     완전한 업로드는 meta.json 파일을 사용하세요.`);
+    log("warn", `     mappings.json fetch 실패 → 완전한 업로드는 meta.json 사용 권장.`);
+  } else if (parseSource === "xlsx" && mappingsData) {
+    log("info", `  xlsx 브로커 컬럼 파싱: lead ${mappingsData.lead_managers.length}개 + uw ${mappingsData.underwriters.length}개 자리 매핑 사용`);
   }
 }
 

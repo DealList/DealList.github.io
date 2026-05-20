@@ -12,16 +12,23 @@ on:
         description: '조회 종료일 (YYYY-MM-DD) — 비우면 어제 자동 지정'
         required: false
         default: ''
-  # schedule:
-  #   - cron: '0 0 * * *'   # 매일 한국시간 09:00 (UTC 00:00) — 활성화 시 주석 해제
+  schedule:
+    # 매일 한국시간 09:00 (UTC 00:00) 자동 실행.
+    # 빈 날짜 → "어제 UTC" 로 자동 보정되므로 KST 어제 1일치를 안전하게 수집.
+    - cron: '0 0 * * *'
 
 jobs:
   update:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write    # web/*.json 자동 commit/push 위해 필요
     steps:
       - name: Repo checkout
         uses: actions/checkout@v4
+        with:
+          # 자동 commit 시 GITHUB_TOKEN 으로 push 하려면 persist-credentials true (기본값)
+          fetch-depth: 0
 
       - name: Python 3.12 setup
         uses: actions/setup-python@v5
@@ -73,6 +80,31 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python auto/sync_to_supabase.py
+
+      - name: web/*.json 빌드 + root 배치 (사이트가 fetch 할 데이터)
+        run: |
+          python auto/export_web.py
+          # export_web.py 가 web/ 에 떨어뜨린 파일을 GitHub Pages root 로 이동.
+          # (로컬에서는 sync_to_github.py 가 같은 일을 함)
+          cp web/data.json data.json
+          cp web/meta.json meta.json
+          cp web/summary.json summary.json
+          # web/ 디렉터리는 commit 대상 아님 (.gitignore 처리 또는 단순 미커밋)
+          ls -la data.json meta.json summary.json
+
+      - name: data.json/meta.json/summary.json 변경분 자동 commit + push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.json meta.json summary.json || true
+          if git diff --cached --quiet; then
+            echo "변경 없음 — commit 생략"
+          else
+            TODAY=$(date -u -d "yesterday" +%Y-%m-%d)
+            git commit -m "data: 자동 갱신 ${TODAY} [skip ci]"
+            git push
+            echo "[ok] data.json/meta.json/summary.json push 완료"
+          fi
 
       - name: Artifact 보관 (디버깅용 xlsx + meta.json 백업)
         if: always()

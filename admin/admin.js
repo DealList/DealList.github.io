@@ -240,7 +240,15 @@ async function fetchMappings() {
 
 async function parseXlsxFile(file) {
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array", cellDates: true, cellFormula: true });
+  // sheetStubs:true — 산식만 있고 cached value 없는 stub 셀도 포함시킴.
+  //   (openpyxl 이 산식을 cached value 없이 저장 → SheetJS 가 기본적으로 drop 함)
+  // cellFormula:true — 산식 표현식 추출 보장.
+  const wb = XLSX.read(buf, {
+    type: "array",
+    cellDates: true,
+    cellFormula: true,
+    sheetStubs: true,
+  });
 
   // mappings.json 이 없으면 브로커 컬럼 파싱 불가 — 한 번 더 시도
   if (!mappingsData) await fetchMappings();

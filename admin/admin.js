@@ -316,21 +316,49 @@ async function parseXlsxFile(file) {
       if (hasBrokerCols) {
         const alloc = {};
         const leadsSet = new Set();
+        let debugThisRow = (allParsed.length < 3);  // 첫 3행 디버그 출력
 
-        // Lead section (col P~AN) — 산식 cell. 산식 존재 = 그 broker 가 lead.
+        // Lead section (col P~AN) — 산식 셀.
+        // openpyxl 은 formula 를 cell.value="=..." (string) 으로 저장하기도 함.
+        // SheetJS 도 케이스별로 cell.f 또는 cell.v 에 담음.
         for (const { name, colIdx0 } of leadCols) {
           const cellAddr = XLSX.utils.encode_cell({ c: colIdx0, r: rowIdx1 - 1 });
           const cell = ws[cellAddr];
-          if (cell && (cell.f || (typeof cell.v === "number" && cell.v > 0))) {
+          if (!cell) continue;
+          const v = cell.v;
+          const f = cell.f;
+          const isFormulaLike =
+            !!f ||
+            (typeof v === "string" && v.startsWith("="));
+          const isPositiveNum = typeof v === "number" && v > 0;
+          if (isFormulaLike || isPositiveNum) {
             leadsSet.add(name);
+            if (debugThisRow) {
+              console.log(`  [lead] ${cellAddr} ${name}: f=${f}, v=${typeof v === "string" ? v.slice(0, 40) : v}`);
+            }
           }
         }
-        // Underwriter section (col AO~BT) — raw 값. 모든 broker 의 alloc 구성.
+        // Underwriter section (col AO~BT) — raw 값.
         for (const { name, colIdx0 } of uwCols) {
-          const v = toNum(r[colIdx0]);
+          // sheet_to_json 결과의 r[colIdx0] 도 시도, 안 되면 셀 직접 접근
+          let v = toNum(r[colIdx0]);
+          if (v === null) {
+            const cellAddr = XLSX.utils.encode_cell({ c: colIdx0, r: rowIdx1 - 1 });
+            const cell = ws[cellAddr];
+            if (cell) v = toNum(cell.v);
+          }
           if (v && v > 0) {
             alloc[name] = (alloc[name] || 0) + v;
+            if (debugThisRow) {
+              console.log(`  [uw] col ${colIdx0 + 1} ${name}: ${v}`);
+            }
           }
+        }
+        if (debugThisRow) {
+          console.log(
+            `[debug row${rowIdx1}] leads=[${Array.from(leadsSet).join(",")}], ` +
+            `alloc keys=[${Object.keys(alloc).join(",")}]`
+          );
         }
         rec.lead_managers = Array.from(leadsSet);
         rec.underwriter_alloc = alloc;

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DealList — 공모채 주관·인수 실적</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="../" class="home-link">← DealList</a>
+      <h1 class="page-title">공모채 주관·인수 실적</h1>
+    </div>
+    <div class="meta">
+      <span id="updated">로딩 중…</span>
+      <span class="sep">|</span>
+      <span id="period-range"></span>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-row">
+      <label>기간
+        <div class="date-range">
+          <input type="date" id="f-date-start" />
+          <span class="dash">~</span>
+          <input type="date" id="f-date-end" />
+        </div>
+        <div class="date-presets">
+          <button type="button" data-preset="3m">최근 3개월</button>
+          <button type="button" data-preset="6m">최근 6개월</button>
+          <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="all">전체</button>
+        </div>
+      </label>
+      <label>증권사
+        <select id="f-broker-select"></select>
+        <div class="issuer-chips" id="f-broker-chips"></div>
+        <div class="filter-hint">선택 시 그 회사들만 표시 (최대 10개)</div>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button id="btn-search" class="btn primary">조회</button>
+      <button id="btn-reset" class="btn">필터 초기화</button>
+      <button id="btn-download" class="btn">Excel로 다운로드</button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+  </section>
+
+  <nav class="result-tabs">
+    <button type="button" class="tab active" data-tab="lead">주관 실적</button>
+    <button type="button" class="tab" data-tab="uw">인수 실적</button>
+  </nav>
+
+  <section class="table-wrap">
+    <table id="grid">
+      <thead>
+        <tr>
+          <th>순위</th>
+          <th data-sort="name"><span id="th-name-label">주관사</span></th>
+          <th data-sort="count" class="num">건수</th>
+          <th data-sort="amount" class="num"><span id="th-amount-label">주관 실적</span>(억원)</th>
+          <th data-sort="share" class="num">시장점유율</th>
+          <th><span id="th-issuers-label">주요 주관 딜(억원)</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty hidden">조건에 맞는 실적이 없습니다.</div>
+  </section>
+
+  <footer class="footer">
+    <small id="formula-note">* 주관 실적 = 본인 인수금액 + (전체 인수합 − 모든 주관사 인수합) / 주관사 수</small>
+    <small>* 시장점유율 = 해당 증권사 실적 / 조회 기간 발행총액 × 100</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

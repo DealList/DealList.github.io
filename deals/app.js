@@ -91,8 +91,8 @@
   async function loadAll() {
     try {
       const [d, m] = await Promise.all([
-        fetch("data.json").then((r) => r.json()),
-        fetch("meta.json").then((r) => r.json()),
+        fetch("../data.json").then((r) => r.json()),
+        fetch("../meta.json").then((r) => r.json()),
       ]);
       DATA = d;
       META = m;
@@ -674,31 +674,75 @@
   }
 
   // ============== Excel 다운로드 ==============
+  // 웹 화면과 동일하게 같은 회차의 트랜치들에서 청약일/발행사/발행한도/회차합산
+  // 컬럼을 첫 트랜치에만 표시 + 실제 셀 병합 적용.
   function downloadExcel() {
-    if (!filtered.length) {
+    if (!grouped.length) {
       alert("다운로드할 데이터가 없습니다.");
       return;
     }
-    const rows = filtered.map((r) => ({
-      청약일: r.date,
-      발행사: r.issuer,
-      회차: r.series,
-      종류: r.type,
-      신용등급: r.rating,
-      만기일: r.maturity,
-      "최초모집(억)": r.init,
-      "발행한도(억)": r.limit,
-      "수요예측(억)": r.demand,
-      "최종발행(억)": r.final,
-      "회차합산(억)": r.series_total,
-      희망금리: r.r_target,
-      수요금리: r.r_demand,
-      "최종금리(%)": r.r_final,
-      대표주관: (r.leads || []).join(", "),
-      인수사: Object.keys(r.uw || {}).join(", "),
-    }));
 
-    const ws = XLSX.utils.json_to_sheet(rows);
+    // 컬럼 정의 — json_to_sheet 가 객체 키 순서대로 컬럼 만듦
+    const COLS = [
+      "청약일", "발행사", "회차", "종류", "신용등급", "만기일",
+      "최초모집(억)", "발행한도(억)", "수요예측(억)",
+      "최종발행(억)", "회차합산(억)",
+      "희망금리", "수요금리", "최종금리(%)",
+      "주관사", "인수사",
+    ];
+    // 그룹 공통 컬럼 (병합 대상)
+    const MERGE_COL_NAMES = ["청약일", "발행사", "발행한도(억)", "회차합산(억)"];
+    const MERGE_COL_INDICES = MERGE_COL_NAMES.map((c) => COLS.indexOf(c));
+
+    const rows = [];
+    const merges = [];
+    let dataRowIdx = 1;  // row 0 = 헤더, 데이터는 1부터
+
+    for (const g of grouped) {
+      const N = g.records.length;
+      g.records.forEach((r, i) => {
+        const isFirst = i === 0;
+        rows.push({
+          청약일: isFirst ? r.date : null,
+          발행사: isFirst ? r.issuer : null,
+          회차: r.series,
+          종류: r.type,
+          신용등급: r.rating,
+          만기일: r.maturity,
+          "최초모집(억)": r.init,
+          "발행한도(억)": isFirst ? r.limit : null,
+          "수요예측(억)": r.demand,
+          "최종발행(억)": r.final,
+          "회차합산(억)": isFirst ? r.series_total : null,
+          희망금리: r.r_target,
+          수요금리: r.r_demand,
+          "최종금리(%)": r.r_final,
+          주관사: (r.leads || []).join(", "),
+          인수사: Object.keys(r.uw || {}).join(", "),
+        });
+      });
+      if (N > 1) {
+        const startRow = dataRowIdx;
+        const endRow = dataRowIdx + N - 1;
+        for (const c of MERGE_COL_INDICES) {
+          merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+        }
+      }
+      dataRowIdx += N;
+    }
+
+    const ws = XLSX.utils.json_to_sheet(rows, { header: COLS });
+    ws["!merges"] = merges;
+
+    // 병합 셀들의 세로 가운데 정렬 (보기 좋게)
+    for (const m of merges) {
+      const cellRef = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+      if (ws[cellRef]) {
+        ws[cellRef].s = ws[cellRef].s || {};
+        ws[cellRef].s.alignment = { vertical: "center" };
+      }
+    }
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "DealList");
 

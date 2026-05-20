@@ -34,18 +34,25 @@ body {
   gap: 16px;
 }
 
-.brand h1 {
-  margin: 0;
-  font-size: 22px;
-  letter-spacing: -0.3px;
-  color: var(--accent-dark);
-  display: inline;
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
 }
 
-.tagline {
-  margin-left: 10px;
-  color: var(--muted);
-  font-size: 13px;
+.home-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 600;
+}
+.home-link:hover { color: var(--accent-dark); }
+
+.brand .page-title {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text);
+  font-weight: 600;
 }
 
 .meta {

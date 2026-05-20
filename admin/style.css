@@ -319,6 +319,76 @@ body {
 #preview-table tbody tr:hover { background: var(--bg); }
 #preview-table tbody tr:last-child td { border-bottom: none; }
 
+/* ============ Delete Section ============ */
+.delete-search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.delete-search-bar input {
+  flex: 1;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.delete-search-bar input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.delete-results-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+.delete-results-table th,
+.delete-results-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.delete-results-table th {
+  background: var(--bg);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+.delete-results-table tbody tr:hover { background: var(--bg); }
+.delete-results-table tbody tr:last-child td { border-bottom: none; }
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-danger:hover {
+  filter: brightness(0.92);
+}
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.delete-empty-msg {
+  text-align: center;
+  padding: 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 /* ============ Audit Log ============ */
 .select-mini {
   background: var(--surface);

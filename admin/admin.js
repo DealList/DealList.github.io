@@ -103,6 +103,7 @@ async function renderForSession(session) {
     // audit log 자동 로드
     loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
     setupAuditButtons();
+    setupDeleteUI();
   } else {
     document.getElementById("non-admin-email").textContent = email;
     nonAdminSec.hidden = false;
@@ -628,6 +629,130 @@ function log(level, msg) {
   div.textContent = msg;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+// =========================== DELETE ===========================
+let deleteSetupDone = false;
+
+function setupDeleteUI() {
+  if (deleteSetupDone) return;
+  deleteSetupDone = true;
+  const input = document.getElementById("delete-search-input");
+  const btn = document.getElementById("btn-delete-search");
+  btn.onclick = doDeleteSearch;
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") doDeleteSearch();
+  });
+}
+
+async function doDeleteSearch() {
+  const q = document.getElementById("delete-search-input").value.trim();
+  const results = document.getElementById("delete-results");
+  if (!q) {
+    results.innerHTML = `<div class="delete-empty-msg">발행사명을 입력하세요.</div>`;
+    return;
+  }
+  results.innerHTML = `<div class="delete-empty-msg">검색 중...</div>`;
+
+  try {
+    const { data, error } = await sb
+      .from("records")
+      .select("issuer_alias,series,subscription_date,bond_type,credit_rating,final_amount,rcept_no")
+      .ilike("issuer_alias", `%${q}%`)
+      .order("subscription_date", { ascending: false })
+      .order("series", { ascending: true })
+      .limit(50);
+    if (error) throw error;
+    renderDeleteResults(data || [], q);
+  } catch (e) {
+    results.innerHTML = `<div class="delete-empty-msg" style="color:var(--danger);">
+      검색 실패: ${escapeHtml(e.message || String(e))}
+    </div>`;
+  }
+}
+
+function renderDeleteResults(rows, q) {
+  const results = document.getElementById("delete-results");
+  if (rows.length === 0) {
+    results.innerHTML = `<div class="delete-empty-msg">
+      "${escapeHtml(q)}" 검색 결과 없음.
+    </div>`;
+    return;
+  }
+
+  const table = document.createElement("table");
+  table.className = "delete-results-table";
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>청약일</th>
+        <th>발행사</th>
+        <th>회차</th>
+        <th>종류</th>
+        <th>등급</th>
+        <th style="text-align:right;">발행금액</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = table.querySelector("tbody");
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(r.subscription_date || "")}</td>
+      <td>${escapeHtml(r.issuer_alias || "")}</td>
+      <td>${escapeHtml(r.series || "")}</td>
+      <td>${escapeHtml(r.bond_type || "")}</td>
+      <td>${escapeHtml(r.credit_rating || "")}</td>
+      <td style="text-align:right;">${fmtAmt(r.final_amount)}</td>
+      <td style="text-align:right;"><button class="btn-danger">🗑️ 삭제</button></td>
+    `;
+    tr.querySelector("button").onclick = () => deleteRecord(r, tr);
+    tbody.appendChild(tr);
+  });
+
+  results.innerHTML = "";
+  const summary = document.createElement("div");
+  summary.className = "muted small";
+  summary.style.cssText = "margin-bottom: 8px;";
+  summary.textContent = `검색 결과: ${rows.length}건${rows.length === 50 ? " (최대 50건 표시)" : ""}`;
+  results.appendChild(summary);
+  results.appendChild(table);
+}
+
+async function deleteRecord(r, trElement) {
+  const label = `${r.issuer_alias} ${r.series} (${r.subscription_date})`;
+  if (!confirm(`정말 삭제하시겠습니까?\n\n${label}\n\n이 작업은 되돌릴 수 없습니다 (audit_log 에 기록은 남음).`)) {
+    return;
+  }
+
+  const btn = trElement.querySelector("button");
+  btn.disabled = true;
+  btn.textContent = "삭제 중...";
+
+  try {
+    const { error } = await sb
+      .from("records")
+      .delete()
+      .eq("issuer_alias", r.issuer_alias)
+      .eq("series", r.series)
+      .eq("subscription_date", r.subscription_date);
+    if (error) throw error;
+
+    // 행 fade out + 제거
+    trElement.style.transition = "opacity 0.3s, background 0.3s";
+    trElement.style.opacity = "0.4";
+    trElement.style.background = "rgba(220, 38, 38, 0.08)";
+    setTimeout(() => trElement.remove(), 400);
+
+    // audit log 새로고침 (DELETE entry 확인)
+    setTimeout(() => loadAuditLog().catch(() => {}), 600);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "🗑️ 삭제";
+    showError(`삭제 실패: ${e.message || e}`);
+  }
 }
 
 // =========================== AUDIT LOG ===========================

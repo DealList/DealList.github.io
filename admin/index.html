@@ -127,6 +127,20 @@
         <div id="result-log"></div>
       </div>
 
+      <div id="delete-card" class="admin-card">
+        <h3>특정 record 삭제</h3>
+        <p class="muted small" style="margin: 4px 0 14px;">
+          발행사명으로 검색 → 결과에서 한 행씩 삭제. 모든 삭제는 audit_log 에 기록됩니다.
+        </p>
+        <div class="delete-search-bar">
+          <input id="delete-search-input" type="search"
+                 placeholder="발행사명 (부분일치, 예: 한화에어로)"
+                 autocomplete="off" />
+          <button id="btn-delete-search" class="btn-secondary">검색</button>
+        </div>
+        <div id="delete-results"></div>
+      </div>
+
       <div id="audit-card" class="admin-card">
         <div class="row-between">
           <h3 style="margin: 0;">최근 변경 내역</h3>

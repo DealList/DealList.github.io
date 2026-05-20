@@ -319,6 +319,38 @@ body {
 #preview-table tbody tr:hover { background: var(--bg); }
 #preview-table tbody tr:last-child td { border-bottom: none; }
 
+/* ============ Trigger DART Section ============ */
+.trigger-status {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.trigger-status.status-success {
+  border-color: var(--success);
+  background: rgba(22, 163, 74, 0.08);
+}
+.trigger-status.status-error {
+  border-color: var(--danger);
+  background: rgba(220, 38, 38, 0.08);
+}
+.trigger-status .ts-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.trigger-status .ts-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+.trigger-status a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.trigger-status a:hover { text-decoration: underline; }
+
 /* ============ Delete Section ============ */
 .delete-search-bar {
   display: flex;

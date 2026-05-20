@@ -104,6 +104,7 @@ async function renderForSession(session) {
     loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
     setupAuditButtons();
     setupDeleteUI();
+    setupTriggerButton();
   } else {
     document.getElementById("non-admin-email").textContent = email;
     nonAdminSec.hidden = false;
@@ -629,6 +630,72 @@ function log(level, msg) {
   div.textContent = msg;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+// =========================== TRIGGER DART UPDATE ===========================
+let triggerSetupDone = false;
+const GITHUB_ACTIONS_URL = "https://github.com/DealList/DealList.github.io/actions/workflows/data-update.yml";
+
+function setupTriggerButton() {
+  if (triggerSetupDone) return;
+  triggerSetupDone = true;
+  document.getElementById("btn-trigger-dart").onclick = triggerDartUpdate;
+}
+
+async function triggerDartUpdate() {
+  const btn = document.getElementById("btn-trigger-dart");
+  const statusBox = document.getElementById("trigger-status");
+
+  if (!confirm("지금 DART 데이터 수집을 실행하시겠습니까?\n\n매일 09:00 자동 실행과 동일한 작업입니다.\n약 4분 후 사이트에 반영됩니다.")) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "실행 요청 중...";
+  statusBox.hidden = false;
+  statusBox.className = "trigger-status";
+  statusBox.innerHTML = `<div class="ts-title">GitHub Actions 에 요청 보내는 중...</div>`;
+
+  try {
+    const { data, error } = await sb.rpc("trigger_dart_update");
+    if (error) throw error;
+
+    const now = new Date();
+    const finishApprox = new Date(now.getTime() + 5 * 60 * 1000);
+    const fmt = d => `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+
+    statusBox.className = "trigger-status status-success";
+    statusBox.innerHTML = `
+      <div class="ts-title">✅ 실행 요청 완료</div>
+      <div>워크플로우가 GitHub Actions 에서 시작됐습니다.</div>
+      <div class="ts-meta" style="margin-top: 6px;">
+        • 요청 시각: ${fmt(now)}<br>
+        • 예상 완료: ~${fmt(finishApprox)} (4~5분 후)<br>
+        • <a href="${GITHUB_ACTIONS_URL}" target="_blank" rel="noopener">GitHub Actions 페이지에서 진행 상황 확인</a>
+      </div>
+    `;
+
+    btn.textContent = "✓ 요청 완료 (5분 후 사이트 확인)";
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = "지금 실행";
+    }, 30 * 1000);
+  } catch (e) {
+    statusBox.className = "trigger-status status-error";
+    const msg = e.message || String(e);
+    let hint = "";
+    if (msg.includes("Permission denied")) {
+      hint = "<br><br>관리자 권한 필요. 로그아웃 후 다시 로그인해 보세요.";
+    } else if (msg.includes("function") && msg.includes("does not exist")) {
+      hint = "<br><br>RPC 함수 미생성. Supabase SQL Editor 에서 trigger_dart_update 함수 생성 SQL 실행 필요.";
+    }
+    statusBox.innerHTML = `
+      <div class="ts-title">❌ 실행 요청 실패</div>
+      <div>${escapeHtml(msg)}${hint}</div>
+    `;
+    btn.disabled = false;
+    btn.textContent = "지금 실행";
+  }
 }
 
 // =========================== DELETE ===========================

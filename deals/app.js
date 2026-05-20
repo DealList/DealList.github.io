@@ -370,9 +370,9 @@
     if (btn) btn.classList.add("active");
 
     if (preset === "all") {
-      // 데이터 최초 청약일 ~ 오늘
+      // 데이터 최초 청약일 ~ 최신 청약일
       $("f-date-start").value = minDate || "";
-      $("f-date-end").value = todayLocal();
+      $("f-date-end").value = maxDate || "";
       return;
     }
     if (!maxDate) return;
@@ -453,6 +453,79 @@
 
     groupAndSort();
     render();
+    updateKPI();
+  }
+
+  // ============== KPI 카드 ==============
+  function fmtAmountBig(eok) {
+    if (eok >= 10000) {
+      const jo = Math.floor(eok / 10000);
+      const rest = Math.round(eok % 10000);
+      return `${jo.toLocaleString()}조 ${rest.toLocaleString()}억`;
+    }
+    return `${Math.round(eok).toLocaleString()}억`;
+  }
+
+  function updateKPI() {
+    const grid = $("kpi-grid");
+    if (!grid) return;
+    if (!grouped.length) {
+      grid.innerHTML = "";
+      return;
+    }
+    const totalCount = grouped.length;
+    const totalAmt = grouped.reduce((s, g) =>
+      s + g.records.reduce((s2, r) => s2 + (r.final || 0), 0), 0);
+    const avg = totalCount > 0 ? totalAmt / totalCount : 0;
+    // 최대 단일 발행 (회차 final 합 최대)
+    let biggest = null;
+    let biggestAmt = 0;
+    for (const g of grouped) {
+      const amt = g.records.reduce((s, r) => s + (r.final || 0), 0);
+      if (amt > biggestAmt) {
+        biggestAmt = amt;
+        biggest = g;
+      }
+    }
+    const biggestLabel = biggest ?
+      `${biggest.rep.issuer} ${(biggest.rep.series || "").split("-")[0]}회차` : "";
+    const biggestSub = biggest ?
+      `${fmtAmountBig(biggestAmt)} · ${biggest.rep.date}` : "";
+
+    grid.innerHTML = `
+      <div class="kpi-card">
+        <div class="kpi-icon blue">📄</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행건수</div>
+          <div class="kpi-value">${totalCount.toLocaleString()}건</div>
+          <div class="kpi-sub">회차 기준</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green">💰</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행총액</div>
+          <div class="kpi-value">${fmtAmountBig(totalAmt)}</div>
+          <div class="kpi-sub">트랜치 합산</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon orange">📊</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 평균 발행규모</div>
+          <div class="kpi-value">${fmtAmountBig(avg)}</div>
+          <div class="kpi-sub">회차당 평균</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple">📈</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 최대 단일 발행</div>
+          <div class="kpi-value broker-name">${esc(biggestLabel)}</div>
+          <div class="kpi-sub">${esc(biggestSub)}</div>
+        </div>
+      </div>
+    `;
   }
 
   // ============== 그룹화 ==============

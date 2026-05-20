@@ -174,7 +174,7 @@
 
     if (preset === "all") {
       $("f-date-start").value = minDate || "";
-      $("f-date-end").value = todayLocal();
+      $("f-date-end").value = maxDate || "";
       return;
     }
     if (!maxDate) return;
@@ -307,7 +307,70 @@
       `발행건수 ${deals.length.toLocaleString()}건 · ` +
       `발행총액 ${fmtAmount(marketTotal)}`;
 
+    updateKPI(deals, marketTotal);
     renderTable();
+  }
+
+  // ============== KPI 카드 ==============
+  function updateKPI(deals, marketTotal) {
+    const grid = $("kpi-grid");
+    if (!grid) return;
+    if (!deals.length) {
+      grid.innerHTML = "";
+      return;
+    }
+    // 주관 1위, 인수 1위 (전체 deals 기준)
+    const leadSum = new Map();
+    const uwSum = new Map();
+    for (const d of deals) {
+      for (const [a, v] of Object.entries(d.lead_amt || {})) {
+        leadSum.set(a, (leadSum.get(a) || 0) + v);
+      }
+      for (const [a, v] of Object.entries(d.uw || {})) {
+        uwSum.set(a, (uwSum.get(a) || 0) + v);
+      }
+    }
+    const topLead = [...leadSum.entries()].sort((a,b) => b[1]-a[1])[0];
+    const topUw = [...uwSum.entries()].sort((a,b) => b[1]-a[1])[0];
+    const leadShare = topLead && marketTotal > 0 ?
+      (topLead[1] / marketTotal * 100).toFixed(1) : "0";
+    const uwShare = topUw && marketTotal > 0 ?
+      (topUw[1] / marketTotal * 100).toFixed(1) : "0";
+
+    grid.innerHTML = `
+      <div class="kpi-card">
+        <div class="kpi-icon blue">📄</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행건수</div>
+          <div class="kpi-value">${deals.length.toLocaleString()}건</div>
+          <div class="kpi-sub">회차 기준</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green">💰</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행총액</div>
+          <div class="kpi-value">${fmtAmount(marketTotal)}</div>
+          <div class="kpi-sub">시장 규모</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon orange">🏆</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 주관 1위</div>
+          <div class="kpi-value broker-name">${esc(displayName(topLead ? topLead[0] : ""))}</div>
+          <div class="kpi-sub">${topLead ? fmtAmount(topLead[1]) + " · " + leadShare + "%" : ""}</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple">🤝</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 인수 1위</div>
+          <div class="kpi-value broker-name">${esc(displayName(topUw ? topUw[0] : ""))}</div>
+          <div class="kpi-sub">${topUw ? fmtAmount(topUw[1]) + " · " + uwShare + "%" : ""}</div>
+        </div>
+      </div>
+    `;
   }
 
   function renderTable() {

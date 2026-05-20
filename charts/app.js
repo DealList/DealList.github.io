@@ -217,7 +217,7 @@
     if (btn) btn.classList.add("active");
     if (preset === "all") {
       $("f-date-start").value = minDate || "";
-      $("f-date-end").value = todayLocal();
+      $("f-date-end").value = maxDate || "";
       return;
     }
     if (!maxDate) return;
@@ -292,6 +292,52 @@
       `발행건수 ${deals.length.toLocaleString()}건 · 발행총액 ${fmtAmount(totalAmt)}`;
 
     renderCharts(deals);
+  }
+
+  function _updateKPI_disabled(deals, totalAmt) {
+    const grid = $("kpi-grid");
+    if (!grid) return;
+    if (!deals.length) { grid.innerHTML = ""; return; }
+    const avg = totalAmt / deals.length;
+    const brokers = new Set();
+    for (const d of deals) {
+      for (const a of Object.keys(d.lead_amt || {})) brokers.add(a);
+    }
+    const issuers = new Set(deals.map((d) => d.issuer));
+    grid.innerHTML = `
+      <div class="kpi-card">
+        <div class="kpi-icon blue">📄</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행건수</div>
+          <div class="kpi-value">${deals.length.toLocaleString()}건</div>
+          <div class="kpi-sub">회차 기준</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green">💰</div>
+        <div class="kpi-body">
+          <div class="kpi-label">조회 기간 발행총액</div>
+          <div class="kpi-value">${fmtAmount(totalAmt)}</div>
+          <div class="kpi-sub">시장 규모</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon orange">📊</div>
+        <div class="kpi-body">
+          <div class="kpi-label">평균 발행규모</div>
+          <div class="kpi-value">${fmtAmount(avg)}</div>
+          <div class="kpi-sub">회차당 평균</div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon purple">🏢</div>
+        <div class="kpi-body">
+          <div class="kpi-label">발행사 / 참여 주관사</div>
+          <div class="kpi-value">${issuers.size} / ${brokers.size}개</div>
+          <div class="kpi-sub">고유 발행사·주관사 수</div>
+        </div>
+      </div>
+    `;
   }
 
   function fmtAmount(eok) {

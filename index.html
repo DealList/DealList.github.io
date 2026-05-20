@@ -15,6 +15,7 @@
   <main class="landing-main">
     <section class="section">
       <h2 class="section-title">DCM</h2>
+      <div class="kpi-grid" id="kpi-grid"></div>
       <div class="card-grid">
         <a class="landing-card" href="deals/">
           <div class="card-icon">📄</div>
@@ -59,5 +60,70 @@
   <footer class="landing-footer">
     <small>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</small>
   </footer>
+
+  <script>
+  (async function () {
+    const BROKER_FULL = {
+      "BNK":"BNK투자증권","DB":"DB금융투자","IBK":"IBK투자증권","KB":"KB증권",
+      "KR":"KR투자증권","LS":"LS증권","NH":"NH투자증권","SK":"SK증권","iM":"iM증권",
+      "교보":"교보증권","다올":"다올투자증권","대신":"대신증권","디에스":"DS투자증권",
+      "리딩":"리딩투자증권","메리츠":"메리츠증권","미래":"미래에셋증권","부국":"부국증권",
+      "산은":"한국산업은행","삼성":"삼성증권","상상인":"상상인증권","신영":"신영증권",
+      "신한":"신한투자증권","우리":"우리투자증권","유안타":"유안타증권","유진":"유진투자증권",
+      "케이프":"케이프투자증권","코리아에셋":"코리아에셋투자증권","키움":"키움증권",
+      "하나":"하나증권","한양":"한양증권","한투":"한국투자증권","한화":"한화투자증권",
+      "현차":"현대차증권","흥국":"흥국증권"
+    };
+    try {
+      const s = await fetch("summary.json").then(r => r.json());
+      const fmtAmt = (eok) => {
+        if (eok >= 10000) {
+          const jo = Math.floor(eok / 10000);
+          const rest = Math.round(eok % 10000);
+          return `${jo.toLocaleString()}조 ${rest.toLocaleString()}억`;
+        }
+        return `${Math.round(eok).toLocaleString()}억`;
+      };
+      const chg = (v) => v == null ? "" :
+        (v > 0 ? `↑ ${v}%` : v < 0 ? `↓ ${Math.abs(v)}%` : "변동 없음");
+      const monthLabel = s.this_month_label.replace("-", "년 ") + "월";
+      const grid = document.getElementById("kpi-grid");
+      grid.innerHTML = `
+        <div class="kpi-card">
+          <div class="kpi-icon blue">📄</div>
+          <div class="kpi-body">
+            <div class="kpi-label">${monthLabel} 발행건수</div>
+            <div class="kpi-value">${s.this_month_count}건</div>
+            <div class="kpi-sub">${chg(s.this_month_count_change)} (전월 대비)</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon green">💰</div>
+          <div class="kpi-body">
+            <div class="kpi-label">${monthLabel} 발행총액</div>
+            <div class="kpi-value">${fmtAmt(s.this_month_amount)}</div>
+            <div class="kpi-sub">${chg(s.this_month_amount_change)} (전월 대비)</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon orange">🏆</div>
+          <div class="kpi-body">
+            <div class="kpi-label">올해 주관 1위</div>
+            <div class="kpi-value broker-name">${BROKER_FULL[s.this_year_top_broker] || s.this_year_top_broker}</div>
+            <div class="kpi-sub">${fmtAmt(s.this_year_top_amount)} · 점유율 ${s.this_year_top_share}%</div>
+          </div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon purple">📈</div>
+          <div class="kpi-body">
+            <div class="kpi-label">올해 최대 단일 발행</div>
+            <div class="kpi-value broker-name">${s.this_year_biggest_issuer} ${s.this_year_biggest_series}회차</div>
+            <div class="kpi-sub">${fmtAmt(s.this_year_biggest_amount)} · ${s.this_year_biggest_date}</div>
+          </div>
+        </div>
+      `;
+    } catch (e) { console.error(e); }
+  })();
+  </script>
 </body>
 </html>

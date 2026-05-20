@@ -32,7 +32,8 @@ const XLSX_COL = {
 const SHEET_NAME = "발행조건확정";  // xlsx 의 데이터 시트 이름
 
 // =========================== INIT ===========================
-let supabase = null;
+// 변수명을 'sb' 로 — CDN 의 window.supabase (SDK namespace) 와 충돌 방지
+let sb = null;
 let currentSession = null;
 let parsedRecords = null;
 let parseSource = null;   // 'json' | 'xlsx'
@@ -45,22 +46,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // Supabase client (auto-refresh + persist session in localStorage)
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-  });
+  try {
+    // Supabase client (auto-refresh + persist session in localStorage)
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+    });
 
-  // OAuth 콜백 후 URL 의 access_token hash 처리 → 세션 가져오기
-  const { data: { session } } = await supabase.auth.getSession();
-  await renderForSession(session);
+    // OAuth 콜백 후 URL 의 access_token hash 처리 → 세션 가져오기
+    const { data: { session } } = await sb.auth.getSession();
+    await renderForSession(session);
 
-  // 이후 auth 상태 변화 listen
-  supabase.auth.onAuthStateChange(async (_event, sess) => {
-    await renderForSession(sess);
-  });
+    // 이후 auth 상태 변화 listen
+    sb.auth.onAuthStateChange(async (_event, sess) => {
+      await renderForSession(sess);
+    });
 
-  setupAuthButtons();
-  setupFileUpload();
+    setupAuthButtons();
+    setupFileUpload();
+  } catch (e) {
+    console.error("admin.js init 실패:", e);
+    // 초기화 실패 시에도 로그인 화면이라도 노출 (사용자가 새로고침 시도 가능)
+    const loginSec = document.getElementById("login-section");
+    if (loginSec) loginSec.hidden = false;
+    showError(`초기화 실패: ${e.message || e}`);
+  }
 });
 
 // =========================== AUTH ===========================
@@ -94,7 +103,7 @@ async function checkIsAdmin() {
   // RLS 정책의 is_admin() 함수를 RPC 로 호출.
   // 함수가 SECURITY DEFINER 라 authenticated role 로 호출 가능.
   try {
-    const { data, error } = await supabase.rpc("is_admin");
+    const { data, error } = await sb.rpc("is_admin");
     if (error) {
       console.warn("is_admin RPC 실패:", error);
       return false;
@@ -108,7 +117,7 @@ async function checkIsAdmin() {
 
 function setupAuthButtons() {
   document.getElementById("btn-google-login").onclick = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { error } = await sb.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.href },
     });
@@ -116,7 +125,7 @@ function setupAuthButtons() {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    await sb.auth.signOut();
   };
   document.getElementById("btn-logout").onclick = logout;
   document.getElementById("btn-logout-non-admin").onclick = logout;
@@ -441,7 +450,7 @@ async function uploadToSupabase() {
   for (let i = 0; i < valid.length; i += BATCH) {
     const batch = valid.slice(i, i + BATCH);
     try {
-      let query = supabase.from("records");
+      let query = sb.from("records");
       if (useUpsert) {
         const { error } = await query.upsert(batch, {
           onConflict: "issuer_alias,series,subscription_date",

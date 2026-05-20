@@ -1,0 +1,137 @@
+/* Deal List — 데이터 안내 (FAQ) */
+:root {
+  --bg: #f7f8fa;
+  --surface: #fff;
+  --border: #e3e6ea;
+  --text: #1a1d21;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-dark: #1e40af;
+  --code-bg: #f1f5f9;
+}
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-dark: #93c5fd;
+  --code-bg: #0b1220;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic",
+               "Apple SD Gothic Neo", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.brand { display: flex; align-items: baseline; gap: 14px; }
+.home-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 20px;
+  font-weight: 600;
+}
+.home-link:hover { color: var(--accent-dark); }
+.brand .page-title {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.theme-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  vertical-align: middle;
+}
+.theme-toggle:hover { background: var(--bg); border-color: var(--accent); }
+
+.about-main {
+  max-width: 800px;
+  margin: 36px auto;
+  padding: 0 24px;
+}
+
+.about-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+}
+
+.about-section h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  color: var(--accent-dark);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 8px;
+}
+.about-section h3 {
+  margin: 22px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.about-section h3:first-of-type { margin-top: 6px; }
+.about-section p {
+  margin: 0 0 10px;
+  color: var(--text);
+}
+.about-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.about-section ul li {
+  margin-bottom: 6px;
+}
+.about-section code {
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
+}
+.about-section a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.about-section a:hover { text-decoration: underline; }
+
+.about-footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--muted);
+}
+
+@media (max-width: 768px) {
+  .topbar { padding: 12px 14px; }
+  .home-link, .brand .page-title { font-size: 18px; }
+  .about-main { padding: 0 14px; margin: 20px auto; }
+  .about-section { padding: 18px 18px; }
+  .about-section h2 { font-size: 18px; }
+}

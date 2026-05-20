@@ -8,6 +8,34 @@
   --accent: #2563eb;
   --accent-dark: #1e40af;
 }
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-dark: #93c5fd;
+}
+
+.theme-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  font-size: 26px;
+  cursor: pointer;
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  line-height: 1;
+  padding: 0;
+}
+.theme-toggle:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+}
 
 * { box-sizing: border-box; }
 
@@ -181,7 +209,12 @@ body.landing {
   text-align: center;
   padding: 24px;
   color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
+.landing-footer a { color: var(--accent); }
+.landing-footer a:hover { color: var(--accent-dark); }
 
 /* ============= 모바일 반응형 ============= */
 @media (max-width: 600px) {

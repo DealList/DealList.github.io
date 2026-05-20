@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal List — 데이터 안내</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="../" class="home-link">← Deal List</a>
+      <h1 class="page-title">데이터 안내</h1>
+    </div>
+    <button id="btn-theme" class="theme-toggle" title="다크 모드 전환">🌙</button>
+  </header>
+
+  <main class="about-main">
+    <section class="about-section">
+      <h2>Deal List 소개</h2>
+      <p>
+        Deal List는 금융감독원 <strong>DART</strong>의 공시 자료를 기반으로 한국 자본시장의
+        핵심 거래 정보를 한 곳에서 조회할 수 있도록 정리한 사이트입니다.
+        딜 리스트와 함께 증권사별 주관·인수 실적, 시장 통계 등을 제공합니다.
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>자주 묻는 질문(DCM)</h2>
+
+      <h3>Q. 데이터는 어디서 수집되나요?</h3>
+      <p>
+        금융감독원 DART 의 세 가지 공시를 <strong>단계적으로</strong> 수집·반영합니다.
+      </p>
+      <ol style="margin-top: 8px;">
+        <li>
+          <strong>증권신고서(채무증권)</strong> — 발행 예정 단계의 최초 공시.<br />
+          <span style="color: var(--muted);">→ 청약일, 발행한도, 신용등급, 만기, 종류, 희망금리(가산형) 등 1차 정보를 수집.</span>
+        </li>
+        <li>
+          <strong>첫 번째 [발행조건확정]</strong> — 수요예측 후 발행 직전.<br />
+          <span style="color: var(--muted);">→ 수요예측 결과(금액·금리), 최종발행액, 인수단 분배 등 핵심 정보 갱신.</span>
+        </li>
+        <li>
+          <strong>두 번째 [발행조건확정]</strong> — 청약 마무리 후.<br />
+          <span style="color: var(--muted);">→ 최종금리 등 마무리 정보 갱신.</span>
+        </li>
+      </ol>
+      <p style="margin-top: 8px;">
+        세 공시를 거치며 한 회차의 데이터가 점진적으로 완성됩니다.
+        아직 1~2단계까지만 진행된 회차는 일부 컬럼이 비어 있을 수 있습니다.
+      </p>
+
+      <h3>Q. 데이터 갱신 주기는?</h3>
+      <p>
+        운영자가 관리합니다. 각 페이지 상단의 <strong>최종 업데이트</strong> 시점에서 확인할 수 있습니다.
+      </p>
+
+      <h3>Q. 어떤 채권이 포함되나요?</h3>
+      <p>
+        무보증·신종자본·후순위 등 공모로 발행된 회사채만 포함합니다.
+        자산유동화증권이나 담보부 발행, 그리고 CP·단기사채·사모채·외화채는 제외됩니다.
+      </p>
+
+      <h3>Q. 회차와 트랜치 차이가 뭔가요?</h3>
+      <p>
+        <strong>회차</strong> = 한 발행 단위 (예: 삼성전자 314회).<br />
+        <strong>트랜치</strong> = 같은 회차 안의 만기별 분류 (예: 314-1 3년 / 314-2 5년 / 314-3 7년).<br />
+        본 사이트에서는 모든 통계가 <strong>회차 단위</strong>로 카운트됩니다 (한 회차의 트랜치가 여러 개더라도 1건).
+      </p>
+
+      <h3>Q. 주관 실적은 어떻게 계산되나요?</h3>
+      <p>
+        <strong>본인 인수금액 + (전체 인수합 − 모든 주관사 인수합) ÷ 주관사 수</strong><br />
+        즉 본인이 인수한 만큼은 그대로 본인 실적이고, 인수단(주관 외)이 가져간 몫은 주관사들이 균등 분배.
+      </p>
+
+      <h3>Q. 신용등급 "A+~AA-" 같은 표기는 무슨 의미인가요?</h3>
+      <p>
+        신용평가사 사이에 등급이 다른 경우의 표기. 앞이 낮은 등급(A+), 뒤가 높은 등급(AA-).
+        검색 조건·통계에서는 보수적 관점에서 <strong>낮은 등급</strong>을 기준으로 분류합니다.
+      </p>
+
+      <h3>Q. 조회 기간 의 의미는?</h3>
+      <p>
+        모든 기간 필터는 <strong>청약일 기준</strong>입니다. 최근 1년 등 프리셋도 데이터의
+        가장 최근 청약일에서 역산합니다.
+      </p>
+
+      <h3>Q. 발행사명을 클릭하면 DART 공시 팝업이 안 떠요.</h3>
+      <p>
+        브라우저가 팝업을 차단했을 수 있습니다. 주소창 우측의 차단 아이콘을 클릭해서 본 사이트에 한해
+        팝업을 허용하면 됩니다.
+      </p>
+
+      <h3>Q. 데이터에 오류가 있어요.</h3>
+      <p>
+        제보는 운영자에게 직접 알려주세요.
+      </p>
+    </section>
+
+    <section class="about-section">
+      <h2>면책</h2>
+      <p style="color: var(--muted); font-size: 13px;">
+        본 사이트는 참고용으로 제공되며, 정확성·완전성을 보장하지 않습니다.
+        투자 판단의 근거로 사용해서는 안 되며, 그로 인한 손실에 대해 운영자는 책임지지 않습니다.
+        원본 공시 정보는 반드시 금융감독원 DART 에서 직접 확인하시기 바랍니다.
+      </p>
+    </section>
+  </main>
+
+  <footer class="about-footer">
+    <small>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</small>
+  </footer>
+
+  <script>
+    // 다크 모드 (모든 페이지 공통)
+    (function () {
+      const root = document.documentElement;
+      const KEY = "deallist-theme";
+      const saved = localStorage.getItem(KEY);
+      if (saved === "dark") root.setAttribute("data-theme", "dark");
+
+      const btn = document.getElementById("btn-theme");
+      const updateBtn = () => {
+        btn.textContent = root.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
+      };
+      updateBtn();
+
+      btn.addEventListener("click", () => {
+        const cur = root.getAttribute("data-theme");
+        if (cur === "dark") {
+          root.removeAttribute("data-theme");
+          localStorage.setItem(KEY, "light");
+        } else {
+          root.setAttribute("data-theme", "dark");
+          localStorage.setItem(KEY, "dark");
+        }
+        updateBtn();
+      });
+    })();
+  </script>
+</body>
+</html>

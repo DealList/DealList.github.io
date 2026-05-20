@@ -10,6 +10,34 @@
   --row-hover: #f1f5f9;
   --num-color: #0f172a;
 }
+:root[data-theme="dark"] {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --border: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #60a5fa;
+  --accent-dark: #93c5fd;
+  --row-hover: #243044;
+  --num-color: #e2e8f0;
+}
+:root[data-theme="dark"] #grid thead th { background: #243044; color: #cbd5e1; }
+:root[data-theme="dark"] #grid tbody tr.total-row td { background: #243044; }
+:root[data-theme="dark"] .filter-row select option:disabled { background: #1a2436; color: #475569; }
+
+.theme-toggle {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  vertical-align: middle;
+}
+.theme-toggle:hover { background: var(--bg); border-color: var(--accent); }
 
 * { box-sizing: border-box; }
 
@@ -319,6 +347,8 @@ body {
   flex-direction: column;
   gap: 4px;
 }
+.footer a { color: var(--accent); }
+.footer a:hover { color: var(--accent-dark); }
 
 /* ========= KPI 카드 ========= */
 .kpi-section {

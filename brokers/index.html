@@ -17,8 +17,32 @@
       <span id="updated">로딩 중…</span>
       <span class="sep">|</span>
       <span id="period-range"></span>
+      <button id="btn-theme" class="theme-toggle" title="다크 모드 전환" style="margin-left:12px;">🌙</button>
     </div>
   </header>
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const KEY = "deallist-theme";
+      if (localStorage.getItem(KEY) === "dark") root.setAttribute("data-theme", "dark");
+      document.addEventListener("DOMContentLoaded", () => {
+        const btn = document.getElementById("btn-theme");
+        if (!btn) return;
+        const upd = () => btn.textContent = root.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
+        upd();
+        btn.addEventListener("click", () => {
+          if (root.getAttribute("data-theme") === "dark") {
+            root.removeAttribute("data-theme");
+            localStorage.setItem(KEY, "light");
+          } else {
+            root.setAttribute("data-theme", "dark");
+            localStorage.setItem(KEY, "dark");
+          }
+          upd();
+        });
+      });
+    })();
+  </script>
 
   <section class="kpi-section">
     <div class="kpi-grid" id="kpi-grid"></div>
@@ -47,7 +71,7 @@
     </div>
     <div class="filter-actions">
       <button id="btn-search" class="btn primary">조회</button>
-      <button id="btn-reset" class="btn">필터 초기화</button>
+      <button id="btn-reset" class="btn">검색 조건 초기화</button>
       <button id="btn-download" class="btn">Excel로 다운로드</button>
       <span id="result-count" class="result-count"></span>
     </div>
@@ -78,6 +102,7 @@
   <footer class="footer">
     <small id="formula-note">* 주관 실적 = 본인 인수금액 + (전체 인수합 − 모든 주관사 인수합) / 주관사 수</small>
     <small>* 시장점유율 = 해당 증권사 실적 / 조회 기간 발행총액 × 100</small>
+    <small><a href="../about/" style="color:inherit;text-decoration:underline;">데이터 안내</a></small>
   </footer>
 
   <script src="app.js"></script>

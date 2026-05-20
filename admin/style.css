@@ -28,6 +28,10 @@
 
 * { box-sizing: border-box; }
 
+/* `hidden` 속성이 모든 CSS class 의 display 보다 우선되도록 강제.
+   (display: flex 같은 class 가 [hidden] 의 display: none 을 덮어쓰는 문제 방지) */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic",

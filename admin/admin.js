@@ -100,6 +100,9 @@ async function renderForSession(session) {
   if (isAdmin) {
     document.getElementById("admin-email").textContent = email;
     adminSec.hidden = false;
+    // audit log 자동 로드
+    loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
+    setupAuditButtons();
   } else {
     document.getElementById("non-admin-email").textContent = email;
     nonAdminSec.hidden = false;
@@ -605,6 +608,11 @@ async function uploadToSupabase() {
   log("info", `=== 완료 ===`);
   log("success", `  성공: ${success}건`);
   if (failed > 0) log("error", `  실패: ${failed}건`);
+
+  // 업로드 후 audit_log 자동 새로고침 (방금 한 변경 보이게)
+  if (success > 0) {
+    setTimeout(() => loadAuditLog().catch(() => {}), 800);
+  }
   if (parseSource === "xlsx" && !mappingsData) {
     log("warn", `  ⚠ xlsx 업로드 — 브로커 정보(주관/인수)는 업로드되지 않았습니다.`);
     log("warn", `     mappings.json fetch 실패 → 완전한 업로드는 meta.json 사용 권장.`);
@@ -620,6 +628,166 @@ function log(level, msg) {
   div.textContent = msg;
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
+}
+
+// =========================== AUDIT LOG ===========================
+let auditSetupDone = false;
+
+function setupAuditButtons() {
+  if (auditSetupDone) return;
+  auditSetupDone = true;
+  document.getElementById("btn-audit-refresh").onclick = () => loadAuditLog();
+  document.getElementById("audit-filter-table").onchange = () => loadAuditLog();
+}
+
+async function loadAuditLog() {
+  const list = document.getElementById("audit-list");
+  list.innerHTML = `<div class="muted small" style="padding:20px; text-align:center;">불러오는 중...</div>`;
+
+  try {
+    let query = sb.from("audit_log")
+      .select("id,table_name,operation,row_pk,old_data,new_data,changed_by_email,changed_at")
+      .order("changed_at", { ascending: false })
+      .limit(100);
+
+    const tbl = document.getElementById("audit-filter-table").value;
+    if (tbl) query = query.eq("table_name", tbl);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    renderAuditList(data || []);
+  } catch (e) {
+    list.innerHTML = `<div class="muted small" style="padding:20px; text-align:center; color:var(--danger);">
+      audit_log 로드 실패: ${escapeHtml(e.message || String(e))}
+    </div>`;
+  }
+}
+
+function renderAuditList(rows) {
+  const list = document.getElementById("audit-list");
+  if (rows.length === 0) {
+    list.innerHTML = `<div class="muted small" style="padding:24px; text-align:center;">
+      변경 내역이 없습니다.
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  rows.forEach((r, idx) => {
+    const row = document.createElement("div");
+    row.className = "audit-row";
+    row.dataset.idx = idx;
+    const pk = r.row_pk || {};
+    const target = formatTarget(r.table_name, pk);
+    row.innerHTML = `
+      <div class="a-time" title="${escapeHtml(r.changed_at)}">${formatKstTime(r.changed_at)}</div>
+      <div class="a-op op-${escapeHtml(r.operation)}">${escapeHtml(r.operation)}</div>
+      <div class="a-table">${escapeHtml(r.table_name)}</div>
+      <div class="a-target" title="${escapeHtml(JSON.stringify(pk))}">${escapeHtml(target)}</div>
+      <div class="a-toggle">상세 ▼</div>
+    `;
+    list.appendChild(row);
+
+    const detail = document.createElement("div");
+    detail.className = "audit-detail";
+    detail.hidden = true;
+    detail.innerHTML = renderAuditDetail(r);
+    list.appendChild(detail);
+
+    row.onclick = () => {
+      detail.hidden = !detail.hidden;
+      row.querySelector(".a-toggle").textContent = detail.hidden ? "상세 ▼" : "닫기 ▲";
+    };
+  });
+}
+
+function renderAuditDetail(r) {
+  const email = r.changed_by_email || "(system)";
+  let html = `<div class="ad-section">
+    <span class="ad-label">사용자</span>
+    <div class="ad-email">${escapeHtml(email)}</div>
+  </div>`;
+
+  if (r.operation === "INSERT" && r.new_data) {
+    html += `<div class="ad-section">
+      <span class="ad-label">신규 데이터</span>
+      <div>${escapeHtml(prettyJson(r.new_data))}</div>
+    </div>`;
+  } else if (r.operation === "DELETE" && r.old_data) {
+    html += `<div class="ad-section">
+      <span class="ad-label">삭제 전 데이터</span>
+      <div>${escapeHtml(prettyJson(r.old_data))}</div>
+    </div>`;
+  } else if (r.operation === "UPDATE") {
+    const diff = computeDiff(r.old_data || {}, r.new_data || {});
+    if (diff.length === 0) {
+      html += `<div class="ad-section muted">(변경된 필드 없음)</div>`;
+    } else {
+      html += `<div class="ad-section">
+        <span class="ad-label">변경된 필드 (${diff.length}개)</span>
+        ${diff.map(d => `
+          <div class="ad-diff-line diff-del">- ${escapeHtml(d.key)}: ${escapeHtml(prettyValue(d.old))}</div>
+          <div class="ad-diff-line diff-add">+ ${escapeHtml(d.key)}: ${escapeHtml(prettyValue(d.new))}</div>
+        `).join("")}
+      </div>`;
+    }
+  }
+  return html;
+}
+
+function formatTarget(table, pk) {
+  if (table === "records") {
+    const issuer = pk.issuer_alias || "?";
+    const series = pk.series || "?";
+    const date = pk.subscription_date || "?";
+    return `${issuer} ${series} (${date})`;
+  } else if (table === "processed_rcepts") {
+    return `rcept_no: ${pk.rcept_no || "?"}`;
+  }
+  return JSON.stringify(pk);
+}
+
+function formatKstTime(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMin = Math.floor((now - d) / 60000);
+  if (diffMin < 1) return "방금";
+  if (diffMin < 60) return `${diffMin}분 전`;
+  if (diffMin < 60 * 24) return `${Math.floor(diffMin / 60)}시간 전`;
+  // KST 로 포맷팅
+  const kst = new Date(d.getTime() + 9 * 3600 * 1000);
+  const y = kst.getUTCFullYear();
+  const mo = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(kst.getUTCDate()).padStart(2, "0");
+  const hh = String(kst.getUTCHours()).padStart(2, "0");
+  const mm = String(kst.getUTCMinutes()).padStart(2, "0");
+  return `${y}-${mo}-${da} ${hh}:${mm}`;
+}
+
+function computeDiff(oldObj, newObj) {
+  const diffs = [];
+  const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
+  allKeys.delete("id");  // PK 는 변경 안 됨
+  for (const k of allKeys) {
+    const o = oldObj[k];
+    const n = newObj[k];
+    if (JSON.stringify(o) !== JSON.stringify(n)) {
+      diffs.push({ key: k, old: o, new: n });
+    }
+  }
+  return diffs;
+}
+
+function prettyJson(obj) {
+  try { return JSON.stringify(obj, null, 2); }
+  catch { return String(obj); }
+}
+function prettyValue(v) {
+  if (v === null || v === undefined) return "(없음)";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
 }
 
 // =========================== UI helpers ===========================

@@ -126,6 +126,26 @@
         <h3>업로드 결과</h3>
         <div id="result-log"></div>
       </div>
+
+      <div id="audit-card" class="admin-card">
+        <div class="row-between">
+          <h3 style="margin: 0;">최근 변경 내역</h3>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <select id="audit-filter-table" class="select-mini">
+              <option value="">전체 테이블</option>
+              <option value="records">records</option>
+              <option value="processed_rcepts">processed_rcepts</option>
+            </select>
+            <button id="btn-audit-refresh" class="btn-secondary">새로고침</button>
+          </div>
+        </div>
+        <p class="muted small" style="margin: 6px 0 14px;">
+          관리자 페이지에서 한 변경만 기록됩니다. (자동 수집 cron 의 변경은 제외)
+        </p>
+        <div id="audit-list" class="audit-list">
+          <div class="muted small" style="padding: 20px; text-align: center;">불러오는 중...</div>
+        </div>
+      </div>
     </section>
 
     <div id="loading" class="loading-overlay" hidden>

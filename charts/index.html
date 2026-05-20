@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deal List — 공모 회사채 인포그래픽</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="../" class="home-link">← Deal List</a>
+      <h1 class="page-title">공모 회사채 인포그래픽</h1>
+    </div>
+    <div class="meta">
+      <span id="updated">로딩 중…</span>
+      <span class="sep">|</span>
+      <span id="period-range"></span>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-row">
+      <label>기간
+        <div class="date-range">
+          <input type="date" id="f-date-start" />
+          <span class="dash">~</span>
+          <input type="date" id="f-date-end" />
+        </div>
+        <div class="date-presets">
+          <button type="button" data-preset="3m">최근 3개월</button>
+          <button type="button" data-preset="6m">최근 6개월</button>
+          <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="all">전체</button>
+        </div>
+      </label>
+      <div class="filter-col">
+        <label>종류
+          <select id="f-type"></select>
+        </label>
+        <label>신용등급
+          <div class="rating-range">
+            <select id="f-rating-min"></select>
+            <span class="dash">~</span>
+            <select id="f-rating-max"></select>
+          </div>
+        </label>
+      </div>
+      <label>주관 증권사
+        <select id="f-lead-select"></select>
+        <div class="issuer-chips" id="f-lead-chips"></div>
+        <div class="filter-hint">최대 5개까지 추가 가능</div>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button id="btn-search" class="btn primary">조회</button>
+      <button id="btn-reset" class="btn">필터 초기화</button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+  </section>
+
+  <div class="charts-wrap" id="charts-wrap">
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <h3>① 월별 발행추이</h3>
+        <div class="chart-desc">막대 = 발행건수 / 선 = 발행총액(억원)</div>
+        <div class="chart-wrap"><canvas id="ch-monthly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>② 종류별 분포 (건수)</h3>
+        <div class="chart-desc">무보증/신종자본/후순위/보증 발행 건수</div>
+        <div class="chart-wrap"><canvas id="ch-type-count"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>③ 종류별 분포 (발행총액)</h3>
+        <div class="chart-desc">종류별 발행총액 (억원)</div>
+        <div class="chart-wrap"><canvas id="ch-type-amt"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>④ 신용등급별 분포 (건수)</h3>
+        <div class="chart-desc">AAA ~ BBB- 각 등급 발행 건수</div>
+        <div class="chart-wrap"><canvas id="ch-rating-count"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⑤ 신용등급별 분포 (발행총액)</h3>
+        <div class="chart-desc">등급별 발행총액 (억원)</div>
+        <div class="chart-wrap"><canvas id="ch-rating-amt"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⑥ 발행사 Top 10</h3>
+        <div class="chart-desc">발행총액 기준 상위 발행사 (억원)</div>
+        <div class="chart-wrap"><canvas id="ch-top-issuers"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⑦ 주관사 Top 10</h3>
+        <div class="chart-desc">주관 실적 기준 상위 증권사 (억원)</div>
+        <div class="chart-wrap"><canvas id="ch-top-leads"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⑧ 만기 분포</h3>
+        <div class="chart-desc">발행시점 기준 만기 구간별 건수</div>
+        <div class="chart-wrap"><canvas id="ch-maturity"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>⑨ 발행규모 분포 (회차 기준)</h3>
+        <div class="chart-desc">규모 구간별 발행 건수</div>
+        <div class="chart-wrap"><canvas id="ch-size"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <small>* 모든 차트는 위 필터 적용된 회차 단위 발행 데이터 기준</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -177,6 +177,15 @@
       (META.issuers || []).map((s) => [s.toLowerCase(), s]),
     );
 
+    // 자동완성 — datalist 채움 (브라우저 기본 typeahead)
+    const dl = $("issuers-datalist");
+    dl.innerHTML = "";
+    for (const name of (META.issuers || [])) {
+      const o = document.createElement("option");
+      o.value = name;
+      dl.appendChild(o);
+    }
+
     // 발행사 검색: 엔터로 chip 추가 — 데이터에 정확히 일치하는 발행사명만 허용
     $("f-issuer").addEventListener("keydown", (e) => {
       if (e.key !== "Enter") return;

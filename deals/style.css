@@ -352,3 +352,64 @@ body {
   color: var(--muted);
   padding: 16px;
 }
+
+/* ============= 모바일 반응형 ============= */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .brand {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .home-link,
+  .brand .page-title {
+    font-size: 18px;
+  }
+  .meta {
+    font-size: 12px;
+  }
+  .filters {
+    padding: 12px 14px;
+  }
+  .filter-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .filter-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .filter-actions .btn { padding: 6px 10px; font-size: 13px; }
+  .result-count {
+    margin-left: 0;
+    width: 100%;
+    font-size: 12px;
+  }
+  .table-wrap {
+    margin: 0 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    max-height: calc(100vh - 380px);
+    -webkit-overflow-scrolling: touch;
+  }
+  #grid {
+    font-size: 12px;
+  }
+  #grid thead th,
+  #grid tbody td {
+    padding: 6px 5px;
+  }
+  #grid tbody td:last-child {
+    max-width: 200px;
+  }
+  .pager {
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px 0;
+  }
+  .pager button { padding: 4px 8px; font-size: 12px; }
+}

@@ -1,0 +1,68 @@
+name: 데이터 자동 수집
+
+# cron + 수동 trigger 둘 다 지원
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: '조회 시작일 (YYYY-MM-DD)'
+        required: true
+        default: ''
+      end_date:
+        description: '조회 종료일 (YYYY-MM-DD)'
+        required: true
+        default: ''
+  # schedule:
+  #   - cron: '0 0 * * *'   # 매일 한국시간 09:00 (UTC 00:00) — 활성화 시 주석 해제
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12 setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r auto/requirements.txt
+
+      - name: Supabase → meta.json + xlsx 복원
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python auto/sync_from_supabase.py --build-xlsx
+
+      - name: cmd_update 실행 (DART → meta.json + xlsx)
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          python -m auto.main --update "DCM Table.xlsx" \
+            "${{ github.event.inputs.start_date }}" \
+            "${{ github.event.inputs.end_date }}" \
+            -o "DCM Table.xlsx"
+
+      - name: meta.json → Supabase upsert
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python auto/sync_to_supabase.py
+
+      - name: Artifact 보관 (디버깅용 xlsx + meta.json 백업)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: data-${{ github.run_id }}
+          path: |
+            DCM Table.xlsx
+            DCM Table.meta.json
+          retention-days: 14

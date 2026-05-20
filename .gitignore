@@ -1,0 +1,27 @@
+# 환경 변수 (DART_API_KEY, SUPABASE 키 등)
+.env
+auto/.env
+**/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+auto/cache/
+auto/output/
+
+# 백업
+.bak/
+*.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 에디터
+.vscode/
+.idea/
+
+# 임시 파일
+*.log
+*.tmp

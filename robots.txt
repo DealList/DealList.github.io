@@ -1,0 +1,6 @@
+# Deal List — 검색엔진 크롤러 정책
+# admin 페이지는 본인 전용이므로 색인 제외.
+
+User-agent: *
+Disallow: /admin/
+Disallow: /admin

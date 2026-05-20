@@ -99,6 +99,19 @@
       initFilters();
       $("updated").textContent = "최종 업데이트: " + (META.updated || "-");
       $("count").textContent = "전체 " + (META.count || DATA.length).toLocaleString() + "건";
+      // 발행사명 클릭 → DART 공시 팝업 창 (tbody 이벤트 위임)
+      $("rows").addEventListener("click", (e) => {
+        const link = e.target.closest("a.dart-link");
+        if (!link) return;
+        e.preventDefault();
+        const rcept = link.dataset.rcept;
+        if (!rcept) return;
+        window.open(
+          `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`,
+          "dart-viewer",
+          "width=1100,height=800,scrollbars=yes,resizable=yes"
+        );
+      });
       applyFilters();
     } catch (e) {
       $("updated").textContent = "데이터 로드 실패";
@@ -648,9 +661,13 @@
         let html = "";
 
         // 청약일 + 발행사 — 그룹 공통, 첫 트랜치에만 rowspan
+        // 발행사명 클릭 시 DART 공시 팝업 창으로 열기 (rcept 있을 때만)
         if (isFirst) {
           html += '<td class="group-cell" rowspan="' + N + '">' + (r.date || "") + "</td>";
-          html += '<td class="group-cell" rowspan="' + N + '">' + esc(r.issuer) + "</td>";
+          const issuerHtml = r.rcept
+            ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`
+            : esc(r.issuer);
+          html += '<td class="group-cell" rowspan="' + N + '">' + issuerHtml + "</td>";
         }
 
         // 트랜치별 표시

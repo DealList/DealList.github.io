@@ -240,107 +240,115 @@ async function fetchMappings() {
 
 async function parseXlsxFile(file) {
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array", cellDates: true });
-  const sheetName = wb.SheetNames.includes(SHEET_NAME)
-    ? SHEET_NAME : wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(ws, {
-    header: 1, raw: false, dateNF: "yyyy-mm-dd", defval: null,
-  });
-  if (rows.length < 2) throw new Error("xlsx 의 행이 헤더만 있거나 비어있음");
-
-  // 헤더 row 와 데이터 row 분리
-  const headerRow = rows[0] || [];
-  const dataRows = rows.slice(1).filter(r =>
-    r && (r[XLSX_COL.issuer_alias] || r[XLSX_COL.subscription_date]));
+  const wb = XLSX.read(buf, { type: "array", cellDates: true, cellFormula: true });
 
   // mappings.json 이 없으면 브로커 컬럼 파싱 불가 — 한 번 더 시도
-  if (!mappingsData) {
-    await fetchMappings();
-  }
+  if (!mappingsData) await fetchMappings();
 
   // 브로커 컬럼 인덱스 매핑 구축
-  // 우선 mappings.json 의 lead_managers + underwriters 순서를 가정
-  // 안 되면 헤더 row 에서 이름 매칭
-  let leadCols = [];   // [{ name, colIdx0 }]
-  let uwCols = [];     // [{ name, colIdx0 }]
-
+  let leadCols = [];   // [{ name, colIdx0 }] — col P~AN, 산식 셀
+  let uwCols = [];     // [{ name, colIdx0 }] — col AO~BT, raw 값
   if (mappingsData) {
-    const leadStart0 = BROKER_COL_START - 1;  // 0-indexed (xlsx 컬럼 16 → idx 15)
+    const leadStart0 = BROKER_COL_START - 1;  // 1-idx 16 → 0-idx 15
     const uwStart0 = leadStart0 + mappingsData.lead_managers.length;
-
     leadCols = mappingsData.lead_managers.map((name, i) => ({
       name, colIdx0: leadStart0 + i,
     }));
     uwCols = mappingsData.underwriters.map((name, i) => ({
       name, colIdx0: uwStart0 + i,
     }));
+  }
+  const hasBrokerCols = leadCols.length > 0;
 
-    // sanity check — 헤더의 실제 이름과 일치하는지 확인 (불일치 경고만)
-    const mismatches = [];
-    leadCols.concat(uwCols).forEach(({ name, colIdx0 }) => {
-      const headerName = (headerRow[colIdx0] || "").toString().trim();
-      if (headerName && headerName !== name && !headerName.includes(name)) {
-        mismatches.push(`col ${colIdx0 + 1}: 헤더="${headerName}" vs 예상="${name}"`);
-      }
+  // 모든 시트 순회 — DCM Table.xlsx 는 연도별 시트 ("2026년", "2025년", ...) 로 분리됨.
+  // 데이터 시트 판별: 헤더 row 의 청약일 위치에 "청약" 또는 "청약일" 텍스트
+  const allParsed = [];
+  let sheetsRead = 0;
+  let totalRows = 0;
+
+  for (const sheetName of wb.SheetNames) {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) continue;
+    const rows = XLSX.utils.sheet_to_json(ws, {
+      header: 1, raw: false, dateNF: "yyyy-mm-dd", defval: null,
     });
-    if (mismatches.length > 0) {
-      console.warn(
-        `[xlsx 브로커] mappings.json 순서와 헤더 불일치 ${mismatches.length}건:`,
-        mismatches.slice(0, 5)
-      );
+    if (rows.length < 2) continue;
+
+    // 헤더 검증 — 1번째 컬럼이 "청약일" 비슷한 텍스트인 경우만 데이터 시트로 인정
+    const headerRow = rows[0] || [];
+    const h0 = (headerRow[XLSX_COL.subscription_date] || "").toString();
+    if (!h0.includes("청약")) {
+      console.log(`[xlsx] 시트 "${sheetName}" 건너뜀 (헤더 ≠ 청약일)`);
+      continue;
+    }
+    sheetsRead++;
+
+    // 데이터 행 추출
+    const dataRows = [];
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r) continue;
+      if (!r[XLSX_COL.issuer_alias] && !r[XLSX_COL.subscription_date]) continue;
+      dataRows.push({ rowIdx1: i + 1, values: r });  // 1-indexed xlsx row 번호
+    }
+    totalRows += dataRows.length;
+
+    for (const { rowIdx1, values: r } of dataRows) {
+      const rec = {
+        subscription_date: r[XLSX_COL.subscription_date],
+        issuer_alias:      r[XLSX_COL.issuer_alias],
+        series:            r[XLSX_COL.series],
+        bond_type:         r[XLSX_COL.bond_type],
+        credit_rating:     r[XLSX_COL.credit_rating],
+        maturity:          r[XLSX_COL.maturity],
+        initial_amount:    r[XLSX_COL.initial_amount],
+        issue_limit:       r[XLSX_COL.issue_limit],
+        demand_amount:     r[XLSX_COL.demand_amount],
+        final_amount:      r[XLSX_COL.final_amount],
+        series_total:      r[XLSX_COL.series_total],
+        rate_target:       r[XLSX_COL.rate_target],
+        rate_demand:       r[XLSX_COL.rate_demand],
+        rate_final:        r[XLSX_COL.rate_final],
+        lead_managers:     [],
+        underwriter_alloc: {},
+      };
+
+      if (hasBrokerCols) {
+        const alloc = {};
+        const leadsSet = new Set();
+
+        // Lead section (col P~AN) — 산식 cell. 산식 존재 = 그 broker 가 lead.
+        for (const { name, colIdx0 } of leadCols) {
+          const cellAddr = XLSX.utils.encode_cell({ c: colIdx0, r: rowIdx1 - 1 });
+          const cell = ws[cellAddr];
+          if (cell && (cell.f || (typeof cell.v === "number" && cell.v > 0))) {
+            leadsSet.add(name);
+          }
+        }
+        // Underwriter section (col AO~BT) — raw 값. 모든 broker 의 alloc 구성.
+        for (const { name, colIdx0 } of uwCols) {
+          const v = toNum(r[colIdx0]);
+          if (v && v > 0) {
+            alloc[name] = (alloc[name] || 0) + v;
+          }
+        }
+        rec.lead_managers = Array.from(leadsSet);
+        rec.underwriter_alloc = alloc;
+      }
+
+      allParsed.push(normalizeRecord(rec));
     }
   }
 
-  const hasBrokerCols = leadCols.length > 0;
+  console.log(
+    `[xlsx] ${sheetsRead}개 시트, ${totalRows}행 파싱 ` +
+    `(브로커 ${hasBrokerCols ? "포함" : "제외"})`
+  );
 
-  parsedRecords = dataRows.map(r => {
-    // 기본 필드
-    const rec = {
-      subscription_date: r[XLSX_COL.subscription_date],
-      issuer_alias:      r[XLSX_COL.issuer_alias],
-      series:            r[XLSX_COL.series],
-      bond_type:         r[XLSX_COL.bond_type],
-      credit_rating:     r[XLSX_COL.credit_rating],
-      maturity:          r[XLSX_COL.maturity],
-      initial_amount:    r[XLSX_COL.initial_amount],
-      issue_limit:       r[XLSX_COL.issue_limit],
-      demand_amount:     r[XLSX_COL.demand_amount],
-      final_amount:      r[XLSX_COL.final_amount],
-      series_total:      r[XLSX_COL.series_total],
-      rate_target:       r[XLSX_COL.rate_target],
-      rate_demand:       r[XLSX_COL.rate_demand],
-      rate_final:        r[XLSX_COL.rate_final],
-      lead_managers:     [],
-      underwriter_alloc: {},
-    };
-
-    if (!hasBrokerCols) return normalizeRecord(rec);
-
-    // 브로커 컬럼 파싱
-    const alloc = {};       // broker_name → total amount (lead + uw 합쳐서)
-    const leadsSet = new Set();
-
-    // Lead section
-    for (const { name, colIdx0 } of leadCols) {
-      const v = toNum(r[colIdx0]);
-      if (v && v > 0) {
-        alloc[name] = (alloc[name] || 0) + v;
-        leadsSet.add(name);
-      }
-    }
-    // Underwriter section
-    for (const { name, colIdx0 } of uwCols) {
-      const v = toNum(r[colIdx0]);
-      if (v && v > 0) {
-        alloc[name] = (alloc[name] || 0) + v;
-      }
-    }
-
-    rec.lead_managers = Array.from(leadsSet);
-    rec.underwriter_alloc = alloc;
-    return normalizeRecord(rec);
-  });
+  if (allParsed.length === 0) {
+    throw new Error("데이터 행을 찾지 못했습니다. xlsx 의 헤더가 '청약일' 으로 시작하는지 확인하세요.");
+  }
+  parsedRecords = allParsed;
 }
 
 function normalizeRecord(r) {

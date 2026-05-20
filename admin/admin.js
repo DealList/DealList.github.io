@@ -283,6 +283,26 @@ async function parseXlsxFile(file) {
     }
     sheetsRead++;
 
+    // 첫 시트에서만: 산식 셀 전체 스캔 (디버그)
+    if (sheetsRead === 1) {
+      const formulaCells = [];
+      const stringEqCells = [];
+      for (const addr in ws) {
+        if (addr.startsWith("!")) continue;
+        const c = ws[addr];
+        if (c.f) formulaCells.push({ addr, f: String(c.f).slice(0, 40) });
+        else if (typeof c.v === "string" && c.v.startsWith("=")) {
+          stringEqCells.push({ addr, v: c.v.slice(0, 40) });
+        }
+      }
+      console.log(`[scan] 시트 "${sheetName}": cell.f 있는 셀 ${formulaCells.length}건, "="로 시작하는 string 셀 ${stringEqCells.length}건`);
+      if (formulaCells.length > 0) console.log("  formula 샘플:", formulaCells.slice(0, 5));
+      if (stringEqCells.length > 0) console.log("  string-eq 샘플:", stringEqCells.slice(0, 5));
+      // AA3 직접 확인
+      console.log(`  ws["AA3"] =`, ws["AA3"]);
+      console.log(`  ws["P4"] =`, ws["P4"]);
+    }
+
     // 데이터 행 추출
     const dataRows = [];
     for (let i = 1; i < rows.length; i++) {

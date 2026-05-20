@@ -44,21 +44,33 @@ def select(table: str, columns: str = "*",
            filters: dict | None = None,
            order: str | None = None,
            limit: int | None = None,
+           offset: int | None = None,
            range_header: str | None = None) -> list[dict]:
-    """SELECT. filters 예: {'id': 'eq.123', 'status': 'eq.active'}."""
+    """SELECT. filters 예: {'id': 'eq.123', 'status': 'eq.active'}.
+
+    페이지네이션:
+        limit + offset (권장, PostgREST 표준 쿼리 파라미터)
+        range_header 는 deprecated — limit/offset 와 함께 쓰면 416 발생.
+    """
     url, key = _get_config()
     params = {"select": columns}
     if filters:
         params.update(filters)
     if order:
         params["order"] = order
-    if limit:
+    if limit is not None:
         params["limit"] = str(limit)
+    if offset is not None:
+        params["offset"] = str(offset)
     hd = _headers(key)
     if range_header:
+        # 호환성용 — limit/offset 와 동시 사용 금지
         hd["Range"] = range_header
     r = requests.get(f"{url}/rest/v1/{table}", headers=hd, params=params, timeout=60)
-    r.raise_for_status()
+    if r.status_code >= 400:
+        raise RuntimeError(
+            f"select {table} 실패 {r.status_code}: {r.text[:500]}"
+        )
     return r.json()
 
 

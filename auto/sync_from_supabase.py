@@ -74,7 +74,7 @@ def fetch_all_records():
             "records", columns="*",
             order="subscription_date.desc",
             limit=PAGE,
-            range_header=f"{offset}-{offset + PAGE - 1}",
+            offset=offset,
         )
         if not chunk:
             break
@@ -94,7 +94,7 @@ def fetch_all_processed_rcepts():
         chunk = supabase_client.select(
             "processed_rcepts", columns="rcept_no",
             limit=PAGE,
-            range_header=f"{offset}-{offset + PAGE - 1}",
+            offset=offset,
         )
         if not chunk:
             break

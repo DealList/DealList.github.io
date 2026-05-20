@@ -41,22 +41,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r auto/requirements.txt
 
-      - name: 날짜 입력 정규화 (빈 값 → 어제)
+      - name: 날짜 입력 정규화 (빈 값 → 어제 KST)
         id: dates
         run: |
           START="${{ github.event.inputs.start_date }}"
           END="${{ github.event.inputs.end_date }}"
+          # KST 기준 "어제" — UTC runner 라서 명시적으로 timezone 지정해야 함
+          KST_YESTERDAY=$(TZ=Asia/Seoul date -d "yesterday" +%Y-%m-%d)
           if [ -z "$START" ]; then
-            START=$(date -u -d "yesterday" +%Y-%m-%d)
-            echo "start_date 비어있음 → $START (어제, UTC)"
+            START=$KST_YESTERDAY
+            echo "start_date 비어있음 → $START (어제 KST)"
           fi
           if [ -z "$END" ]; then
-            END=$(date -u -d "yesterday" +%Y-%m-%d)
-            echo "end_date 비어있음 → $END (어제, UTC)"
+            END=$KST_YESTERDAY
+            echo "end_date 비어있음 → $END (어제 KST)"
           fi
           echo "start=$START" >> $GITHUB_OUTPUT
           echo "end=$END" >> $GITHUB_OUTPUT
-          echo "조회 범위: $START ~ $END"
+          echo "조회 범위 (KST): $START ~ $END"
 
       - name: Supabase → meta.json + xlsx 복원
         env:
@@ -100,8 +102,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "변경 없음 — commit 생략"
           else
-            TODAY=$(date -u -d "yesterday" +%Y-%m-%d)
-            git commit -m "data: 자동 갱신 ${TODAY} [skip ci]"
+            FETCHED="${{ steps.dates.outputs.start }}"
+            git commit -m "data: 자동 갱신 ${FETCHED} (KST) [skip ci]"
             git push
             echo "[ok] data.json/meta.json/summary.json push 완료"
           fi

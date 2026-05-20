@@ -10,6 +10,17 @@ import json
 import sys
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+KST = ZoneInfo("Asia/Seoul")
+
+
+def _now_kst_str() -> str:
+    """KST 기준 'YYYY-MM-DD HH:MM' 문자열.
+
+    Actions runner 가 UTC 라서 naive datetime.now() 를 쓰면 9시간 늦게 표시됨.
+    """
+    return datetime.now(KST).strftime("%Y-%m-%d %H:%M")
 
 ROOT = Path(__file__).resolve().parent.parent  # .../DCM Table
 META_PATH = ROOT / "DCM Table.meta.json"
@@ -158,7 +169,7 @@ def _compute_summary(cleaned_records: list) -> dict:
     biggest = max(this_year_deals, key=lambda d: d["final"]) if this_year_deals else None
 
     return {
-        "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "updated": _now_kst_str(),
         "max_date": max_d,
         "year": y,
         "this_month_label": this_month,
@@ -231,7 +242,7 @@ def main():
     )
 
     meta = {
-        "updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "updated": _now_kst_str(),
         "count": len(cleaned),
         "years": sorted(years, reverse=True),
         "issuers": sorted(issuers),

@@ -766,11 +766,14 @@ function formatKstTime(iso) {
   return `${y}-${mo}-${da} ${hh}:${mm}`;
 }
 
+// 표시에서 제외할 auto-managed 필드들 (trigger 의 no-op 비교에서도 제외됨)
+const AUTO_FIELDS_TO_HIDE = new Set(["id", "updated_at", "created_at"]);
+
 function computeDiff(oldObj, newObj) {
   const diffs = [];
   const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
-  allKeys.delete("id");  // PK 는 변경 안 됨
   for (const k of allKeys) {
+    if (AUTO_FIELDS_TO_HIDE.has(k)) continue;
     const o = oldObj[k];
     const n = newObj[k];
     if (JSON.stringify(o) !== JSON.stringify(n)) {

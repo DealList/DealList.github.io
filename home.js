@@ -243,7 +243,7 @@ function renderUpcoming(list) {
 }
 
 function renderLeague(rows, year) {
-  document.getElementById('league-meta').textContent = `${year}.01.01 ~ 현재 · 회차 단위`;
+  document.getElementById('league-meta').textContent = `${year}.01.01 ~ 현재`;
   const root = document.getElementById('league-rows');
   if (!rows.length) {
     root.innerHTML = `<div style="padding: 40px 0; text-align: center; color: var(--muted); font-size: 13px;">데이터가 없습니다.</div>`;

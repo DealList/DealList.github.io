@@ -393,6 +393,34 @@
       formatter: smartDataLabel,
     });
 
+    // 커스텀 플러그인: dataset 의 _labelAtTop=true 인 경우 차트 영역 상단에
+    // 라벨 강제 배치 (라인 포인트 위치 무관). 듀얼 축 차트에서 라인 라벨이
+    // 막대와 겹치는 문제 회피용. 전역 등록 → JPG export 에도 동일 적용.
+    if (!Chart.registry.plugins.get("lineLabelsAtTop")) {
+      Chart.register({
+        id: "lineLabelsAtTop",
+        afterDatasetsDraw(chart) {
+          const cctx = chart.ctx;
+          chart.data.datasets.forEach((ds, dsIdx) => {
+            if (!ds._labelAtTop) return;
+            const meta = chart.getDatasetMeta(dsIdx);
+            cctx.save();
+            cctx.font = ds._labelFont || '700 12px Pretendard, -apple-system, sans-serif';
+            cctx.fillStyle = ds._labelColor || "#1e40af";
+            cctx.textAlign = "center";
+            cctx.textBaseline = "bottom";
+            const topY = chart.chartArea.top - 4; // 차트 영역 바로 위 (padding 영역 안)
+            meta.data.forEach((point, i) => {
+              const value = ds.data[i];
+              if (!Number.isFinite(value) || value <= 0) return;
+              cctx.fillText(fmtAmtShort(value), point.x, topY);
+            });
+            cctx.restore();
+          });
+        },
+      });
+    }
+
     // 기존 차트 destroy
     Object.values(charts).forEach((c) => c && c.destroy());
     charts = {};
@@ -436,18 +464,19 @@
             data: ymSorted.map(([_,v]) => Math.round(v.amount)),
             borderColor: "#1e40af", backgroundColor: "#1e40af",
             yAxisID: "y2", tension: 0.2,
-            _isAmount: true,  // 억/조 단위 포맷
-            datalabels: {
-              anchor: "end", align: "top", offset: 8,
-              color: "#1e40af",
-              font: { size: 12, weight: "700" },
-            },
+            _isAmount: true,
+            // 라인 라벨은 차트 상단 고정 (lineLabelsAtTop 플러그인이 그림)
+            // → 막대와 겹치지 않음. 빌트인 datalabels 는 비활성.
+            _labelAtTop: true,
+            _labelColor: "#1e40af",
+            _labelFont: '700 13px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
+            datalabels: { display: false },
           },
         ],
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 28, right: 12 } },
+        layout: { padding: { top: 40, right: 12 } },
         plugins: { legend: { position: "bottom" } },
         scales: {
           y: { type: "linear", position: "left", title: { display: true, text: "건수" } },

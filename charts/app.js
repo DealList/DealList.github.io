@@ -349,11 +349,49 @@
     return `${Math.round(eok).toLocaleString()}억`;
   }
 
+  // ============== Data label 포맷 헬퍼 ==============
+  // 글로벌 formatter — JSON deep clone 으로 차트 export 시에도 살아남도록
+  // Chart.defaults 에 한 번만 설정. dataset._isAmount=true 면 억/조 포맷.
+  function fmtCount(v) {
+    if (!Number.isFinite(v) || v <= 0) return "";
+    return v.toLocaleString();
+  }
+  function fmtAmtShort(v) {
+    if (!Number.isFinite(v) || v <= 0) return "";
+    if (v >= 10000) return (v / 10000).toFixed(1) + "조";
+    return Math.round(v).toLocaleString() + "억";
+  }
+  function smartDataLabel(value, ctx) {
+    if (!Number.isFinite(value) || value <= 0) return "";
+    // doughnut: 3% 미만 slice 는 라벨 숨김 (잡음 방지)
+    const cType = ctx.chart.config.type;
+    if (cType === "doughnut" || cType === "pie") {
+      const total = (ctx.dataset.data || []).reduce(
+        (a, b) => (Number(a) || 0) + (Number(b) || 0), 0);
+      if (total > 0 && value / total < 0.03) return "";
+    }
+    return ctx.dataset._isAmount ? fmtAmtShort(value) : fmtCount(value);
+  }
+
   // ============== 차트 렌더링 ==============
   function renderCharts(deals) {
     Chart.defaults.font.family =
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif";
     Chart.defaults.font.size = 11;
+
+    // 데이터라벨 플러그인 글로벌 등록 + 기본값
+    if (window.ChartDataLabels && !Chart.registry.plugins.get("datalabels")) {
+      Chart.register(window.ChartDataLabels);
+    }
+    Chart.defaults.set("plugins.datalabels", {
+      color: "#0f172a",
+      font: { size: 11, weight: "600" },
+      anchor: "end",
+      align: "end",
+      offset: 4,
+      clip: false,
+      formatter: smartDataLabel,
+    });
 
     // 기존 차트 destroy
     Object.values(charts).forEach((c) => c && c.destroy());
@@ -390,11 +428,13 @@
           { type: "line", label: "발행총액(억)",
             data: ymSorted.map(([_,v]) => Math.round(v.amount)),
             borderColor: "#1e40af", backgroundColor: "#1e40af",
-            yAxisID: "y2", tension: 0.2 },
+            yAxisID: "y2", tension: 0.2,
+            datalabels: { display: false } }, // 라인 라벨은 막대와 겹치므로 숨김
         ],
       },
       options: {
         maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
         plugins: { legend: { position: "bottom" } },
         scales: {
           y: { type: "linear", position: "left", title: { display: true, text: "건수" } },
@@ -414,6 +454,14 @@
     }
     const tEntries = [...tCount.entries()];
     const typeColors = ["#2563eb","#10b981","#f59e0b","#ef4444","#8b5cf6"];
+    // doughnut 공통 옵션: 슬라이스 안 흰 글씨 + 그림자
+    const doughnutLabelOpts = {
+      color: "#ffffff",
+      font: { size: 12, weight: "700" },
+      anchor: "center", align: "center",
+      textStrokeColor: "rgba(0,0,0,0.45)",
+      textStrokeWidth: 3,
+    };
     charts.typeCount = new Chart($("ch-type-count"), {
       type: "doughnut",
       data: {
@@ -421,16 +469,23 @@
         datasets: [{ data: tEntries.map(([_,v]) => v),
                      backgroundColor: typeColors }],
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { position: "right" } } },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "right" }, datalabels: doughnutLabelOpts },
+      },
     });
     charts.typeAmt = new Chart($("ch-type-amt"), {
       type: "doughnut",
       data: {
         labels: tEntries.map(([k]) => k),
         datasets: [{ data: tEntries.map(([k]) => Math.round(tAmt.get(k) || 0)),
-                     backgroundColor: typeColors }],
+                     backgroundColor: typeColors,
+                     _isAmount: true }], // 억 단위 포맷
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { position: "right" } } },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "right" }, datalabels: doughnutLabelOpts },
+      },
     });
 
     // ④ 등급별 (건수) + ⑤ 등급별 (액수)
@@ -452,7 +507,11 @@
                      data: RATING_OPTIONS.map((r) => ratingCount.get(r)),
                      backgroundColor: "#06b6d4" }],
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { display: false } } },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { display: false } },
+      },
     });
     charts.ratingAmt = new Chart($("ch-rating-amt"), {
       type: "bar",
@@ -460,9 +519,14 @@
         labels: RATING_OPTIONS,
         datasets: [{ label: "발행총액(억)",
                      data: RATING_OPTIONS.map((r) => Math.round(ratingAmt.get(r))),
-                     backgroundColor: "#0e7490" }],
+                     backgroundColor: "#0e7490",
+                     _isAmount: true }],
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { display: false } } },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { display: false } },
+      },
     });
 
     // ⑤ Top 10 발행사
@@ -474,9 +538,11 @@
       data: {
         labels: topI.map(([k]) => k),
         datasets: [{ label: "발행총액(억)", data: topI.map(([_,v]) => Math.round(v)),
-                     backgroundColor: "#f97316" }],
+                     backgroundColor: "#f97316",
+                     _isAmount: true }],
       },
       options: { indexAxis: "y", maintainAspectRatio: false,
+                 layout: { padding: { right: 60 } }, // 라벨이 막대 끝 밖으로 나가는 공간
                  plugins: { legend: { display: false } } },
     });
 
@@ -493,9 +559,11 @@
       data: {
         labels: topL.map(([k]) => displayName(k)),
         datasets: [{ label: "주관 실적(억)", data: topL.map(([_,v]) => Math.round(v)),
-                     backgroundColor: "#22c55e" }],
+                     backgroundColor: "#22c55e",
+                     _isAmount: true }],
       },
       options: { indexAxis: "y", maintainAspectRatio: false,
+                 layout: { padding: { right: 60 } },
                  plugins: { legend: { display: false } } },
     });
 
@@ -521,7 +589,11 @@
         datasets: [{ label: "건수", data: Object.values(matBuckets),
                      backgroundColor: "#a855f7" }],
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { display: false } } },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { display: false } },
+      },
     });
 
     // ⑧ 발행규모
@@ -542,7 +614,11 @@
         datasets: [{ label: "건수", data: Object.values(sizeBuckets),
                      backgroundColor: "#ec4899" }],
       },
-      options: { maintainAspectRatio: false, plugins: { legend: { display: false } } },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend: { display: false } },
+      },
     });
 
     // ============== 각 차트 카드에 JPG 다운로드 버튼 부착 ==============

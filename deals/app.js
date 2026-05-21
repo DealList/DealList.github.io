@@ -60,6 +60,21 @@
     "흥국": "흥국증권",
   };
 
+  // Excel 다운로드용 broker 순서 (auto/mappings.json 의 lead_managers / underwriters
+  // 와 동일. 원본 DCM Table.xlsx 와 같은 컬럼 순서). 데이터에 새 broker 가 나오면
+  // 자동 검출되어 끝에 추가됨.
+  const LEAD_ORDER = [
+    "KB","NH","한투","신한","SK","삼성","키움","미래","하나","한화",
+    "iM","대신","교보","한양","DB","IBK","부국","신영","유진","흥국",
+    "유안타","BNK","우리","메리츠","코리아에셋","산은","현차","KR",
+  ];
+  const UW_ORDER = [
+    "KB","NH","한투","신한","SK","삼성","키움","미래","하나","한화",
+    "iM","대신","교보","한양","DB","현차","IBK","부국","신영","유진",
+    "흥국","유안타","LS","BNK","메리츠","상상인","리딩","우리","케이프",
+    "산은","코리아에셋","KR","다올","디에스",
+  ];
+
   // 효과적 등급 rank — 범위(A+~AA-) 는 첫 번째(=low, 낮은 등급) 기준
   // 사용자 룰: 신용등급 표기 "low~high" 중 하단(low)이 필터 기준
   function effectiveRatingRank(s) {
@@ -762,78 +777,184 @@
   }
 
   // ============== Excel 다운로드 ==============
-  // 웹 화면과 동일하게 같은 회차의 트랜치들에서 청약일/발행사/발행한도/회차합산
-  // 컬럼을 첫 트랜치에만 표시 + 실제 셀 병합 적용.
+  // 원본 DCM Table.xlsx 와 동일한 2-row 헤더 구조 + 주관/인수 broker 별 컬럼.
+  // - Row 1: 청약일|발행사|회차|종류|신용등급|만기일|최초모집|발행한도|금액|경쟁률|금리|주관|인수
+  // - Row 2: 위 단독 헤더는 vertical merge, 금액/금리/주관/인수는 horizontal merge 하위에 세부 컬럼
+  // - 트랜치 그룹 (같은 회차) 의 공통 셀 (청약일/발행사/발행한도/회차합산) 은 세로 병합.
   function downloadExcel() {
     if (!grouped.length) {
       alert("다운로드할 데이터가 없습니다.");
       return;
     }
 
-    // 컬럼 정의 — json_to_sheet 가 객체 키 순서대로 컬럼 만듦
-    const COLS = [
-      "청약일", "발행사", "회차", "종류", "신용등급", "만기일",
-      "최초모집(억)", "발행한도(억)", "수요예측(억)",
-      "최종발행(억)", "회차합산(억)",
-      "희망금리", "수요금리", "최종금리(%)",
-      "주관사", "인수사",
-    ];
-    // 그룹 공통 컬럼 (병합 대상)
-    const MERGE_COL_NAMES = ["청약일", "발행사", "발행한도(억)", "회차합산(억)"];
-    const MERGE_COL_INDICES = MERGE_COL_NAMES.map((c) => COLS.indexOf(c));
+    // 현재 데이터에 mappings.json 에 없는 새 broker 가 있으면 끝에 추가 (자동 발견)
+    const leadKnown = new Set(LEAD_ORDER);
+    const uwKnown = new Set(UW_ORDER);
+    const leadExtras = new Set();
+    const uwExtras = new Set();
+    for (const g of grouped) {
+      for (const r of g.records) {
+        for (const k of Object.keys(r.lead_amt || {})) if (!leadKnown.has(k)) leadExtras.add(k);
+        for (const k of Object.keys(r.uw || {}))       if (!uwKnown.has(k))   uwExtras.add(k);
+      }
+    }
+    const leadCols = [...LEAD_ORDER, ...leadExtras];
+    const uwCols   = [...UW_ORDER,   ...uwExtras];
 
-    const rows = [];
+    // 컬럼 인덱스 (0-based)
+    const C_DATE = 0, C_ISSUER = 1, C_SERIES = 2, C_TYPE = 3, C_RATING = 4,
+          C_MATURITY = 5, C_INIT = 6, C_LIMIT = 7;
+    const C_AMT_START = 8;   // 수요예측, 최종발행, 회차합산
+    const C_RATIO     = 11;  // 경쟁률
+    const C_RATE_START = 12; // 희망, 수요, 최종
+    const C_LEAD_START = 15;
+    const C_UW_START   = C_LEAD_START + leadCols.length;
+    const TOTAL_COLS   = C_UW_START + uwCols.length;
+
+    // Row 1 (top) + Row 2 (sub) 헤더 구성
+    const row1 = new Array(TOTAL_COLS).fill("");
+    const row2 = new Array(TOTAL_COLS).fill("");
+    row1[C_DATE]     = "청약일";
+    row1[C_ISSUER]   = "발행사";
+    row1[C_SERIES]   = "회차";
+    row1[C_TYPE]     = "종류";
+    row1[C_RATING]   = "신용등급";
+    row1[C_MATURITY] = "만기일";
+    row1[C_INIT]     = "최초모집(억)";
+    row1[C_LIMIT]    = "발행한도(억)";
+    row1[C_AMT_START] = "금액";
+    row2[C_AMT_START]     = "수요예측(억)";
+    row2[C_AMT_START + 1] = "최종발행(억)";
+    row2[C_AMT_START + 2] = "회차합산(억)";
+    row1[C_RATIO] = "경쟁률";
+    row1[C_RATE_START] = "금리";
+    row2[C_RATE_START]     = "희망";
+    row2[C_RATE_START + 1] = "수요";
+    row2[C_RATE_START + 2] = "최종(%)";
+    row1[C_LEAD_START] = "주관";
+    for (let i = 0; i < leadCols.length; i++) row2[C_LEAD_START + i] = leadCols[i];
+    row1[C_UW_START] = "인수";
+    for (let i = 0; i < uwCols.length; i++)   row2[C_UW_START + i]   = uwCols[i];
+
+    // 데이터 행 + 그룹 병합 좌표 수집
+    const dataRows = [];
     const merges = [];
-    let dataRowIdx = 1;  // row 0 = 헤더, 데이터는 1부터
+    let dataRowIdx = 2;  // row 0,1 = 헤더
 
     for (const g of grouped) {
       const N = g.records.length;
       g.records.forEach((r, i) => {
         const isFirst = i === 0;
-        rows.push({
-          청약일: isFirst ? r.date : null,
-          발행사: isFirst ? r.issuer : null,
-          회차: r.series,
-          종류: r.type,
-          신용등급: r.rating,
-          만기일: r.maturity,
-          "최초모집(억)": r.init,
-          "발행한도(억)": isFirst ? r.limit : null,
-          "수요예측(억)": r.demand,
-          "최종발행(억)": r.final,
-          "회차합산(억)": isFirst ? r.series_total : null,
-          희망금리: r.r_target,
-          수요금리: r.r_demand,
-          "최종금리(%)": r.r_final,
-          주관사: (r.leads || []).join(", "),
-          인수사: Object.keys(r.uw || {}).join(", "),
-        });
+        const row = new Array(TOTAL_COLS).fill(null);
+        row[C_DATE]     = isFirst ? r.date : null;
+        row[C_ISSUER]   = isFirst ? r.issuer : null;
+        row[C_SERIES]   = r.series;
+        row[C_TYPE]     = r.type;
+        row[C_RATING]   = r.rating;
+        row[C_MATURITY] = r.maturity;
+        row[C_INIT]     = r.init;
+        row[C_LIMIT]    = isFirst ? r.limit : null;
+        row[C_AMT_START]     = r.demand;
+        row[C_AMT_START + 1] = r.final;
+        row[C_AMT_START + 2] = isFirst ? r.series_total : null;
+        // 경쟁률 = 수요예측 / 최초모집 (둘 다 있을 때만)
+        row[C_RATIO] = (r.demand && r.init)
+          ? Number((r.demand / r.init).toFixed(2))
+          : null;
+        row[C_RATE_START]     = r.r_target;
+        row[C_RATE_START + 1] = r.r_demand;
+        row[C_RATE_START + 2] = r.r_final;
+        const la = r.lead_amt || {};
+        for (let j = 0; j < leadCols.length; j++) {
+          const v = la[leadCols[j]];
+          row[C_LEAD_START + j] = (v != null && v !== 0) ? v : null;
+        }
+        const uw = r.uw || {};
+        for (let j = 0; j < uwCols.length; j++) {
+          const v = uw[uwCols[j]];
+          row[C_UW_START + j] = (v != null && v !== 0) ? v : null;
+        }
+        dataRows.push(row);
       });
       if (N > 1) {
-        const startRow = dataRowIdx;
-        const endRow = dataRowIdx + N - 1;
-        for (const c of MERGE_COL_INDICES) {
-          merges.push({ s: { r: startRow, c }, e: { r: endRow, c } });
+        const startR = dataRowIdx;
+        const endR = dataRowIdx + N - 1;
+        for (const c of [C_DATE, C_ISSUER, C_LIMIT, C_AMT_START + 2]) {
+          merges.push({ s: { r: startR, c }, e: { r: endR, c } });
         }
       }
       dataRowIdx += N;
     }
 
-    const ws = XLSX.utils.json_to_sheet(rows, { header: COLS });
+    // 헤더 병합 — Row 1 그룹 헤더 수평 병합
+    merges.push({ s: { r: 0, c: C_AMT_START },  e: { r: 0, c: C_AMT_START + 2 } });
+    merges.push({ s: { r: 0, c: C_RATE_START }, e: { r: 0, c: C_RATE_START + 2 } });
+    merges.push({ s: { r: 0, c: C_LEAD_START }, e: { r: 0, c: C_UW_START - 1 } });
+    merges.push({ s: { r: 0, c: C_UW_START },   e: { r: 0, c: TOTAL_COLS - 1 } });
+    // 단독 컬럼은 row 0~1 수직 병합
+    for (const c of [C_DATE, C_ISSUER, C_SERIES, C_TYPE, C_RATING, C_MATURITY,
+                     C_INIT, C_LIMIT, C_RATIO]) {
+      merges.push({ s: { r: 0, c }, e: { r: 1, c } });
+    }
+
+    // Worksheet 생성
+    const aoa = [row1, row2, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
     ws["!merges"] = merges;
 
-    // 병합 셀들의 세로 가운데 정렬 (보기 좋게)
-    for (const m of merges) {
-      const cellRef = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
-      if (ws[cellRef]) {
-        ws[cellRef].s = ws[cellRef].s || {};
-        ws[cellRef].s.alignment = { vertical: "center" };
+    // 헤더 스타일 (양쪽 row 0,1 셀 모두)
+    const headerStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "center", vertical: "center", wrapText: false },
+      fill: { fgColor: { rgb: "F1F5F9" }, patternType: "solid" },
+      border: {
+        top:    { style: "thin", color: { rgb: "CBD5E1" } },
+        bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+        left:   { style: "thin", color: { rgb: "CBD5E1" } },
+        right:  { style: "thin", color: { rgb: "CBD5E1" } },
+      },
+    };
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < TOTAL_COLS; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (ws[ref]) ws[ref].s = headerStyle;
       }
     }
 
+    // 데이터 영역 병합 셀들 세로 가운데 정렬
+    for (const m of merges) {
+      if (m.s.r < 2) continue;
+      const ref = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+      if (ws[ref]) {
+        ws[ref].s = ws[ref].s || {};
+        ws[ref].s.alignment = { vertical: "center" };
+      }
+    }
+
+    // 컬럼 너비 — broker 컬럼들은 좁게, 기본 컬럼은 가독성 있게
+    const cols = new Array(TOTAL_COLS).fill({ wch: 6 });
+    cols[C_DATE]     = { wch: 11 };
+    cols[C_ISSUER]   = { wch: 14 };
+    cols[C_SERIES]   = { wch: 7 };
+    cols[C_TYPE]     = { wch: 8 };
+    cols[C_RATING]   = { wch: 8 };
+    cols[C_MATURITY] = { wch: 11 };
+    cols[C_INIT]     = { wch: 9 };
+    cols[C_LIMIT]    = { wch: 9 };
+    cols[C_AMT_START]     = { wch: 10 };
+    cols[C_AMT_START + 1] = { wch: 10 };
+    cols[C_AMT_START + 2] = { wch: 10 };
+    cols[C_RATIO] = { wch: 7 };
+    cols[C_RATE_START]     = { wch: 11 };
+    cols[C_RATE_START + 1] = { wch: 8 };
+    cols[C_RATE_START + 2] = { wch: 8 };
+    ws["!cols"] = cols;
+
+    // 헤더 행 높이 키움 (2-row 헤더 가독성)
+    ws["!rows"] = [{ hpt: 22 }, { hpt: 22 }];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "DealList");
-
     const today = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `DealList_${today}.xlsx`);
   }

@@ -337,38 +337,27 @@
     const uwShare = topUw && marketTotal > 0 ?
       (topUw[1] / marketTotal * 100).toFixed(1) : "0";
 
+    // V1 디자인: .kpi-cell .l/.v/.s 구조 (deallist.css 의 .kpi-strip 가 4분할 가로 레이아웃)
     grid.innerHTML = `
-      <div class="kpi-card">
-        <div class="kpi-icon blue">📄</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 발행건수</div>
-          <div class="kpi-value">${deals.length.toLocaleString()}건</div>
-          <div class="kpi-sub">회차 기준</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 발행건수</div>
+        <div class="v">${deals.length.toLocaleString()}<small>건</small></div>
+        <div class="s">회차 기준</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon green">💰</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 발행총액</div>
-          <div class="kpi-value">${fmtAmount(marketTotal)}</div>
-          <div class="kpi-sub">시장 규모</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 발행총액</div>
+        <div class="v">${fmtAmount(marketTotal)}</div>
+        <div class="s">시장 규모</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon orange">🏆</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 주관 1위</div>
-          <div class="kpi-value broker-name">${esc(displayName(topLead ? topLead[0] : ""))}</div>
-          <div class="kpi-sub">${topLead ? fmtAmount(topLead[1]) + " · " + leadShare + "%" : ""}</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 주관 1위</div>
+        <div class="v">${esc(displayName(topLead ? topLead[0] : ""))}</div>
+        <div class="s">${topLead ? fmtAmount(topLead[1]) + " · " + leadShare + "%" : ""}</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon purple">🤝</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 인수 1위</div>
-          <div class="kpi-value broker-name">${esc(displayName(topUw ? topUw[0] : ""))}</div>
-          <div class="kpi-sub">${topUw ? fmtAmount(topUw[1]) + " · " + uwShare + "%" : ""}</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 인수 1위</div>
+        <div class="v">${esc(displayName(topUw ? topUw[0] : ""))}</div>
+        <div class="s">${topUw ? fmtAmount(topUw[1]) + " · " + uwShare + "%" : ""}</div>
       </div>
     `;
   }

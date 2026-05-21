@@ -4,49 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Deal List — 공모 회사채 인포그래픽</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="../deallist.css" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <a href="../" class="home-link">← Deal List</a>
-      <h1 class="page-title">공모 회사채 인포그래픽</h1>
-    </div>
-    <div class="meta">
-      <span id="updated">로딩 중…</span>
-      <span class="sep">|</span>
-      <span id="period-range"></span>
-      <button id="btn-theme" class="theme-toggle" title="다크 모드 전환" style="margin-left:12px;">🌙</button>
+
+  <div id="nav-mount" data-active="dcm-charts" data-root=".."></div>
+  <script src="../nav.js"></script>
+
+  <header class="v1-subheader">
+    <div class="row">
+      <div>
+        <div class="kicker">DCM · 시장 통계 9종</div>
+        <h1>공모 회사채 인포그래픽</h1>
+      </div>
+      <div class="meta">
+        <span id="updated">로딩 중…</span>
+        <span class="sep">·</span>
+        <span id="period-range"></span>
+      </div>
     </div>
   </header>
-  <script>
-    (function () {
-      const root = document.documentElement;
-      const KEY = "deallist-theme";
-      if (localStorage.getItem(KEY) === "dark") root.setAttribute("data-theme", "dark");
-      document.addEventListener("DOMContentLoaded", () => {
-        const btn = document.getElementById("btn-theme");
-        if (!btn) return;
-        const upd = () => btn.textContent = root.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
-        upd();
-        btn.addEventListener("click", () => {
-          if (root.getAttribute("data-theme") === "dark") {
-            root.removeAttribute("data-theme");
-            localStorage.setItem(KEY, "light");
-          } else {
-            root.setAttribute("data-theme", "dark");
-            localStorage.setItem(KEY, "dark");
-          }
-          upd();
-        });
-      });
-    })();
-  </script>
 
   <section class="filters">
     <div class="filter-row">
-      <label>기간(청약일 기준)
+      <label>기간 (청약일 기준)
         <div class="date-range">
           <input type="date" id="f-date-start" />
           <span class="dash">~</span>
@@ -78,65 +62,81 @@
       </label>
     </div>
     <div class="filter-actions">
-      <button id="btn-search" class="btn primary">조회</button>
-      <button id="btn-reset" class="btn">검색 조건 초기화</button>
+      <button id="btn-search" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        조회
+      </button>
+      <button id="btn-reset" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        검색 조건 초기화
+      </button>
       <span id="result-count" class="result-count"></span>
     </div>
   </section>
 
   <div class="charts-wrap" id="charts-wrap">
     <div class="charts-grid">
+      <!-- ① wide -->
       <div class="chart-card wide">
-        <h3>① 월별 발행추이</h3>
-        <div class="chart-desc">막대 = 발행건수 / 선 = 발행총액(억원)</div>
+        <h3><span class="num">1</span> 월별 발행추이</h3>
+        <div class="chart-desc">막대 = 발행건수 · 선 = 발행총액 (억원)</div>
         <div class="chart-wrap"><canvas id="ch-monthly"></canvas></div>
       </div>
+      <!-- ②③ -->
       <div class="chart-card">
-        <h3>② 종류별 분포 (건수)</h3>
-        <div class="chart-desc">무보증/신종자본/후순위/보증 발행 건수</div>
+        <h3><span class="num">2</span> 종류별 분포 (건수)</h3>
+        <div class="chart-desc">무보증 · 신종자본 · 후순위 · 보증</div>
         <div class="chart-wrap"><canvas id="ch-type-count"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>③ 종류별 분포 (발행총액)</h3>
+        <h3><span class="num">3</span> 종류별 분포 (발행총액)</h3>
         <div class="chart-desc">종류별 발행총액 (억원)</div>
         <div class="chart-wrap"><canvas id="ch-type-amt"></canvas></div>
       </div>
+      <!-- ④⑤ -->
       <div class="chart-card">
-        <h3>④ 신용등급별 분포 (건수)</h3>
+        <h3><span class="num">4</span> 신용등급별 분포 (건수)</h3>
         <div class="chart-desc">AAA ~ BBB- 각 등급 발행 건수</div>
         <div class="chart-wrap"><canvas id="ch-rating-count"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>⑤ 신용등급별 분포 (발행총액)</h3>
+        <h3><span class="num">5</span> 신용등급별 분포 (발행총액)</h3>
         <div class="chart-desc">등급별 발행총액 (억원)</div>
         <div class="chart-wrap"><canvas id="ch-rating-amt"></canvas></div>
       </div>
+      <!-- ⑥⑦ -->
       <div class="chart-card">
-        <h3>⑥ 발행사 Top 10</h3>
+        <h3><span class="num">6</span> 발행사 Top 10</h3>
         <div class="chart-desc">발행총액 기준 상위 발행사 (억원)</div>
         <div class="chart-wrap"><canvas id="ch-top-issuers"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>⑦ 주관사 Top 10</h3>
+        <h3><span class="num">7</span> 주관사 Top 10</h3>
         <div class="chart-desc">주관 실적 기준 상위 증권사 (억원)</div>
         <div class="chart-wrap"><canvas id="ch-top-leads"></canvas></div>
       </div>
+      <!-- ⑧⑨ -->
       <div class="chart-card">
-        <h3>⑧ 만기 분포</h3>
+        <h3><span class="num">8</span> 만기 분포</h3>
         <div class="chart-desc">발행시점 기준 만기 구간별 건수</div>
         <div class="chart-wrap"><canvas id="ch-maturity"></canvas></div>
       </div>
       <div class="chart-card">
-        <h3>⑨ 발행규모 분포 (회차 기준)</h3>
+        <h3><span class="num">9</span> 발행규모 분포 (회차 기준)</h3>
         <div class="chart-desc">규모 구간별 발행 건수</div>
         <div class="chart-wrap"><canvas id="ch-size"></canvas></div>
       </div>
     </div>
   </div>
 
-  <footer class="footer">
-    <small>* 모든 차트는 위 필터 적용된 회차 단위 발행 데이터 기준</small>
-    <small><a href="../about/" style="color:inherit;text-decoration:underline;">데이터 안내</a></small>
+  <div style="padding: 0 40px 24px; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    모든 차트는 위 필터가 적용된 회차 단위 발행 데이터 기준입니다.
+  </div>
+
+  <footer class="v1-foot">
+    <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
+    <div><a href="../about/">데이터 안내</a></div>
   </footer>
 
   <script src="app.js"></script>

@@ -500,43 +500,32 @@
         biggest = g;
       }
     }
-    const biggestLabel = biggest ?
-      `${biggest.rep.issuer} ${(biggest.rep.series || "").split("-")[0]}회차` : "";
+    const biggestIssuer = biggest ? biggest.rep.issuer : "";
+    const biggestSeries = biggest ? (biggest.rep.series || "").split("-")[0] : "";
     const biggestSub = biggest ?
       `${fmtAmountBig(biggestAmt)} · ${biggest.rep.date}` : "";
 
+    // V1 디자인: .kpi-cell .l/.v/.s 구조 (deallist.css 의 .kpi-strip 가 4분할 가로 레이아웃)
     grid.innerHTML = `
-      <div class="kpi-card">
-        <div class="kpi-icon blue">📄</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 발행건수</div>
-          <div class="kpi-value">${totalCount.toLocaleString()}건</div>
-          <div class="kpi-sub">회차 기준</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 발행건수</div>
+        <div class="v">${totalCount.toLocaleString()}<small>건</small></div>
+        <div class="s">회차 기준</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon green">💰</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 발행총액</div>
-          <div class="kpi-value">${fmtAmountBig(totalAmt)}</div>
-          <div class="kpi-sub">트랜치 합산</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 발행총액</div>
+        <div class="v">${fmtAmountBig(totalAmt)}</div>
+        <div class="s">트랜치 합산</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon orange">📊</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 평균 발행규모</div>
-          <div class="kpi-value">${fmtAmountBig(avg)}</div>
-          <div class="kpi-sub">회차당 평균</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 평균 발행규모</div>
+        <div class="v">${fmtAmountBig(avg)}</div>
+        <div class="s">회차당 평균</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-icon purple">📈</div>
-        <div class="kpi-body">
-          <div class="kpi-label">조회 기간 최대 단일 발행</div>
-          <div class="kpi-value broker-name">${esc(biggestLabel)}</div>
-          <div class="kpi-sub">${esc(biggestSub)}</div>
-        </div>
+      <div class="kpi-cell">
+        <div class="l">조회 기간 최대 단일 발행</div>
+        <div class="v">${esc(biggestIssuer)} <small>${esc(biggestSeries)}회차</small></div>
+        <div class="s">${esc(biggestSub)}</div>
       </div>
     `;
   }

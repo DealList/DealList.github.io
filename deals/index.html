@@ -3,54 +3,40 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DealList — 국내 공모 회사채 발행 정보</title>
+  <title>Deal List — 공모 회사채 발행 정보</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <link rel="stylesheet" href="../deallist.css" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <a href="../" class="home-link">← DealList</a>
-      <h1 class="page-title">공모채 발행 정보</h1>
-    </div>
-    <div class="meta">
-      <span id="updated">로딩 중…</span>
-      <span class="sep">|</span>
-      <span id="count"></span>
-      <button id="btn-theme" class="theme-toggle" title="다크 모드 전환" style="margin-left:12px;">🌙</button>
+
+  <!-- Nav -->
+  <div id="nav-mount" data-active="dcm-deals" data-root=".."></div>
+  <script src="../nav.js"></script>
+
+  <!-- Sub-header -->
+  <header class="v1-subheader">
+    <div class="row">
+      <div>
+        <div class="kicker">DCM · 회차 단위 발행 내역</div>
+        <h1>공모 회사채 발행 정보</h1>
+      </div>
+      <div class="meta">
+        <span id="updated">로딩 중…</span>
+        <span class="sep">·</span>
+        <span id="count"></span>
+      </div>
     </div>
   </header>
-  <script>
-    (function () {
-      const root = document.documentElement;
-      const KEY = "deallist-theme";
-      if (localStorage.getItem(KEY) === "dark") root.setAttribute("data-theme", "dark");
-      document.addEventListener("DOMContentLoaded", () => {
-        const btn = document.getElementById("btn-theme");
-        if (!btn) return;
-        const upd = () => btn.textContent = root.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
-        upd();
-        btn.addEventListener("click", () => {
-          if (root.getAttribute("data-theme") === "dark") {
-            root.removeAttribute("data-theme");
-            localStorage.setItem(KEY, "light");
-          } else {
-            root.setAttribute("data-theme", "dark");
-            localStorage.setItem(KEY, "dark");
-          }
-          upd();
-        });
-      });
-    })();
-  </script>
 
-  <section class="kpi-section">
-    <div class="kpi-grid" id="kpi-grid"></div>
-  </section>
+  <!-- KPI strip (filled by app.js — see README for new HTML template) -->
+  <section class="kpi-strip" id="kpi-grid"></section>
 
+  <!-- Filters -->
   <section class="filters">
     <div class="filter-row">
-      <label>기간(청약일 기준)
+      <label>기간 (청약일 기준)
         <div class="date-range">
           <input type="date" id="f-date-start" />
           <span class="dash">~</span>
@@ -96,13 +82,23 @@
       </div>
     </div>
     <div class="filter-actions">
-      <button id="btn-search" class="btn primary">조회</button>
-      <button id="btn-reset" class="btn">검색 조건 초기화</button>
-      <button id="btn-download" class="btn">Excel로 다운로드</button>
+      <button id="btn-search" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        조회
+      </button>
+      <button id="btn-reset" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        검색 조건 초기화
+      </button>
+      <button id="btn-download" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Excel로 다운로드
+      </button>
       <span id="result-count" class="result-count"></span>
     </div>
   </section>
 
+  <!-- Table -->
   <section class="table-wrap">
     <table id="grid">
       <thead>
@@ -132,9 +128,9 @@
 
   <nav id="pager" class="pager"></nav>
 
-  <footer class="footer">
-    <small><a href="../about/" style="color:inherit;text-decoration:underline;">데이터 안내</a></small>
-    <small>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</small>
+  <footer class="v1-foot">
+    <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
+    <div><a href="../about/">데이터 안내</a></div>
   </footer>
 
   <script src="app.js"></script>

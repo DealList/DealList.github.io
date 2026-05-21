@@ -99,10 +99,10 @@
     </nav>
   `;
 
-  // Wire theme toggle
+  // Wire theme toggle — 기본값 dark. 사용자가 명시적으로 'light' 선택한 경우만 light.
   const root_el = document.documentElement;
   const KEY = 'deallist-theme';
-  if (localStorage.getItem(KEY) === 'dark') root_el.setAttribute('data-theme', 'dark');
+  if (localStorage.getItem(KEY) !== 'light') root_el.setAttribute('data-theme', 'dark');
   const btn = document.getElementById('btn-theme');
   if (btn) {
     btn.addEventListener('click', () => {

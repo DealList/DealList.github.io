@@ -385,7 +385,7 @@
     }
     Chart.defaults.set("plugins.datalabels", {
       color: "#0f172a",
-      font: { size: 11, weight: "600" },
+      font: { size: 14, weight: "700" },
       anchor: "end",
       align: "end",
       offset: 4,
@@ -423,18 +423,31 @@
       data: {
         labels: ymSorted.map(([ym]) => ym),
         datasets: [
-          { type: "bar", label: "발행건수", data: ymSorted.map(([_,v]) => v.count),
-            backgroundColor: "#93c5fd", yAxisID: "y" },
+          { type: "bar", label: "발행건수",
+            data: ymSorted.map(([_,v]) => v.count),
+            backgroundColor: "#93c5fd", yAxisID: "y",
+            datalabels: {
+              anchor: "end", align: "start", offset: 6,
+              color: "#1e3a8a",  // 막대(#93c5fd) 위 진한 파랑 — 콘트라스트 좋음
+              font: { size: 13, weight: "700" },
+            },
+          },
           { type: "line", label: "발행총액(억)",
             data: ymSorted.map(([_,v]) => Math.round(v.amount)),
             borderColor: "#1e40af", backgroundColor: "#1e40af",
             yAxisID: "y2", tension: 0.2,
-            datalabels: { display: false } }, // 라인 라벨은 막대와 겹치므로 숨김
+            _isAmount: true,  // 억/조 단위 포맷
+            datalabels: {
+              anchor: "end", align: "top", offset: 8,
+              color: "#1e40af",
+              font: { size: 12, weight: "700" },
+            },
+          },
         ],
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 28, right: 12 } },
         plugins: { legend: { position: "bottom" } },
         scales: {
           y: { type: "linear", position: "left", title: { display: true, text: "건수" } },
@@ -457,10 +470,10 @@
     // doughnut 공통 옵션: 슬라이스 안 흰 글씨 + 그림자
     const doughnutLabelOpts = {
       color: "#ffffff",
-      font: { size: 12, weight: "700" },
+      font: { size: 16, weight: "800" },
       anchor: "center", align: "center",
-      textStrokeColor: "rgba(0,0,0,0.45)",
-      textStrokeWidth: 3,
+      textStrokeColor: "rgba(0,0,0,0.55)",
+      textStrokeWidth: 4,
     };
     charts.typeCount = new Chart($("ch-type-count"), {
       type: "doughnut",

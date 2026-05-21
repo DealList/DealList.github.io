@@ -349,6 +349,22 @@
     return `${Math.round(eok).toLocaleString()}억`;
   }
 
+  // ============== 테마 인식 색 ==============
+  // 다크모드 시 라벨/축이 어두운 색이라 안 보이는 문제 해소.
+  // renderCharts 마다 현재 테마 읽어 Chart.defaults 와 dataset 색을 갱신.
+  function isDarkMode() {
+    return document.documentElement.getAttribute("data-theme") === "dark";
+  }
+  function chartColors() {
+    const dark = isDarkMode();
+    return {
+      label:     dark ? "#e2e8f0" : "#0f172a",  // 일반 datalabel
+      lineLabel: dark ? "#93c5fd" : "#1e40af",  // monthly line 위 금액
+      axis:      dark ? "#94a3b8" : "#475569",  // 축 tick label
+      grid:      dark ? "#1e293b" : "#eef2f7",  // grid line
+    };
+  }
+
   // ============== Data label 포맷 헬퍼 ==============
   // 글로벌 formatter — JSON deep clone 으로 차트 export 시에도 살아남도록
   // Chart.defaults 에 한 번만 설정. dataset._isAmount=true 면 억/조 포맷.
@@ -379,12 +395,17 @@
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif";
     Chart.defaults.font.size = 11;
 
+    // 현재 테마 색 적용 (다크모드 대응)
+    const C = chartColors();
+    Chart.defaults.color = C.axis;
+    Chart.defaults.borderColor = C.grid;
+
     // 데이터라벨 플러그인 글로벌 등록 + 기본값
     if (window.ChartDataLabels && !Chart.registry.plugins.get("datalabels")) {
       Chart.register(window.ChartDataLabels);
     }
     Chart.defaults.set("plugins.datalabels", {
-      color: "#0f172a",
+      color: C.label,
       font: { size: 14, weight: "700" },
       anchor: "end",
       align: "end",
@@ -468,7 +489,7 @@
             // 라인 라벨은 차트 상단 고정 (lineLabelsAtTop 플러그인이 그림)
             // → 막대와 겹치지 않음. 빌트인 datalabels 는 비활성.
             _labelAtTop: true,
-            _labelColor: "#1e40af",
+            _labelColor: C.lineLabel,  // 테마-인식 (다크모드 시 밝은 파랑)
             _labelFont: '700 13px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
             datalabels: { display: false },
           },
@@ -787,4 +808,11 @@
   }
 
   loadAll();
+
+  // 테마 토글 시 자동 재렌더링 — 라벨 색이 즉시 새 테마에 맞게 갱신됨
+  new MutationObserver(() => {
+    if (DATA) runQuery();
+  }).observe(document.documentElement, {
+    attributes: true, attributeFilter: ["data-theme"],
+  });
 })();

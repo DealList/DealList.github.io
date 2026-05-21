@@ -549,12 +549,12 @@
     attachDownloadButtons();
   }
 
-  // ============== 다운로드 (1920×1080 JPG) ==============
-  // 화면에 보이는 차트와 무관하게 별도 offscreen 캔버스에 동일 데이터로 다시 렌더
-  // → 일정 1920×1080 해상도로 추출. JPG 는 투명도 불가 → destination-over 로 흰 배경.
+  // ============== 다운로드 (1920×1080 JPG, 상단 제목+설명 포함) ==============
+  // 합성 방식: 메인 1920×1080 캔버스에 흰 배경 + "공모채 <제목>" + 설명 텍스트.
+  // 그 아래 영역에 별도 offscreen 캔버스로 Chart.js 재렌더 후 drawImage 로 합성.
   function attachDownloadButtons() {
     document.querySelectorAll(".chart-card").forEach((card) => {
-      if (card.querySelector(".chart-download-btn")) return; // 중복 방지
+      if (card.querySelector(".chart-download-btn")) return;
       const canvas = card.querySelector("canvas");
       if (!canvas) return;
       const chartKey = Object.keys(charts).find((k) => charts[k] && charts[k].canvas === canvas);
@@ -563,6 +563,8 @@
       const title = h3
         ? h3.textContent.replace(/^\s*\d+\s*/, "").trim()
         : canvas.id;
+      const descEl = card.querySelector(".chart-desc");
+      const desc = descEl ? descEl.textContent.trim() : "";
       const btn = document.createElement("button");
       btn.className = "chart-download-btn";
       btn.type = "button";
@@ -570,54 +572,87 @@
       btn.dataset.key = chartKey;
       btn.dataset.label = title;
       btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title));
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc));
       card.appendChild(btn);
     });
   }
 
-  function downloadChartAsJPG(chartKey, title) {
+  function downloadChartAsJPG(chartKey, title, desc) {
     const src = charts[chartKey];
     if (!src) return;
 
-    // config 의 data/options 는 함수 callback 없음 (확인됨) → JSON deep clone 안전
+    // 제목 "공모채" 접두사
+    const fullTitle = `공모채 ${title}`;
+
+    // 라이트/다크 모드 색 (현재 페이지 테마 기반 — 차트도 그 톤으로 렌더링됨)
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const COLOR_BG    = isDark ? "#0a0a0a" : "#ffffff";
+    const COLOR_TITLE = isDark ? "#f1f5f9" : "#0f172a";
+    const COLOR_DESC  = isDark ? "#94a3b8" : "#64748b";
+
+    // 레이아웃 (px)
+    const W = 1920, H = 1080;
+    const PAD_X      = 72;
+    const TITLE_TOP  = 92;            // 제목 baseline Y
+    const DESC_TOP   = 152;           // 설명 baseline Y
+    const CHART_Y    = desc ? 200 : 170;  // 차트 영역 시작 (설명 없으면 살짝 위로)
+    const CHART_PAD_B = 40;           // 차트 영역 하단 패딩
+    const CHART_W    = W;
+    const CHART_H    = H - CHART_Y - CHART_PAD_B;
+
+    // 메인 캔버스 (최종 출력)
+    const mainCanvas = document.createElement("canvas");
+    mainCanvas.width = W;
+    mainCanvas.height = H;
+    const mctx = mainCanvas.getContext("2d");
+    // 흰 (혹은 다크) 배경
+    mctx.fillStyle = COLOR_BG;
+    mctx.fillRect(0, 0, W, H);
+    // 제목
+    const fontFamily = `Pretendard, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+    mctx.fillStyle = COLOR_TITLE;
+    mctx.font = `700 48px ${fontFamily}`;
+    mctx.textBaseline = "alphabetic";
+    mctx.fillText(fullTitle, PAD_X, TITLE_TOP);
+    // 설명
+    if (desc) {
+      mctx.fillStyle = COLOR_DESC;
+      mctx.font = `400 28px ${fontFamily}`;
+      mctx.fillText(desc, PAD_X, DESC_TOP);
+    }
+
+    // 차트 전용 offscreen 캔버스 (이후 mainCanvas 에 drawImage 합성)
+    const chartCanvas = document.createElement("canvas");
+    chartCanvas.width = CHART_W;
+    chartCanvas.height = CHART_H;
+    chartCanvas.style.cssText = "position:fixed;left:-99999px;top:-99999px;";
+    document.body.appendChild(chartCanvas);
+
+    // Chart.js config clone (option callbacks 없음 — JSON deep clone 안전)
     const cfg = src.config;
     const clonedData = JSON.parse(JSON.stringify(cfg.data));
     const clonedOptions = JSON.parse(JSON.stringify(cfg.options || {}));
     clonedOptions.animation = false;
     clonedOptions.responsive = false;
     clonedOptions.maintainAspectRatio = false;
-    // 폰트가 너무 작아 보이지 않도록 1920×1080 에 맞춰 키움 (디스플레이가 1600 정도라면 1.2x)
     clonedOptions.devicePixelRatio = 1;
 
-    const W = 1920, H = 1080;
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = W;
-    tempCanvas.height = H;
-    tempCanvas.style.cssText = "position:fixed;left:-99999px;top:-99999px;";
-    document.body.appendChild(tempCanvas);
-
-    const tempChart = new Chart(tempCanvas, {
+    const tempChart = new Chart(chartCanvas, {
       type: cfg.type,
       data: clonedData,
       options: clonedOptions,
     });
 
-    // 두 프레임 대기 → 렌더 완료 보장
+    // 두 프레임 대기 → 렌더 완료
     requestAnimationFrame(() => requestAnimationFrame(() => {
       try {
-        // JPG 는 투명 = 검정. 차트 픽셀 뒤로 흰 배경 채움.
-        const ctx = tempCanvas.getContext("2d");
-        ctx.save();
-        ctx.globalCompositeOperation = "destination-over";
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, W, H);
-        ctx.restore();
+        // 차트 캔버스 → 메인 캔버스 합성
+        mctx.drawImage(chartCanvas, 0, CHART_Y);
 
-        const dataURL = tempCanvas.toDataURL("image/jpeg", 0.95);
+        const dataURL = mainCanvas.toDataURL("image/jpeg", 0.95);
 
-        // 다운로드 트리거
-        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-        const safeTitle = title
+        const today = new Date().toISOString().slice(0, 10);
+        const safeTitle = fullTitle
           .replace(/[\\/:*?"<>|]/g, "")
           .replace(/\s+/g, "_");
         const a = document.createElement("a");
@@ -628,7 +663,7 @@
         a.remove();
       } finally {
         tempChart.destroy();
-        tempCanvas.remove();
+        chartCanvas.remove();
       }
     }));
   }

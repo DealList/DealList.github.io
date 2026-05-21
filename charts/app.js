@@ -544,6 +544,93 @@
       },
       options: { maintainAspectRatio: false, plugins: { legend: { display: false } } },
     });
+
+    // ============== 각 차트 카드에 JPG 다운로드 버튼 부착 ==============
+    attachDownloadButtons();
+  }
+
+  // ============== 다운로드 (1920×1080 JPG) ==============
+  // 화면에 보이는 차트와 무관하게 별도 offscreen 캔버스에 동일 데이터로 다시 렌더
+  // → 일정 1920×1080 해상도로 추출. JPG 는 투명도 불가 → destination-over 로 흰 배경.
+  function attachDownloadButtons() {
+    document.querySelectorAll(".chart-card").forEach((card) => {
+      if (card.querySelector(".chart-download-btn")) return; // 중복 방지
+      const canvas = card.querySelector("canvas");
+      if (!canvas) return;
+      const chartKey = Object.keys(charts).find((k) => charts[k] && charts[k].canvas === canvas);
+      if (!chartKey) return;
+      const h3 = card.querySelector("h3");
+      const title = h3
+        ? h3.textContent.replace(/^\s*\d+\s*/, "").trim()
+        : canvas.id;
+      const btn = document.createElement("button");
+      btn.className = "chart-download-btn";
+      btn.type = "button";
+      btn.title = "이 차트를 JPG로 다운로드 (1920×1080)";
+      btn.dataset.key = chartKey;
+      btn.dataset.label = title;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title));
+      card.appendChild(btn);
+    });
+  }
+
+  function downloadChartAsJPG(chartKey, title) {
+    const src = charts[chartKey];
+    if (!src) return;
+
+    // config 의 data/options 는 함수 callback 없음 (확인됨) → JSON deep clone 안전
+    const cfg = src.config;
+    const clonedData = JSON.parse(JSON.stringify(cfg.data));
+    const clonedOptions = JSON.parse(JSON.stringify(cfg.options || {}));
+    clonedOptions.animation = false;
+    clonedOptions.responsive = false;
+    clonedOptions.maintainAspectRatio = false;
+    // 폰트가 너무 작아 보이지 않도록 1920×1080 에 맞춰 키움 (디스플레이가 1600 정도라면 1.2x)
+    clonedOptions.devicePixelRatio = 1;
+
+    const W = 1920, H = 1080;
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = W;
+    tempCanvas.height = H;
+    tempCanvas.style.cssText = "position:fixed;left:-99999px;top:-99999px;";
+    document.body.appendChild(tempCanvas);
+
+    const tempChart = new Chart(tempCanvas, {
+      type: cfg.type,
+      data: clonedData,
+      options: clonedOptions,
+    });
+
+    // 두 프레임 대기 → 렌더 완료 보장
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try {
+        // JPG 는 투명 = 검정. 차트 픽셀 뒤로 흰 배경 채움.
+        const ctx = tempCanvas.getContext("2d");
+        ctx.save();
+        ctx.globalCompositeOperation = "destination-over";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+
+        const dataURL = tempCanvas.toDataURL("image/jpeg", 0.95);
+
+        // 다운로드 트리거
+        const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const safeTitle = title
+          .replace(/[\\/:*?"<>|]/g, "")
+          .replace(/\s+/g, "_");
+        const a = document.createElement("a");
+        a.href = dataURL;
+        a.download = `DealList_${safeTitle}_${today}.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } finally {
+        tempChart.destroy();
+        tempCanvas.remove();
+      }
+    }));
   }
 
   loadAll();

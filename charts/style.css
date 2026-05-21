@@ -80,12 +80,39 @@
   border-radius: 10px;
   padding: 18px 20px;
   display: flex; flex-direction: column;
+  position: relative; /* 우상단 다운로드 버튼 absolute 기준점 */
 }
 .chart-card.wide { grid-column: span 2; }
+
+/* JPG 다운로드 버튼 (각 차트 카드 우상단) — 평소 옅게, hover 시 강조 */
+.chart-card .chart-download-btn {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+}
+.chart-card:hover .chart-download-btn {
+  opacity: 1;
+}
+.chart-card .chart-download-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft, rgba(29, 78, 216, 0.08));
+}
+.chart-card .chart-download-btn:active {
+  transform: scale(0.94);
+}
 .chart-card h3 {
   margin: 0; font-size: 14px; font-weight: 700;
   letter-spacing: -0.01em; color: var(--text);
   display: flex; align-items: center; gap: 8px;
+  padding-right: 38px; /* 우상단 다운로드 버튼과 겹침 방지 */
 }
 .chart-card h3 .num {
   display: inline-flex; align-items: center; justify-content: center;

@@ -242,10 +242,13 @@
 .v1-chart {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 10px; padding: 18px;
+  /* Flex column so SVG can grow and fill any extra card height */
+  display: flex; flex-direction: column;
 }
 .v1-chart h3 {
   margin: 0 0 4px; font-size: 14px; font-weight: 700;
   display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
 }
 .v1-chart h3 .toggle {
   display: inline-flex; border: 1px solid var(--border); border-radius: 6px;
@@ -257,11 +260,15 @@
 .v1-chart h3 .toggle span.active { background: var(--text); color: var(--surface); }
 .v1-chart .meta {
   font-size: 11px; color: var(--muted); margin-bottom: 14px;
+  flex-shrink: 0;
 }
-.v1-chart svg { width: 100%; height: 180px; display: block; }
+/* SVG grows to fill card height — viewBox + preserveAspectRatio=none in HTML
+   handle the stretch. min-height keeps it usable when card is short. */
+.v1-chart svg { width: 100%; height: auto; flex: 1; min-height: 220px; display: block; }
 .v1-chart .legend {
   display: flex; gap: 16px; margin-top: 8px;
   font-size: 11px; color: var(--muted);
+  flex-shrink: 0;
 }
 .v1-chart .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .v1-chart .legend i {

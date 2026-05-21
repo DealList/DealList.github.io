@@ -173,17 +173,48 @@ async function fillFromData() {
     .slice(0, 10);
   renderLeague(leagueRows, year);
 
-  /* ─── Monthly trend (last 12 months by count) ─── */
+  /* ─── Monthly trend (current month + 12 prior = 13 months) ─── */
+  // 1) 오늘 기준 13개월 range (좌: 전년 동월, 우: 현재월)
+  const today = new Date();
+  const months = [];
+  let y = today.getFullYear(), m = today.getMonth(); // m: 0-indexed
+  for (let i = 0; i < 13; i++) {
+    months.unshift(`${y}-${String(m + 1).padStart(2, "0")}`);
+    m--;
+    if (m < 0) { m = 11; y--; }
+  }
+  const currentYM = months[months.length - 1];
+  // 2) 모든 월을 0 으로 초기화 (빈 월도 막대 자리 차지)
   const monthAgg = {};
+  for (const ym of months) monthAgg[ym] = { count: 0, amount: 0 };
+  // 3) 청약일이 현재월 이하인 record 만 집계 (미래 청약일은 제외)
   for (const s of series) {
     const ym = s.date.slice(0, 7);
-    if (!monthAgg[ym]) monthAgg[ym] = { count: 0, amount: 0 };
+    if (!(ym in monthAgg)) continue;        // range 밖
+    if (ym > currentYM) continue;            // 미래 청약일 제외 (안전망)
     monthAgg[ym].count++;
     monthAgg[ym].amount += s.finalAmt || 0;
   }
-  const months = Object.keys(monthAgg).sort().slice(-12);
-  renderTrend(months.map(m => ({ label: m, ...monthAgg[m] })));
+  _trendData = months.map(m => ({ label: m, ...monthAgg[m] }));
+
+  // 4) 초기 mode 는 .toggle .active 가 가진 mode (기본 count)
+  const activeToggle = document.querySelector(".v1-chart .toggle span.active");
+  const initMode = activeToggle ? activeToggle.dataset.mode : "count";
+  renderTrend(_trendData, initMode);
+
+  // 5) 토글 클릭 → mode 전환 + 즉시 재렌더
+  document.querySelectorAll(".v1-chart .toggle span").forEach((sp) => {
+    sp.onclick = () => {
+      document.querySelectorAll(".v1-chart .toggle span")
+        .forEach((x) => x.classList.remove("active"));
+      sp.classList.add("active");
+      renderTrend(_trendData, sp.dataset.mode);
+    };
+  });
 }
+
+// 토글 재렌더링을 위해 module-level 에 마지막 trend 데이터 보관
+let _trendData = null;
 
 function renderRecentDeals(list) {
   const root = document.getElementById('recent-deals');
@@ -263,61 +294,73 @@ function renderLeague(rows, year) {
   }).join('');
 }
 
-function renderTrend(months) {
-  if (!months.length) return;
-  const svg = document.getElementById('trend-chart');
+function renderTrend(months, mode) {
+  if (!months || !months.length) return;
+  mode = mode || "count";
+  const svg = document.getElementById("trend-chart");
   const W = 600, H = 200, padL = 40, padR = 5, padT = 20, padB = 30;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
-  const maxCount = Math.max(...months.map(m => m.count), 1);
   const step = innerW / months.length;
   const barW = step * 0.55;
 
-  // Build SVG
-  let html = '';
+  let html = "";
 
-  // gridlines
+  // gridlines (5 lines)
   for (let i = 0; i <= 4; i++) {
     const y = padT + (innerH * i / 4);
     html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eef2f7" stroke-width="1"/>`;
   }
-  // bars
+
+  if (mode === "count") {
+    // 건수 모드 — 막대만
+    const maxCount = Math.max(...months.map(m => m.count), 1);
+    months.forEach((m, i) => {
+      if (!m.count) return;
+      const h = (m.count / maxCount) * innerH;
+      const x = padL + i * step + (step - barW) / 2;
+      html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#94a3b8" rx="2"/>`;
+    });
+  } else {
+    // 금액 모드 — 선 + area gradient 만
+    const maxAmt = Math.max(...months.map(m => m.amount), 1);
+    const points = months.map((m, i) => {
+      const x = padL + i * step + step / 2;
+      const y = padT + innerH - (m.amount / maxAmt) * innerH;
+      return `${x},${y}`;
+    }).join(" ");
+    html = `<defs>
+      <linearGradient id="trendG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/>
+      </linearGradient>
+    </defs>` + html;
+    const first = `${padL + step / 2},${padT + innerH}`;
+    const last = `${padL + (months.length - 1) * step + step / 2},${padT + innerH}`;
+    html += `<path d="M ${first} L ${points} L ${last} Z" fill="url(#trendG)"/>`;
+    html += `<polyline points="${points}" fill="none" stroke="#1d4ed8" stroke-width="2"/>`;
+    months.forEach((m, i) => {
+      const x = padL + i * step + step / 2;
+      const y = padT + innerH - (m.amount / maxAmt) * innerH;
+      html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#1d4ed8" stroke-width="2"/>`;
+    });
+  }
+
+  // x labels (월) — 모드 무관 공통
   months.forEach((m, i) => {
-    const h = (m.count / maxCount) * innerH;
-    const x = padL + i * step + (step - barW) / 2;
-    html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#cbd5e1" rx="2"/>`;
-  });
-  // line
-  const maxAmt = Math.max(...months.map(m => m.amount), 1);
-  const points = months.map((m, i) => {
     const x = padL + i * step + step / 2;
-    const y = padT + innerH - (m.amount / maxAmt) * innerH;
-    return `${x},${y}`;
-  }).join(' ');
-  // area gradient
-  html = `<defs>
-    <linearGradient id="trendG" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.18"/>
-      <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/>
-    </linearGradient>
-  </defs>` + html;
-  const first = `${padL + step / 2},${padT + innerH}`;
-  const last = `${padL + (months.length - 1) * step + step / 2},${padT + innerH}`;
-  html += `<path d="M ${first} L ${points} L ${last} Z" fill="url(#trendG)"/>`;
-  html += `<polyline points="${points}" fill="none" stroke="#1d4ed8" stroke-width="2"/>`;
-  months.forEach((m, i) => {
-    const x = padL + i * step + step / 2;
-    const y = padT + innerH - (m.amount / maxAmt) * innerH;
-    html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#1d4ed8" stroke-width="2"/>`;
-  });
-  // x labels
-  months.forEach((m, i) => {
-    const x = padL + i * step + step / 2;
-    const lbl = m.label.slice(2).replace('-', '/');
+    const lbl = m.label.slice(2).replace("-", "/");
     html += `<text x="${x}" y="${H - 10}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl}</text>`;
   });
 
   svg.innerHTML = html;
+
+  // legend 동기화 — 활성 모드만 표시
+  const legendItems = document.querySelectorAll(".v1-chart .legend > span");
+  if (legendItems.length >= 2) {
+    legendItems[0].style.display = mode === "count" ? "" : "none";
+    legendItems[1].style.display = mode === "amount" ? "" : "none";
+  }
 }
 
 /* ─── boot ─── */

@@ -201,31 +201,31 @@
   font-size: 11px; color: var(--muted); margin-bottom: 10px;
 }
 .v1-league-row {
-  display: flex; align-items: center; padding: 8px 0;
+  display: flex; align-items: center; padding: 14px 0;
   border-bottom: 1px solid var(--border-soft);
-  flex: 1 0 auto;
+  flex: 1 1 0;
 }
 .v1-league-row:last-of-type { border-bottom: 0; }
 .v1-league-row .rank {
-  width: 24px; height: 24px; border-radius: 6px;
+  width: 28px; height: 28px; border-radius: 7px;
   background: var(--surface-2); color: var(--text-2);
-  font-size: 11px; font-weight: 700;
+  font-size: 12px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  margin-right: 12px; flex-shrink: 0;
+  margin-right: 14px; flex-shrink: 0;
 }
 .v1-league-row.top1 .rank { background: var(--accent); color: white; }
 .v1-league-row.top2 .rank { background: #475569; color: white; }
 .v1-league-row.top3 .rank { background: #94a3b8; color: white; }
 .v1-league-row .name {
-  font-size: 13px; font-weight: 600; flex: 1; min-width: 0;
+  font-size: 14px; font-weight: 600; flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .v1-league-row .amt {
-  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+  font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;
   color: var(--text); margin-left: 8px;
 }
 .v1-league-row .share {
-  font-size: 11px; color: var(--muted); margin-left: 6px;
+  font-size: 12px; color: var(--muted); margin-left: 8px;
   font-variant-numeric: tabular-nums;
 }
 .v1-league .footnote {

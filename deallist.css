@@ -117,6 +117,12 @@ a { color: var(--accent); }
 
 /* Dropdown panel */
 .v1-nav .primary .dd { position: relative; }
+/* Invisible hover bridge — fills the 10px gap between trigger and panel so
+   the mouse can travel down without losing :hover (was closing prematurely). */
+.v1-nav .primary .dd::after {
+  content: ''; position: absolute;
+  top: 100%; left: 0; right: 0; height: 12px;
+}
 .v1-nav .primary .panel {
   position: absolute; top: calc(100% + 10px); left: -8px;
   background: var(--surface);

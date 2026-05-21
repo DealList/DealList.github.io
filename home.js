@@ -175,9 +175,10 @@ async function fillFromData() {
 
   /* ─── Monthly trend (current month + 12 prior = 13 months) ─── */
   // 1) 오늘 기준 13개월 range (좌: 전년 동월, 우: 현재월)
-  const today = new Date();
+  // 주의: 위쪽에 const today (max_date 기반 string) 가 이미 있음 → 다른 이름 사용
+  const nowDt = new Date();
   const months = [];
-  let y = today.getFullYear(), m = today.getMonth(); // m: 0-indexed
+  let y = nowDt.getFullYear(), m = nowDt.getMonth(); // m: 0-indexed
   for (let i = 0; i < 13; i++) {
     months.unshift(`${y}-${String(m + 1).padStart(2, "0")}`);
     m--;

@@ -155,6 +155,7 @@ async function fillFromData() {
         leads: new Set(d.leads || []),
         leadAmts: { ...(d.lead_amt || {}) },
         finalAmt: d.final || 0,
+        initAmt: d.init || 0,  // 트랜치별 최초모집액 합 (수요예측 전 표기용)
         limit: d.limit || 0,
         seriesTotal: d.series_total,
         tranches: 1,
@@ -166,6 +167,7 @@ async function fillFromData() {
         e.leadAmts[k] = (e.leadAmts[k] || 0) + v;
       });
       e.finalAmt += d.final || 0;
+      e.initAmt += d.init || 0;
       e.tranches++;
     }
   }
@@ -182,8 +184,11 @@ async function fillFromData() {
   const recentList = series.filter(s => s.date <= today).slice(0, 10);
   renderRecentDeals(recentList);
 
-  /* ─── Upcoming (date > today, sorted asc) ─── */
-  const upcomingList = series.filter(s => s.date > today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
+  /* ─── 다가오는 청약 — deals 페이지 정렬 (date desc) 의 상위 5건.
+       사용자 today 와 무관 (과거/미래 섞여도 OK). 금액 표기:
+       finalAmt > 0 (수요예측 완료) → series_total (= finalAmt 합)
+       finalAmt 없음 (수요예측 전)   → initAmt (모든 트랜치 init 합) */
+  const upcomingList = series.slice(0, 5);
   renderUpcoming(upcomingList);
 
   /* ─── League table TOP 10 (current year) ─── */
@@ -304,7 +309,11 @@ function renderUpcoming(list) {
     return;
   }
   const monthAbbr = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  root.innerHTML = list.map(s => `
+  root.innerHTML = list.map(s => {
+    // 금액: 수요예측 완료 → finalAmt (= series_total),
+    //       수요예측 전   → initAmt (모든 트랜치 최초모집 합)
+    const amt = (s.finalAmt || 0) > 0 ? s.finalAmt : (s.initAmt || 0);
+    return `
     <div class="v1-up-row">
       <div class="when">
         <span class="day">${shortDay(s.date)}</span>
@@ -314,9 +323,9 @@ function renderUpcoming(list) {
         <div class="name">${s.issuer}</div>
         <div class="meta-2">${s.series}회차 · ${s.rating || '—'} · ${s.type}</div>
       </div>
-      <div class="amt">${(s.limit || s.finalAmt || 0).toLocaleString()}억</div>
-    </div>
-  `).join('');
+      <div class="amt">${amt.toLocaleString()}억</div>
+    </div>`;
+  }).join('');
 }
 
 function renderLeague(rows, year) {

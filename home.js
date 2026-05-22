@@ -155,9 +155,9 @@ async function fillFromData() {
         leads: new Set(d.leads || []),
         leadAmts: { ...(d.lead_amt || {}) },
         finalAmt: d.final || 0,
-        initAmt: d.init || 0,  // 트랜치별 최초모집액 합 (수요예측 전 표기용)
+        initAmt: d.init || 0,  // 트랜치별 최초모집액 합 (series_total 미정 시 사용)
         limit: d.limit || 0,
-        seriesTotal: d.series_total,
+        seriesTotal: d.series_total,  // 첫 트랜치에서 잡음 (모든 트랜치 동일값)
         tranches: 1,
       });
     } else {
@@ -168,6 +168,8 @@ async function fillFromData() {
       });
       e.finalAmt += d.final || 0;
       e.initAmt += d.init || 0;
+      // 첫 트랜치에 series_total 없고 다른 트랜치에 있으면 보강
+      if (e.seriesTotal == null && d.series_total != null) e.seriesTotal = d.series_total;
       e.tranches++;
     }
   }
@@ -310,9 +312,9 @@ function renderUpcoming(list) {
   }
   const monthAbbr = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   root.innerHTML = list.map(s => {
-    // 금액: 수요예측 완료 → finalAmt (= series_total),
-    //       수요예측 전   → initAmt (모든 트랜치 최초모집 합)
-    const amt = (s.finalAmt || 0) > 0 ? s.finalAmt : (s.initAmt || 0);
+    // 금액: series_total 이 있으면 그대로,
+    //       아직 없으면 (회차합산 미확정) 모든 트랜치 최초모집액 합 (initAmt)
+    const amt = (s.seriesTotal != null && s.seriesTotal > 0) ? s.seriesTotal : (s.initAmt || 0);
     return `
     <div class="v1-up-row">
       <div class="when">

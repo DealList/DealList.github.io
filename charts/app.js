@@ -794,9 +794,16 @@
     clonedOptions.maintainAspectRatio = false;
     clonedOptions.devicePixelRatio = 1;
 
-    // 1920×1080 큰 캔버스에서 화면용 폰트 (14~19px) 가 너무 작아 보이는 문제.
+    // 1920×1080 큰 캔버스에서 화면용 폰트 (11~19px) 가 너무 작아 보이는 문제.
     // 모든 font.size 를 SCALE 배수 + _labelFont CSS 문자열도 동일 스케일.
     const SCALE = 2.6;
+    // 차트-레벨 기본 font 설정 (없으면) — 축 tick / 축 title 등 Chart.defaults
+    // (size 11) 를 상속하는 요소들이 다운로드 시 명시 override 받아 스케일됨.
+    const baseSize = (Chart.defaults.font && Chart.defaults.font.size) || 11;
+    clonedOptions.font = clonedOptions.font || {};
+    if (typeof clonedOptions.font.size !== "number") {
+      clonedOptions.font.size = baseSize;
+    }
     const scaleFonts = (obj) => {
       if (!obj || typeof obj !== "object") return;
       if (Array.isArray(obj)) { obj.forEach(scaleFonts); return; }
@@ -825,6 +832,13 @@
       clonedOptions.plugins.datalabels.font = { size: Math.round(16 * SCALE), weight: "700" };
     }
 
+    // 축 tick / 축 title 은 Chart.defaults.font.size (=11) 를 동적으로 상속.
+    // 임시로 bump → 새 Chart 인스턴스만 영향받음 (기존 화면 차트는 이미
+    // 생성 시점에 resolved 라 무관). 다운로드 끝나면 finally 에서 복원.
+    const origDefaultsFontSize = (Chart.defaults.font && Chart.defaults.font.size) || 11;
+    if (!Chart.defaults.font) Chart.defaults.font = {};
+    Chart.defaults.font.size = Math.round(origDefaultsFontSize * SCALE);
+
     const tempChart = new Chart(chartCanvas, {
       type: cfg.type,
       data: clonedData,
@@ -852,6 +866,8 @@
       } finally {
         tempChart.destroy();
         chartCanvas.remove();
+        // Chart.defaults.font.size 복원 — 새 차트 인스턴스에 영향 가지 않게
+        Chart.defaults.font.size = origDefaultsFontSize;
       }
     }));
   }

@@ -21,7 +21,11 @@
   /* Numbers 로고 + Pool 텍스트 수평 정렬 */
   display: inline-flex; align-items: center; gap: 14px;
 }
-.v1-hero h1 .accent { color: var(--accent); }
+/* Pool 글자는 로고 내부 NUMBERS 텍스트와 시각적 크기 맞춤 (h1 의 78%) */
+.v1-hero h1 .accent {
+  color: var(--accent);
+  font-size: 0.78em;
+}
 /* Numbers 로고 이미지 — h1 폰트 사이즈에 맞춰 (대략 0.85x = 48px 정도) */
 .v1-hero h1 .hero-logo-img {
   height: 48px; width: auto; display: block;

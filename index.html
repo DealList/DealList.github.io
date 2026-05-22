@@ -6,14 +6,14 @@
   <title>Numbers Pool</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
-  <link rel="stylesheet" href="deallist.css?v=20260522115748" />
-  <link rel="stylesheet" href="landing.css?v=20260522115748" />
+  <link rel="stylesheet" href="deallist.css?v=20260522120038" />
+  <link rel="stylesheet" href="landing.css?v=20260522120038" />
 </head>
 <body>
 
   <!-- Nav (filled by nav.js) -->
   <div id="nav-mount" data-active="home" data-root="."></div>
-  <script src="nav.js?v=20260522115748"></script>
+  <script src="nav.js?v=20260522120038"></script>
 
   <!-- ════════ Hero ════════ -->
   <header class="v1-hero">
@@ -85,8 +85,14 @@
       </div>
     </div>
 
-    <!-- Trend + Upcoming -->
+    <!-- Upcoming + Trend (위치 swap) -->
     <div class="v1-trend-row">
+      <div class="v1-upcoming">
+        <h3>다가오는 청약</h3>
+        <div class="meta">증권신고서 제출 · 청약일 임박순</div>
+        <div id="upcoming-rows"></div>
+      </div>
+
       <div class="v1-chart">
         <h3>
           월별 발행 추이
@@ -101,12 +107,6 @@
           <span><i style="background: #cbd5e1;"></i>발행건수(막대)</span>
           <span><i style="background: var(--accent);"></i>발행총액(선)</span>
         </div>
-      </div>
-
-      <div class="v1-upcoming">
-        <h3>다가오는 청약</h3>
-        <div class="meta">증권신고서 제출 · 청약일 임박순</div>
-        <div id="upcoming-rows"></div>
       </div>
     </div>
 
@@ -151,6 +151,6 @@
     <div><a href="about/">데이터 안내</a></div>
   </footer>
 
-  <script src="home.js?v=20260522115748"></script>
+  <script src="home.js?v=20260522120038"></script>
 </body>
 </html>

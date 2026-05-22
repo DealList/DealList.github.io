@@ -255,7 +255,8 @@
 
 /* ─── Trend chart + Upcoming ─── */
 .v1-trend-row {
-  display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px;
+  /* 좌: 다가오는 청약 (작음, 1fr) / 우: 월별 발행 추이 (큼, 1.6fr) */
+  display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px;
   margin-top: 28px;
 }
 .v1-chart {

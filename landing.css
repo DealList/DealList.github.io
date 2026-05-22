@@ -183,6 +183,11 @@
 .v1-deal-row .amt small {
   font-size: 10px; color: var(--muted); font-weight: 500; margin-left: 2px;
 }
+/* 수요예측 전 상태 표시 — 굵은 숫자 대신 muted 톤 라벨 */
+.v1-deal-row .amt.pending {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  font-variant-numeric: normal; letter-spacing: -0.01em;
+}
 .v1-deal-row .leads {
   font-size: 11px; color: var(--text-2); text-align: right;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;

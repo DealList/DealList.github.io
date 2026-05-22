@@ -223,7 +223,17 @@ function renderRecentDeals(list) {
     root.innerHTML = `<div style="padding: 40px 18px; text-align: center; color: var(--muted); font-size: 13px;">최근 발행 데이터가 없습니다.</div>`;
     return;
   }
-  root.innerHTML = list.map(s => `
+  root.innerHTML = list.map(s => {
+    // 수요예측 전 (= finalAmt 미정) 인 건들은 금액·주관사 자리에 placeholder 대신
+    // "수요예측 예정" 한 줄 표시 — finalAmt > 0 이어야 priced 로 인정.
+    const isPriced = (s.finalAmt || 0) > 0;
+    const amtHtml = isPriced
+      ? `<div class="amt">${s.finalAmt.toLocaleString()}<small>억</small></div>`
+      : `<div class="amt pending">수요예측 예정</div>`;
+    const leadsHtml = isPriced
+      ? `<div class="leads">${[...s.leads].slice(0, 3).join(' · ')}</div>`
+      : `<div class="leads"></div>`;
+    return `
     <a class="v1-deal-row" href="deals/" data-type="${s.type || ''}">
       <div class="date">
         <span class="d">${shortDay(s.date)}</span>
@@ -234,10 +244,10 @@ function renderRecentDeals(list) {
         <div class="series">${s.series}회차 · ${s.type}${s.tranches > 1 ? ` · ${s.tranches}트랜치` : ''}</div>
       </div>
       <div><span class="tag ${tagClassFor(s.rating)}">${s.rating || '—'}</span></div>
-      <div class="amt">${s.finalAmt ? s.finalAmt.toLocaleString() : (s.limit ? s.limit.toLocaleString() : '—')}<small>억</small></div>
-      <div class="leads">${[...s.leads].slice(0, 3).join(' · ') || '주관사 미정'}</div>
-    </a>
-  `).join('');
+      ${amtHtml}
+      ${leadsHtml}
+    </a>`;
+  }).join('');
 
   // Filter pills
   document.querySelectorAll('.v1-deals .pill').forEach(p => {

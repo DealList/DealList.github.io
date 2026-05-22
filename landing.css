@@ -16,19 +16,19 @@
   margin-bottom: 14px;
 }
 .v1-hero h1 {
-  margin: 0; font-size: 56px; font-weight: 800;
+  margin: 0; font-size: 80px; font-weight: 800;
   letter-spacing: -0.035em; color: var(--text);
   /* Numbers 로고 + Pool 텍스트 수평 정렬 */
-  display: inline-flex; align-items: center; gap: 14px;
+  display: inline-flex; align-items: center; gap: 0.25em;
 }
 /* Pool 글자는 로고 내부 NUMBERS 텍스트와 시각적 크기 맞춤 (h1 의 78%) */
 .v1-hero h1 .accent {
   color: var(--accent);
   font-size: 0.78em;
 }
-/* Numbers 로고 이미지 — h1 폰트 사이즈에 맞춰 (대략 0.85x = 48px 정도) */
+/* Numbers 로고 이미지 — h1 폰트 사이즈 비례 (em 단위, 자동 스케일) */
 .v1-hero h1 .hero-logo-img {
-  height: 48px; width: auto; display: block;
+  height: 0.85em; width: auto; display: block;
 }
 :root[data-theme="dark"] .v1-hero h1 .hero-logo-img {
   filter: invert(1) hue-rotate(180deg);
@@ -361,8 +361,8 @@
 }
 @media (max-width: 600px) {
   .v1-hero { padding: 36px 16px 24px; }
-  .v1-hero h1 { font-size: 40px; gap: 10px; }
-  .v1-hero h1 .hero-logo-img { height: 34px; }
+  /* h1 크기만 줄이면 로고·Pool 모두 em 단위라 자동 비례 축소 */
+  .v1-hero h1 { font-size: 52px; }
   .v1-hero .lead { font-size: 14px; }
   .v1-main { padding: 24px 16px 40px; }
   .v1-kpis { grid-template-columns: 1fr; }

@@ -171,9 +171,12 @@ async function fillFromData() {
   }
   const series = [...seriesMap.values()].sort((a, b) => b.date.localeCompare(a.date));
 
-  // Today reference (for upcoming) — use latest date in data + 1 day as floor would be too aggressive.
-  // 실제로는 today() 와 비교하는 게 맞지만, 데이터의 max_date 기준.
-  const today = (window._summary && window._summary.max_date) || new Date().toISOString().slice(0, 10);
+  // Today reference — 사용자 today (브라우저 시각) 기준 YYYY-MM-DD.
+  // 기존엔 데이터의 max_date 를 사용했는데, 미래 청약일 record 가 들어가면서
+  // max_date 가 미래로 튀어 "다가오는 청약" 필터가 거의 항상 빈 결과를 냄.
+  // 이제 사용자 today 와 비교 → 청약일이 오늘 이전 = 최근 발행 / 오늘 이후 = 다가오는 청약.
+  const _todayDt = new Date();
+  const today = `${_todayDt.getFullYear()}-${String(_todayDt.getMonth() + 1).padStart(2, '0')}-${String(_todayDt.getDate()).padStart(2, '0')}`;
 
   /* ─── Recent deals (latest 10 issued, exclude future ones) ─── */
   const recentList = series.filter(s => s.date <= today).slice(0, 10);

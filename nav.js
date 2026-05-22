@@ -31,7 +31,8 @@
     <nav class="v1-nav">
       <div class="left">
         <a href="${root}/" class="v1-logo">
-          <img src="${root}/assets/numbers-logo.png" alt="Numbers" class="v1-logo-img" />
+          <img src="${root}/assets/numbers-logo.png" alt="Numbers" class="v1-logo-img light-only" />
+          <img src="${root}/assets/numbers-logo-dark.png" alt="" class="v1-logo-img dark-only" />
           <span class="v1-logo-pool">Pool</span>
           <small>Korea Capital Market</small>
         </a>

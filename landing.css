@@ -30,9 +30,10 @@
 .v1-hero h1 .hero-logo-img {
   height: 0.85em; width: auto; display: block;
 }
-:root[data-theme="dark"] .v1-hero h1 .hero-logo-img {
-  filter: invert(1) hue-rotate(180deg);
-}
+/* 라이트/다크 모드별 별도 PNG */
+.v1-hero h1 .dark-only { display: none; }
+:root[data-theme="dark"] .v1-hero h1 .light-only { display: none; }
+:root[data-theme="dark"] .v1-hero h1 .dark-only { display: block; }
 .v1-hero .lead {
   margin: 14px auto 0; max-width: 560px;
   color: var(--text-2); font-size: 15px; line-height: 1.6;

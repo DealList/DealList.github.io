@@ -81,8 +81,11 @@ a { color: var(--accent); }
 .v1-logo .v1-logo-img {
   height: 22px; width: auto; display: block;
 }
-/* 다크 모드에서 로고 텍스트가 검정이라 안 보임 → invert 로 흰색 효과 */
-:root[data-theme="dark"] .v1-logo .v1-logo-img { filter: invert(1) hue-rotate(180deg); }
+/* 라이트/다크 모드별 별도 PNG 사용 — light-only 는 기본 표시,
+   dark-only 는 [data-theme="dark"] 일 때만 표시 (반대도 동일). */
+.v1-logo .dark-only { display: none; }
+:root[data-theme="dark"] .v1-logo .light-only { display: none; }
+:root[data-theme="dark"] .v1-logo .dark-only { display: block; }
 .v1-logo .v1-logo-pool {
   font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
   color: var(--text);

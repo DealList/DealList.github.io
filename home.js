@@ -40,25 +40,59 @@ const tagClassFor = (rating) => {
 const shortMonth = (dateStr) => dateStr.slice(5, 7) + '월';
 const shortDay = (dateStr) => dateStr.slice(8, 10);
 
-/* ─── (1) KPI grid + nav updated — summary.json ─── */
+/* ─── (1) KPI grid + nav updated — summary.json + data.json ─── */
 async function fillKPI() {
   try {
-    const s = await fetch('summary.json', { cache: 'no-store' }).then(r => r.json());
+    const [s, dataRaw] = await Promise.all([
+      fetch('summary.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch('data.json', { cache: 'no-store' }).then(r => r.json()),
+    ]);
     document.getElementById('nav-updated').textContent =
       `최종 업데이트 ${s.updated || '—'}`;
 
-    const monthLabel = s.this_month_label.replace('-', '년 ') + '월';
+    // 사용자 today 기준 "지난 달" 통계 — summary.json 의 this_month_* 은
+    // max_date 기반이라 미래 청약일 있으면 다음 달로 잘못 넘어감. 클라이언트에서
+    // 다시 계산: prevMonth = today.month - 1. 같은 청약일·발행사·회차base 는
+    // 1건 (회차 단위) 으로 카운트, 금액은 모든 트랜치 final 합계.
+    const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const today = new Date();
+    const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const prevPrevMonth = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const prevYM = _ym(prevMonth);
+    const prevPrevYM = _ym(prevPrevMonth);
+
+    const records = (dataRaw && dataRaw.records) ? dataRaw.records : (dataRaw || []);
+    function aggMonth(targetYM) {
+      const seen = new Set();
+      let count = 0, amount = 0;
+      for (const r of records) {
+        if (!r.date || !r.date.startsWith(targetYM)) continue;
+        amount += r.final || 0;
+        const baseSeries = (r.series || '').split('-')[0];
+        const key = `${r.date}|${r.issuer}|${baseSeries}`;
+        if (!seen.has(key)) { seen.add(key); count++; }
+      }
+      return { count, amount };
+    }
+    const prev = aggMonth(prevYM);
+    const prevPrev = aggMonth(prevPrevYM);
+    const pct = (curr, base) => base > 0 ? ((curr - base) / base * 100) : null;
+    const countChange = pct(prev.count, prevPrev.count);
+    const amountChange = pct(prev.amount, prevPrev.amount);
+
+    const monthLabel = `${prevMonth.getFullYear()}년 ${String(prevMonth.getMonth() + 1).padStart(2, '0')}월`;
+    const fmtPct = (v) => v == null ? '—' :
+      `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
+
     document.getElementById('kpi-grid').innerHTML = `
       <div class="v1-kpi">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           ${monthLabel} 발행건수
         </div>
-        <div class="value">${s.this_month_count}<small>건</small></div>
+        <div class="value">${prev.count}<small>건</small></div>
         <div class="sub">
-          <span class="delta ${s.this_month_count_change < 0 ? 'down' : 'up'}">
-            ${s.this_month_count_change < 0 ? '▼' : '▲'} ${Math.abs(s.this_month_count_change)}%
-          </span>
+          ${fmtPct(countChange)}
           <span class="sub-text">전월 대비</span>
         </div>
       </div>
@@ -67,11 +101,9 @@ async function fillKPI() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           ${monthLabel} 발행총액
         </div>
-        <div class="value">${fmtAmt(s.this_month_amount)}</div>
+        <div class="value">${fmtAmt(prev.amount)}</div>
         <div class="sub">
-          <span class="delta ${s.this_month_amount_change < 0 ? 'down' : 'up'}">
-            ${s.this_month_amount_change < 0 ? '▼' : '▲'} ${Math.abs(s.this_month_amount_change)}%
-          </span>
+          ${fmtPct(amountChange)}
           <span class="sub-text">전월 대비</span>
         </div>
       </div>

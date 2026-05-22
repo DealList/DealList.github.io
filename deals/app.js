@@ -601,13 +601,24 @@
     // 그룹 단위 정렬 — 그룹 내 첫 트랜치 (rep) 의 정렬키 값 기준
     const k = sortKey;
     const dir = sortDir === "asc" ? 1 : -1;
+    // 경쟁률은 record 에 직접 없고 demand/init 으로 계산
+    const computeRatio = (rec) => {
+      if (!rec || !rec.demand || !rec.init) return null;
+      return rec.demand / rec.init;
+    };
     grouped.sort((ga, gb) => {
       // 정렬 키가 series 이면 series 베이스 숫자 비교 (314 vs 315)
       if (k === "series") {
         return compareSeries(ga.rep.series, gb.rep.series) * dir;
       }
-      const va = ga.rep[k];
-      const vb = gb.rep[k];
+      let va, vb;
+      if (k === "ratio") {
+        va = computeRatio(ga.rep);
+        vb = computeRatio(gb.rep);
+      } else {
+        va = ga.rep[k];
+        vb = gb.rep[k];
+      }
       if (va == null && vb == null) return 0;
       if (va == null) return 1;
       if (vb == null) return -1;
@@ -702,7 +713,10 @@
           html += '<td class="num group-cell" rowspan="' + N + '">' + fmtNum(r.series_total) + "</td>";
         }
 
+        // 경쟁률 = 수요예측 / 최초모집 (소수점 둘째 자리), 둘 다 있을 때만
+        const ratio = (r.demand && r.init) ? (r.demand / r.init) : null;
         html +=
+          '<td class="num">' + (ratio != null ? ratio.toFixed(2) : '-') + "</td>" +
           '<td class="center">' + esc(r.r_target) + "</td>" +
           '<td class="center">' + esc(r.r_demand) + "</td>" +
           '<td class="num">' + fmtRate(r.r_final) + "</td>" +

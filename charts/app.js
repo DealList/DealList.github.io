@@ -406,7 +406,7 @@
     }
     Chart.defaults.set("plugins.datalabels", {
       color: C.label,
-      font: { size: 14, weight: "700" },
+      font: { size: 16, weight: "700" },
       anchor: "end",
       align: "end",
       offset: 4,
@@ -478,7 +478,7 @@
             datalabels: {
               anchor: "end", align: "start", offset: 6,
               color: "#1e3a8a",  // 막대(#93c5fd) 위 진한 파랑 — 콘트라스트 좋음
-              font: { size: 13, weight: "700" },
+              font: { size: 15, weight: "700" },
             },
           },
           { type: "line", label: "발행총액(억)",
@@ -490,7 +490,7 @@
             // → 막대와 겹치지 않음. 빌트인 datalabels 는 비활성.
             _labelAtTop: true,
             _labelColor: C.lineLabel,  // 테마-인식 (다크모드 시 밝은 파랑)
-            _labelFont: '700 13px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
+            _labelFont: '700 15px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
             datalabels: { display: false },
           },
         ],
@@ -520,7 +520,7 @@
     // doughnut 공통 옵션: 슬라이스 안 흰 글씨 + 그림자
     const doughnutLabelOpts = {
       color: "#ffffff",
-      font: { size: 16, weight: "800" },
+      font: { size: 19, weight: "800" },
       anchor: "center", align: "center",
       textStrokeColor: "rgba(0,0,0,0.55)",
       textStrokeWidth: 4,
@@ -572,7 +572,7 @@
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 36 } },
         plugins: { legend: { display: false } },
       },
     });
@@ -587,7 +587,7 @@
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 36 } },
         plugins: { legend: { display: false } },
       },
     });
@@ -654,7 +654,7 @@
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 36 } },
         plugins: { legend: { display: false } },
       },
     });
@@ -679,7 +679,7 @@
       },
       options: {
         maintainAspectRatio: false,
-        layout: { padding: { top: 20 } },
+        layout: { padding: { top: 36 } },
         plugins: { legend: { display: false } },
       },
     });
@@ -775,6 +775,37 @@
     clonedOptions.responsive = false;
     clonedOptions.maintainAspectRatio = false;
     clonedOptions.devicePixelRatio = 1;
+
+    // 1920×1080 큰 캔버스에서 화면용 폰트 (14~19px) 가 너무 작아 보이는 문제.
+    // 모든 font.size 를 SCALE 배수 + _labelFont CSS 문자열도 동일 스케일.
+    const SCALE = 2.6;
+    const scaleFonts = (obj) => {
+      if (!obj || typeof obj !== "object") return;
+      if (Array.isArray(obj)) { obj.forEach(scaleFonts); return; }
+      for (const [k, v] of Object.entries(obj)) {
+        if (k === "font" && v && typeof v === "object" && typeof v.size === "number") {
+          v.size = Math.round(v.size * SCALE);
+        } else if (typeof v === "object") {
+          scaleFonts(v);
+        }
+      }
+    };
+    scaleFonts(clonedOptions);
+    scaleFonts(clonedData);
+    // dataset 의 _labelFont CSS 문자열 (lineLabelsAtTop 플러그인용) 도 스케일
+    (clonedData.datasets || []).forEach((ds) => {
+      if (typeof ds._labelFont === "string") {
+        ds._labelFont = ds._labelFont.replace(/(\d+)px/, (_, sz) =>
+          `${Math.round(parseInt(sz, 10) * SCALE)}px`);
+      }
+    });
+    // Chart.defaults 의 글로벌 font.size 도 download 인스턴스에서 override
+    clonedOptions.plugins = clonedOptions.plugins || {};
+    clonedOptions.plugins.datalabels = clonedOptions.plugins.datalabels || {};
+    if (!clonedOptions.plugins.datalabels.font) {
+      // 차트가 자체 font 안 가지고 있으면 글로벌 default (size 16) 스케일 적용
+      clonedOptions.plugins.datalabels.font = { size: Math.round(16 * SCALE), weight: "700" };
+    }
 
     const tempChart = new Chart(chartCanvas, {
       type: cfg.type,

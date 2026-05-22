@@ -73,14 +73,19 @@ a { color: var(--accent); }
 .v1-nav .left { display: flex; align-items: center; gap: 28px; }
 
 .v1-logo {
-  display: flex; align-items: baseline; gap: 8px;
-  font-weight: 700; font-size: 18px; letter-spacing: -0.02em;
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
   color: var(--text); text-decoration: none;
 }
-.v1-logo .dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--accent); display: inline-block;
-  transform: translateY(-3px);
+/* Numbers 로고 이미지 — nav 높이에 맞춰 (대략 22px) */
+.v1-logo .v1-logo-img {
+  height: 22px; width: auto; display: block;
+}
+/* 다크 모드에서 로고 텍스트가 검정이라 안 보임 → invert 로 흰색 효과 */
+:root[data-theme="dark"] .v1-logo .v1-logo-img { filter: invert(1) hue-rotate(180deg); }
+.v1-logo .v1-logo-pool {
+  font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
+  color: var(--text);
 }
 .v1-logo small {
   font-size: 10px; font-weight: 500; color: var(--muted);

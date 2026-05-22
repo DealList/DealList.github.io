@@ -859,7 +859,7 @@
           .replace(/\s+/g, "_");
         const a = document.createElement("a");
         a.href = dataURL;
-        a.download = `DealList_${safeTitle}_${today}.jpg`;
+        a.download = `NumbersPool_${safeTitle}_${today}.jpg`;
         document.body.appendChild(a);
         a.click();
         a.remove();

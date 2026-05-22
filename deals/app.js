@@ -974,9 +974,9 @@
     ws["!rows"] = [{ hpt: 22 }, { hpt: 22 }];
 
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DealList");
+    XLSX.utils.book_append_sheet(wb, ws, "NumbersPool");
     const today = new Date().toISOString().slice(0, 10);
-    XLSX.writeFile(wb, `DealList_${today}.xlsx`);
+    XLSX.writeFile(wb, `NumbersPool_${today}.xlsx`);
   }
 
   // ============== 시작 ==============

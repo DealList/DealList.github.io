@@ -521,7 +521,7 @@
 
     const today = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb,
-      `DealList_${activeTab === "lead" ? "주관" : "인수"}실적_${today}.xlsx`);
+      `NumbersPool_${activeTab === "lead" ? "주관" : "인수"}실적_${today}.xlsx`);
   }
 
   loadAll();

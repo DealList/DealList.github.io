@@ -31,8 +31,8 @@
     <nav class="v1-nav">
       <div class="left">
         <a href="${root}/" class="v1-logo">
-          <span class="dot"></span>
-          Deal List
+          <img src="${root}/assets/numbers-logo.png" alt="Numbers" class="v1-logo-img" />
+          <span class="v1-logo-pool">Pool</span>
           <small>Korea Capital Market</small>
         </a>
         <div class="primary">

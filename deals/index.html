@@ -23,11 +23,10 @@
         <div class="kicker">DCM · 회차 단위 발행 내역</div>
         <h1>공모 회사채 발행 정보</h1>
       </div>
-      <div class="meta">
-        <span id="updated">로딩 중…</span>
-        <span class="sep">·</span>
-        <span id="count"></span>
-      </div>
+      <!-- 최종 업데이트 + 전체 건수: 모두 nav (#nav-updated) 로 통합.
+           #count 는 hidden 상태로만 유지 (app.js 호환). 표시는 nav. -->
+      <span id="updated" hidden></span>
+      <span id="count" hidden></span>
     </div>
   </header>
 

@@ -55,6 +55,13 @@
       DATA = d;
       META = m;
       $("updated").textContent = "최종 업데이트: " + (META.updated || "-");
+      // nav (초록불 우측) 통합 표시
+      const navUpdated = document.getElementById("nav-updated");
+      if (navUpdated) {
+        const total = META.count || DATA.length;
+        navUpdated.textContent =
+          `최종 업데이트 ${META.updated || "-"} · 전체 ${total.toLocaleString()}건`;
+      }
       initFilters();
       runQuery();
     } catch (e) {
@@ -498,7 +505,10 @@
       options: {
         maintainAspectRatio: false,
         layout: { padding: { top: 40, right: 12 } },
-        plugins: { legend: { position: "bottom" } },
+        plugins: {
+          legend: { position: "bottom",
+                    labels: { font: { size: 14, weight: "600" }, padding: 14, boxWidth: 18 } },
+        },
         scales: {
           y: { type: "linear", position: "left", title: { display: true, text: "건수" } },
           y2: { type: "linear", position: "right", title: { display: true, text: "발행총액(억)" },
@@ -534,7 +544,11 @@
       },
       options: {
         maintainAspectRatio: false,
-        plugins: { legend: { position: "right" }, datalabels: doughnutLabelOpts },
+        plugins: {
+          legend: { position: "right",
+                    labels: { font: { size: 14, weight: "600" }, padding: 12, boxWidth: 18 } },
+          datalabels: doughnutLabelOpts,
+        },
       },
     });
     charts.typeAmt = new Chart($("ch-type-amt"), {
@@ -547,7 +561,11 @@
       },
       options: {
         maintainAspectRatio: false,
-        plugins: { legend: { position: "right" }, datalabels: doughnutLabelOpts },
+        plugins: {
+          legend: { position: "right",
+                    labels: { font: { size: 14, weight: "600" }, padding: 12, boxWidth: 18 } },
+          datalabels: doughnutLabelOpts,
+        },
       },
     });
 

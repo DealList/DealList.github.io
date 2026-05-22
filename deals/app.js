@@ -114,6 +114,12 @@
       initFilters();
       $("updated").textContent = "최종 업데이트: " + (META.updated || "-");
       $("count").textContent = "전체 " + (META.count || DATA.length).toLocaleString() + "건";
+      // nav (초록불 우측) 으로 통합 표시
+      const navUpdated = document.getElementById("nav-updated");
+      if (navUpdated) {
+        navUpdated.textContent =
+          `최종 업데이트 ${META.updated || "-"} · 전체 ${(META.count || DATA.length).toLocaleString()}건`;
+      }
       // 발행사명 클릭 → DART 공시 팝업 창 (tbody 이벤트 위임)
       $("rows").addEventListener("click", (e) => {
         const link = e.target.closest("a.dart-link");

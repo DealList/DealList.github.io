@@ -41,6 +41,13 @@
       META = m;
       initFilters();
       $("updated").textContent = "최종 업데이트: " + (META.updated || "-");
+      // nav (초록불 우측) 통합 표시
+      const navUpdated = document.getElementById("nav-updated");
+      if (navUpdated) {
+        const total = META.count || DATA.length;
+        navUpdated.textContent =
+          `최종 업데이트 ${META.updated || "-"} · 전체 ${total.toLocaleString()}건`;
+      }
       runQuery();
     } catch (e) {
       $("updated").textContent = "데이터 로드 실패";

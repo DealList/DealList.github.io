@@ -43,7 +43,7 @@ const shortDay = (dateStr) => dateStr.slice(8, 10);
 /* ─── (1) KPI grid + nav updated — summary.json ─── */
 async function fillKPI() {
   try {
-    const s = await fetch('summary.json').then(r => r.json());
+    const s = await fetch('summary.json', { cache: 'no-store' }).then(r => r.json());
     document.getElementById('nav-updated').textContent =
       `최종 업데이트 ${s.updated || '—'}`;
 
@@ -104,7 +104,7 @@ async function fillKPI() {
 /* ─── (2) data.json — derive recent/league/trend/upcoming ─── */
 async function fillFromData() {
   let data;
-  try { data = await fetch('data.json').then(r => r.json()); }
+  try { data = await fetch('data.json', { cache: 'no-store' }).then(r => r.json()); }
   catch (e) { console.error('data.json load failed', e); return; }
 
   // Aggregate to series-level (한 회차 = 1건). data.json은 트랜치 단위라 series 묶어야 함.
@@ -368,7 +368,7 @@ function renderTrend(months, mode) {
 (async () => {
   // Load summary first for KPI + the max_date used by data filtering
   try {
-    const s = await fetch('summary.json').then(r => r.json());
+    const s = await fetch('summary.json', { cache: 'no-store' }).then(r => r.json());
     window._summary = s;
   } catch (e) { console.error('summary load failed', e); }
 

@@ -368,7 +368,9 @@ function renderTrend(months, mode) {
   const step = innerW / months.length;
   const barW = step * 0.55;
 
-  let html = "";
+  // SVG 내부 전체를 <a> 로 감싸 클릭 시 charts/ (인포그래픽) 페이지로 이동.
+  // 막대·점 개별 hover 효과는 landing.css 에서 처리.
+  let html = `<a href="charts/" target="_self">`;
 
   // gridlines (5 lines)
   for (let i = 0; i <= 4; i++) {
@@ -417,6 +419,7 @@ function renderTrend(months, mode) {
     html += `<text x="${x}" y="${H - 10}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl}</text>`;
   });
 
+  html += `</a>`;
   svg.innerHTML = html;
 
   // legend 동기화 — 활성 모드만 표시

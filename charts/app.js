@@ -488,19 +488,24 @@
             datalabels: {
               anchor: "end",
               // 막대 높이가 라벨 들어갈 만큼 충분하면 막대 안쪽(start), 작으면
-              // 막대 바로 위(end) — X축 아래로 떨어지는 케이스 방지.
+              // 막대 바로 위(end). element.base/y 는 초기 layout 시점에 미정일
+              // 수 있어 scale 의 pixel mapping 으로 정확 계산.
               align: (ctx) => {
-                const el = ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex];
-                if (!el) return "start";
-                return Math.abs(el.base - el.y) < 25 ? "end" : "start";
+                const scale = ctx.chart.scales.y;
+                if (!scale) return "start";
+                const val = ctx.dataset.data[ctx.dataIndex];
+                const barH = scale.bottom - scale.getPixelForValue(val);
+                return barH < 25 ? "end" : "start";
               },
               offset: 6,
               // 막대 안에 있으면 막대 색(#93c5fd) 위에서 잘 보이는 진한 파랑,
               // 막대 위로 빠진 경우엔 다크모드에서 어두운 배경에 묻히므로 밝은 파랑.
               color: (ctx) => {
-                const el = ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex];
-                if (!el) return "#1e3a8a";
-                const outside = Math.abs(el.base - el.y) < 25;
+                const scale = ctx.chart.scales.y;
+                if (!scale) return "#1e3a8a";
+                const val = ctx.dataset.data[ctx.dataIndex];
+                const barH = scale.bottom - scale.getPixelForValue(val);
+                const outside = barH < 25;
                 const dark = document.documentElement.getAttribute("data-theme") === "dark";
                 return outside && dark ? "#93c5fd" : "#1e3a8a";
               },

@@ -194,7 +194,11 @@ async function fillFromData() {
   renderUpcoming(upcomingList);
 
   /* ─── League table TOP 10 (current year) ─── */
-  const year = today.slice(0, 4);
+  // 매년 1월 한 달 동안은 직전 해 데이터를 유지 (새 해 1월은 데이터가 거의 없어
+  // 의미 없음 — 2월 1일부터 새 해로 전환). 사용자 룰 (2026-05-26).
+  const _yr = _todayDt.getFullYear();
+  const _mo = _todayDt.getMonth() + 1;
+  const year = String(_mo === 1 ? _yr - 1 : _yr);
   const yearSeries = series.filter(s => s.date.startsWith(year));
   const yearTotal = yearSeries.reduce((sum, s) => sum + (s.finalAmt || 0), 0);
   const brokerAgg = {};
@@ -332,6 +336,9 @@ function renderUpcoming(list) {
 
 function renderLeague(rows, year) {
   document.getElementById('league-meta').textContent = `${year}.01.01 ~ 현재`;
+  // 카드 외부 제목 ("2026 주관 리그테이블") 도 league year 와 동기화
+  const titleEl = document.getElementById('league-title');
+  if (titleEl) titleEl.textContent = `${year} 주관 리그테이블`;
   const root = document.getElementById('league-rows');
   if (!rows.length) {
     root.innerHTML = `<div style="padding: 40px 0; text-align: center; color: var(--muted); font-size: 13px;">데이터가 없습니다.</div>`;

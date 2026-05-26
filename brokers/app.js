@@ -76,7 +76,7 @@
     const minDate = DATA.reduce(
       (a, r) => (r.date && (!a || r.date < a) ? r.date : a), "");
 
-    applyDatePreset("1y", maxDate, minDate);
+    applyDatePreset("ytd", maxDate, minDate);
 
     // 이벤트 — 모든 필터 변경은 UI 만 (조회 버튼 클릭 시 갱신)
     ["f-date-start", "f-date-end"].forEach((id) => {
@@ -154,7 +154,7 @@
       renderBrokerChips();
       syncBrokerDisable();
       $("f-broker-select").value = "";
-      applyDatePreset("1y", maxDate, minDate);
+      applyDatePreset("ytd", maxDate, minDate);
     });
 
     $("btn-download").addEventListener("click", downloadExcel);
@@ -185,6 +185,18 @@
       return;
     }
     if (!maxDate) return;
+
+    // YTD — 올해 1월 1일 ~ maxDate.
+    // 단, 매년 1월 한 달 동안은 직전 해 데이터를 유지 (1월은 새 해 데이터가
+    // 거의 없어 의미 없음 — 2월 1일부터 새 해로 전환).
+    if (preset === "ytd") {
+      const t = new Date();
+      const yr = (t.getMonth() + 1) === 1 ? t.getFullYear() - 1 : t.getFullYear();
+      $("f-date-start").value = `${yr}-01-01`;
+      $("f-date-end").value = maxDate;
+      return;
+    }
+
     const d = new Date(maxDate);
     const start = new Date(d);
     if (preset === "3m") start.setMonth(start.getMonth() - 3);

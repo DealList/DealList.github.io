@@ -377,7 +377,7 @@
   // Chart.defaults 에 한 번만 설정. dataset._isAmount=true 면 억/조 포맷.
   function fmtCount(v) {
     if (!Number.isFinite(v) || v <= 0) return "";
-    return v.toLocaleString();
+    return v.toLocaleString() + "건";
   }
   function fmtAmtShort(v) {
     if (!Number.isFinite(v) || v <= 0) return "";

@@ -438,10 +438,13 @@
             cctx.textAlign = "center";
             cctx.textBaseline = "bottom";
             const topY = chart.chartArea.top - 4; // 차트 영역 바로 위 (padding 영역 안)
+            // dataset 의 _labelFormatter 가 있으면 우선 사용 (① 월별 추이의
+            // "0.X조" 포맷 등 차트별 커스텀), 없으면 글로벌 fmtAmtShort.
+            const fmt = ds._labelFormatter || fmtAmtShort;
             meta.data.forEach((point, i) => {
               const value = ds.data[i];
               if (!Number.isFinite(value) || value <= 0) return;
-              cctx.fillText(fmtAmtShort(value), point.x, topY);
+              cctx.fillText(fmt(value), point.x, topY);
             });
             cctx.restore();
           });
@@ -483,8 +486,24 @@
             data: ymSorted.map(([_,v]) => v.count),
             backgroundColor: "#93c5fd", yAxisID: "y",
             datalabels: {
-              anchor: "end", align: "start", offset: 6,
-              color: "#1e3a8a",  // 막대(#93c5fd) 위 진한 파랑 — 콘트라스트 좋음
+              anchor: "end",
+              // 막대 높이가 라벨 들어갈 만큼 충분하면 막대 안쪽(start), 작으면
+              // 막대 바로 위(end) — X축 아래로 떨어지는 케이스 방지.
+              align: (ctx) => {
+                const el = ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex];
+                if (!el) return "start";
+                return Math.abs(el.base - el.y) < 25 ? "end" : "start";
+              },
+              offset: 6,
+              // 막대 안에 있으면 막대 색(#93c5fd) 위에서 잘 보이는 진한 파랑,
+              // 막대 위로 빠진 경우엔 다크모드에서 어두운 배경에 묻히므로 밝은 파랑.
+              color: (ctx) => {
+                const el = ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.dataIndex];
+                if (!el) return "#1e3a8a";
+                const outside = Math.abs(el.base - el.y) < 25;
+                const dark = document.documentElement.getAttribute("data-theme") === "dark";
+                return outside && dark ? "#93c5fd" : "#1e3a8a";
+              },
               font: { size: 15, weight: "700" },
             },
           },
@@ -498,6 +517,8 @@
             _labelAtTop: true,
             _labelColor: C.lineLabel,  // 테마-인식 (다크모드 시 밝은 파랑)
             _labelFont: '700 15px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
+            // 1조 미만도 항상 "0.X조" 포맷 — 단위 통일 (2,100억 → 0.2조).
+            _labelFormatter: (v) => (v / 10000).toFixed(1) + "조",
             datalabels: { display: false },
           },
         ],

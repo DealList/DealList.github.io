@@ -586,12 +586,15 @@
         ratingAmt.set(eff, ratingAmt.get(eff) + d.final);
       }
     }
+    // X축 차트 순서 — RATING_OPTIONS 는 AAA→BBB- (높→낮) 이지만 차트는
+    // 낮→높 (왼쪽=BBB-, 오른쪽=AAA) 순서로 표시. filter dropdown 은 그대로.
+    const RATING_OPTIONS_CHART = [...RATING_OPTIONS].reverse();
     charts.ratingCount = new Chart($("ch-rating-count"), {
       type: "bar",
       data: {
-        labels: RATING_OPTIONS,
+        labels: RATING_OPTIONS_CHART,
         datasets: [{ label: "건수",
-                     data: RATING_OPTIONS.map((r) => ratingCount.get(r)),
+                     data: RATING_OPTIONS_CHART.map((r) => ratingCount.get(r)),
                      backgroundColor: "#06b6d4" }],
       },
       options: {
@@ -603,9 +606,9 @@
     charts.ratingAmt = new Chart($("ch-rating-amt"), {
       type: "bar",
       data: {
-        labels: RATING_OPTIONS,
+        labels: RATING_OPTIONS_CHART,
         datasets: [{ label: "발행총액(억)",
-                     data: RATING_OPTIONS.map((r) => Math.round(ratingAmt.get(r))),
+                     data: RATING_OPTIONS_CHART.map((r) => Math.round(ratingAmt.get(r))),
                      backgroundColor: "#0e7490",
                      _isAmount: true }],
       },

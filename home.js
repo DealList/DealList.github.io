@@ -316,7 +316,7 @@ function renderUpcoming(list) {
     //       아직 없으면 (회차합산 미확정) 모든 트랜치 최초모집액 합 (initAmt)
     const amt = (s.seriesTotal != null && s.seriesTotal > 0) ? s.seriesTotal : (s.initAmt || 0);
     return `
-    <div class="v1-up-row">
+    <a class="v1-up-row" href="deals/">
       <div class="when">
         <span class="day">${shortDay(s.date)}</span>
         <span class="month">${monthAbbr[parseInt(s.date.slice(5,7))-1]}</span>
@@ -326,7 +326,7 @@ function renderUpcoming(list) {
         <div class="meta-2">${s.series}회차 · ${s.rating || '—'} · ${s.type}</div>
       </div>
       <div class="amt">${amt.toLocaleString()}억</div>
-    </div>`;
+    </a>`;
   }).join('');
 }
 

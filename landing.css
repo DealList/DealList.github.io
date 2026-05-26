@@ -314,10 +314,15 @@
 .v1-upcoming .head-link:hover { text-decoration: underline; }
 .v1-up-row {
   display: grid; grid-template-columns: 44px 1fr auto;
-  padding: 10px 0; border-bottom: 1px solid var(--border-soft);
+  padding: 10px 12px; border-bottom: 1px solid var(--border-soft);
   align-items: center; gap: 10px;
+  text-decoration: none; color: inherit;
+  margin: 0 -12px;
+  border-radius: 6px;
+  transition: background 0.12s;
 }
 .v1-up-row:last-child { border-bottom: 0; }
+.v1-up-row:hover { background: var(--surface-2); }
 .v1-up-row .when {
   padding: 4px 6px; border-radius: 6px; background: var(--accent-soft);
   text-align: center; line-height: 1.1;

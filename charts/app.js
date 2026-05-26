@@ -525,7 +525,13 @@
       tCount.set(t, (tCount.get(t) || 0) + 1);
       tAmt.set(t, (tAmt.get(t) || 0) + d.final);
     }
-    const tEntries = [...tCount.entries()];
+    // initFilters 의 TYPE_ORDER 와 동일 기준 — 무보증 → 신종자본 → 후순위채 → 보증
+    const TYPE_ORDER_CHART = ["무보증","신종자본","후순위채","보증"];
+    const tEntries = [...tCount.entries()].sort(([a], [b]) => {
+      const ia = TYPE_ORDER_CHART.indexOf(a);
+      const ib = TYPE_ORDER_CHART.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
     const typeColors = ["#2563eb","#10b981","#f59e0b","#ef4444","#8b5cf6"];
     // doughnut 공통 옵션: 슬라이스 안 흰 글씨 + 그림자
     const doughnutLabelOpts = {

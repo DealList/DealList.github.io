@@ -341,12 +341,12 @@ function renderLeague(rows, year) {
     const rank = i + 1;
     const topClass = rank <= 3 ? `top${rank}` : '';
     return `
-      <div class="v1-league-row ${topClass}">
+      <a class="v1-league-row ${topClass}" href="brokers/">
         <div class="rank">${rank}</div>
         <div class="name">${r.name}</div>
         <div class="amt">${fmtAmt(Math.round(r.amount))}</div>
         <div class="share">${r.share.toFixed(1)}%</div>
-      </div>
+      </a>
     `;
   }).join('');
 }

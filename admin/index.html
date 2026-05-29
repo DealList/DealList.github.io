@@ -64,6 +64,23 @@
       </div>
 
       <div class="admin-card">
+        <div class="row-between" style="margin-bottom: 14px;">
+          <div>
+            <h2 style="margin: 0; border: none; padding: 0;">
+              📈 지금 ECM 데이터 수집
+            </h2>
+            <p class="muted small" style="margin: 4px 0 0;">
+              IPO·유상증자 수집. 매일 KST 06:27 자동 수집과 동일한 프로세스를 즉시 실행합니다 (약 2~4분 소요).
+            </p>
+          </div>
+          <button id="btn-trigger-ecm" class="btn-primary btn-large">
+            지금 실행
+          </button>
+        </div>
+        <div id="trigger-status-ecm" class="trigger-status" hidden></div>
+      </div>
+
+      <div class="admin-card">
         <div class="row-between">
           <div>
             <h2>xlsx 일괄 업로드</h2>

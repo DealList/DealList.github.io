@@ -14,8 +14,8 @@ on:
         required: false
         default: ''
   schedule:
-    # 매일 한국시간 09:05 (DCM 09:00 직후). 빈 날짜 → 어제(KST) 1일치.
-    - cron: '5 0 * * *'
+    # 매일 한국시간 06:27 (DCM 06:17 직후, 10분 간격) = UTC 21:27. 빈 날짜 → 어제(KST) 1일치.
+    - cron: '27 21 * * *'
 
 jobs:
   update-ecm:
@@ -89,6 +89,12 @@ jobs:
             echo "ECM 변경 없음 — commit 생략"
           else
             git commit -m "data(ecm): 자동 갱신 ${{ steps.dates.outputs.start }} (KST) [skip ci]"
-            git push
-            echo "[ok] ecm JSON push 완료"
+            # DCM 워크플로(06:17 KST)와 같은 repo 에 push. 혹시 실행이 겹쳐도 충돌 안 나게
+            # rebase 후 push, 최대 3회 재시도 (ECM 은 ecm_*.json 만 → DCM data.json 과 파일 안 겹침).
+            pushed=0
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push && { echo "[ok] ecm JSON push 완료 (시도 $i)"; pushed=1; break; }
+              echo "push 충돌/실패 — 재시도 $i/3"; sleep 5
+            done
+            if [ "$pushed" != "1" ]; then echo "[error] ecm JSON push 3회 실패"; exit 1; fi
           fi

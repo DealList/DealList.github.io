@@ -1,4 +1,4 @@
-name: 데이터 자동 수집
+name: DCM 데이터 자동 수집
 
 # cron + 수동 trigger 둘 다 지원
 on:

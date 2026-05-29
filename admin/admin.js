@@ -647,7 +647,7 @@ async function triggerDartUpdate() {
   const btn = document.getElementById("btn-trigger-dart");
   const statusBox = document.getElementById("trigger-status");
 
-  if (!confirm("지금 DART 데이터 수집을 실행하시겠습니까?\n\n매일 09:00 자동 실행과 동일한 작업입니다.\n약 4분 후 사이트에 반영됩니다.")) {
+  if (!confirm("지금 DCM 데이터 수집을 실행하시겠습니까?\n\n매일 06:17 자동 실행과 동일한 작업입니다.\n약 3~5분 후 사이트에 반영됩니다.")) {
     return;
   }
 
@@ -671,7 +671,7 @@ async function triggerDartUpdate() {
       <div>워크플로우가 GitHub Actions 에서 시작됐습니다.</div>
       <div class="ts-meta" style="margin-top: 6px;">
         • 요청 시각: ${fmt(now)}<br>
-        • 예상 완료: ~${fmt(finishApprox)} (4~5분 후)<br>
+        • 예상 완료: ~${fmt(finishApprox)} (3~5분 후)<br>
         • <a href="${GITHUB_ACTIONS_URL}" target="_blank" rel="noopener">GitHub Actions 페이지에서 진행 상황 확인</a>
       </div>
     `;
@@ -714,7 +714,7 @@ async function triggerEcmUpdate() {
   const btn = document.getElementById("btn-trigger-ecm");
   const statusBox = document.getElementById("trigger-status-ecm");
 
-  if (!confirm("지금 ECM(IPO·유상증자) 데이터 수집을 실행하시겠습니까?\n\n매일 06:27 자동 실행과 동일한 작업입니다.\n약 2~4분 후 사이트에 반영됩니다.")) {
+  if (!confirm("지금 ECM 데이터 수집을 실행하시겠습니까?\n\n매일 06:27 자동 실행과 동일한 작업입니다.\n약 3~5분 후 사이트에 반영됩니다.")) {
     return;
   }
 
@@ -738,7 +738,7 @@ async function triggerEcmUpdate() {
       <div>ECM 워크플로우가 GitHub Actions 에서 시작됐습니다.</div>
       <div class="ts-meta" style="margin-top: 6px;">
         • 요청 시각: ${fmt(now)}<br>
-        • 예상 완료: ~${fmt(finishApprox)} (2~4분 후)<br>
+        • 예상 완료: ~${fmt(finishApprox)} (3~5분 후)<br>
         • <a href="${GITHUB_ECM_ACTIONS_URL}" target="_blank" rel="noopener">GitHub Actions 페이지에서 진행 상황 확인</a>
       </div>
     `;

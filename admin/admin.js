@@ -79,6 +79,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 });
 
+// bfcache(뒤로/앞으로 가기 캐시)로 복원될 때는 DOMContentLoaded 가 다시 안 떠서
+// 섹션이 빈 채로 남을 수 있다 → 복원 시 세션을 다시 확인해 재렌더.
+window.addEventListener("pageshow", async (e) => {
+  if (!e.persisted || !sb) return;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    await renderForSession(session);
+  } catch (err) {
+    console.warn("pageshow 재렌더 실패:", err);
+  }
+});
+
 // =========================== AUTH ===========================
 async function renderForSession(session) {
   currentSession = session;
@@ -86,21 +98,30 @@ async function renderForSession(session) {
   const nonAdminSec = document.getElementById("non-admin-section");
   const adminSec = document.getElementById("admin-section");
 
-  loginSec.hidden = true;
-  nonAdminSec.hidden = true;
-  adminSec.hidden = true;
-
+  // 세션 없음 → 로그인 화면
   if (!session) {
     loginSec.hidden = false;
+    nonAdminSec.hidden = true;
+    adminSec.hidden = true;
     return;
   }
 
+  // 관리자 여부를 먼저 확인한 뒤 섹션을 토글한다.
+  // (먼저 다 숨긴 뒤 await 하면, 그 사이/실패 시 빈 화면으로 남음 — 특히 bfcache 복원 시)
+  let isAdmin = false;
+  try {
+    isAdmin = await checkIsAdmin();
+  } catch (e) {
+    console.warn("checkIsAdmin 실패:", e);
+  }
+
   const email = session.user?.email || "";
-  const isAdmin = await checkIsAdmin();
+  loginSec.hidden = true;
+  adminSec.hidden = !isAdmin;
+  nonAdminSec.hidden = isAdmin;
+
   if (isAdmin) {
     document.getElementById("admin-email").textContent = email;
-    adminSec.hidden = false;
-    // audit log 자동 로드
     loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
     setupAuditButtons();
     setupDeleteUI();
@@ -108,7 +129,6 @@ async function renderForSession(session) {
     setupEcmTriggerButton();
   } else {
     document.getElementById("non-admin-email").textContent = email;
-    nonAdminSec.hidden = false;
   }
 }
 

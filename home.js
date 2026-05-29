@@ -430,8 +430,168 @@ function renderTrend(months, mode) {
   }
 }
 
+/* ═══════════════ ECM 랜딩 (IPO·유상증자 분리) ═══════════════ */
+let _ecmLoaded = false;
+const $$ = (id) => document.getElementById(id);
+const ecmTotal = (r) => r.final_total || r.init_total || 0;
+const leadTop = (leads) => {
+  const e = Object.entries(leads || {});
+  if (!e.length) return '';
+  e.sort((a, b) => b[1] - a[1]);
+  return e.slice(0, 2).map(([a]) => BROKER_FULL[a] || a).join(' · ');
+};
+const ecmTypeShort = (t) => {
+  if (!t) return '유상증자';
+  if (t.includes('주주배정후')) return '실권주 일반공모';
+  if (t.includes('주주배정')) return '주주배정';
+  if (t.includes('제3자')) return '제3자배정';
+  if (t.includes('일반공모')) return '일반공모';
+  return t.length > 9 ? t.slice(0, 9) : t;
+};
+
+async function loadEcm() {
+  if (_ecmLoaded) return;
+  let data, summary;
+  try {
+    [data, summary] = await Promise.all([
+      fetch('ecm_data.json', { cache: 'no-store' }).then(r => r.json()),
+      fetch('ecm_summary.json', { cache: 'no-store' }).then(r => r.json()),
+    ]);
+  } catch (e) { console.error('ECM load failed', e); return; }
+  _ecmLoaded = true;
+
+  const ipo = data.ipo || [], rights = data.rights || [];
+  const _t = new Date();
+  const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
+  const yr = String(summary.this_year || _t.getFullYear());
+
+  // 올해 통합 주관 리그 + 최대 공모 집계
+  const combined = [...ipo.map(r => ({ ...r, _k: 'IPO' })), ...rights.map(r => ({ ...r, _k: '유증' }))];
+  const agg = {};
+  let yTotal = 0, biggest = null;
+  for (const r of combined) {
+    if (!r.date || !r.date.startsWith(yr)) continue;
+    const t = ecmTotal(r);
+    yTotal += t;
+    if (t > 0 && (!biggest || t > biggest.amount)) biggest = { issuer: r.issuer, amount: t, kind: r._k };
+    for (const [a, v] of Object.entries(r.leads || {})) {
+      if (!agg[a]) agg[a] = { amount: 0, count: 0 };
+      agg[a].amount += v; agg[a].count++;
+    }
+  }
+  const league = Object.entries(agg)
+    .map(([a, v]) => ({ name: BROKER_FULL[a] || a, amount: v.amount, share: yTotal > 0 ? v.amount / yTotal * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+  const topB = league[0];
+
+  // KPI 4칸
+  $$('ecm-kpi-grid').innerHTML = `
+    <div class="v1-kpi">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${yr} IPO 상장</div>
+      <div class="value">${summary.this_year_ipo ?? 0}<small>건</small></div>
+      <div class="sub"><span class="sub-text">누적 ${(summary.ipo_count ?? ipo.length).toLocaleString()}건 (2020~)</span></div>
+    </div>
+    <div class="v1-kpi">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${yr} 유상증자</div>
+      <div class="value">${summary.this_year_rights ?? 0}<small>건</small></div>
+      <div class="sub"><span class="sub-text">누적 ${(summary.rights_count ?? rights.length).toLocaleString()}건 (2020~)</span></div>
+    </div>
+    <div class="v1-kpi">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} 통합 주관 1위</div>
+      <div class="value compact">${topB ? topB.name : '—'}</div>
+      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${topB ? fmtAmt(topB.amount) : ''}</span> <span class="sub-text">${topB ? '· 점유율 ' + topB.share.toFixed(1) + '%' : ''}</span></div>
+    </div>
+    <div class="v1-kpi">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ${yr} 최대 공모</div>
+      <div class="value compact">${biggest ? biggest.issuer : '—'} ${biggest ? `<span style="color:var(--muted);font-size:14px;">${biggest.kind}</span>` : ''}</div>
+      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${biggest ? fmtAmt(biggest.amount) : ''}</span></div>
+    </div>`;
+
+  const ic = $$('ecm-ipo-count'); if (ic) ic.textContent = `${yr}년 ${summary.this_year_ipo ?? 0}건`;
+  const rc = $$('ecm-rights-count'); if (rc) rc.textContent = `${yr}년 ${summary.this_year_rights ?? 0}건`;
+
+  // 최근 IPO (상장 완료, date<=today)
+  const recentIpo = ipo.filter(r => r.date && r.date <= today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+  renderEcmDeals('ecm-recent-ipo', recentIpo, 'ipo');
+  // 최근 유상증자 (기준일 desc)
+  const recentRights = rights.filter(r => r.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
+  renderEcmDeals('ecm-recent-rights', recentRights, 'rights');
+  // 통합 주관 리그 TOP10
+  renderEcmLeague(league.slice(0, 10), yr);
+  // 예정 IPO (상장예정일 > today, 임박순)
+  const upIpo = ipo.filter(r => r.date && r.date > today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
+  renderEcmUpcoming(upIpo);
+}
+
+function renderEcmDeals(rootId, list, kind) {
+  const root = $$(rootId);
+  if (!root) return;
+  if (!list.length) {
+    root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`;
+    return;
+  }
+  root.innerHTML = list.map(s => {
+    const total = ecmTotal(s);
+    const amtHtml = total > 0
+      ? `<div class="amt">${fmtAmt(total)}</div>`
+      : `<div class="amt pending">미확정</div>`;
+    const leads = leadTop(s.leads);
+    const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
+    const sub = kind === 'ipo' ? '신규상장' : ecmTypeShort(s.type);
+    return `
+    <a class="v1-deal-row" href="ecm-deals/">
+      <div class="date"><span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span></div>
+      <div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>
+      <div><span class="tag">${tag}</span></div>
+      ${amtHtml}
+      <div class="leads">${leads}</div>
+    </a>`;
+  }).join('');
+}
+
+function renderEcmLeague(rows, yr) {
+  const meta = $$('ecm-league-meta'); if (meta) meta.textContent = `${yr}.01.01 ~ 현재 · ECM 통합`;
+  const title = $$('ecm-league-title'); if (title) title.textContent = `${yr} ECM 통합 주관 리그`;
+  const root = $$('ecm-league-rows');
+  if (!root) return;
+  if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
+  root.innerHTML = rows.map((r, i) => {
+    const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';
+    return `<a class="v1-league-row ${topClass}" href="ecm-brokers/"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
+  }).join('');
+}
+
+function renderEcmUpcoming(list) {
+  const root = $$('ecm-upcoming-rows');
+  if (!root) return;
+  if (!list.length) { root.innerHTML = `<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;">예정된 상장이 없습니다.</div>`; return; }
+  const monthAbbr = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  root.innerHTML = list.map(s => {
+    const total = ecmTotal(s);
+    return `
+    <a class="v1-up-row" href="ecm-deals/">
+      <div class="when"><span class="day">${shortDay(s.date)}</span><span class="month">${monthAbbr[parseInt(s.date.slice(5, 7)) - 1]}</span></div>
+      <div class="info"><div class="name">${s.issuer}</div><div class="meta-2">${s.market || ''} · 신규상장</div></div>
+      <div class="amt">${total > 0 ? fmtAmt(total) : '미확정'}</div>
+    </a>`;
+  }).join('');
+}
+
+function wireSectionTabs() {
+  const tabs = document.querySelectorAll('.v1-section-tab');
+  if (!tabs.length) return;
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    const sec = tab.dataset.section;
+    tabs.forEach(t => t.classList.toggle('active', t === tab));
+    const dcm = $$('dcm-main'), ecm = $$('ecm-main');
+    if (sec === 'ecm') { if (dcm) dcm.hidden = true; if (ecm) ecm.hidden = false; loadEcm(); }
+    else { if (ecm) ecm.hidden = true; if (dcm) dcm.hidden = false; }
+  }));
+}
+
 /* ─── boot ─── */
 (async () => {
+  wireSectionTabs();
   // Load summary first for KPI + the max_date used by data filtering
   try {
     const s = await fetch('summary.json', { cache: 'no-store' }).then(r => r.json());

@@ -37,12 +37,12 @@
     </div>
     <div class="v1-section-tab" data-section="ecm">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
-      ECM · 주식시장 <span class="badge">개발 중</span>
+      ECM · 주식시장
     </div>
   </div>
 
-  <!-- ════════ Main ════════ -->
-  <main class="v1-main">
+  <!-- ════════ Main (DCM) ════════ -->
+  <main class="v1-main" id="dcm-main">
 
     <!-- KPI grid (filled by home.js from summary.json) -->
     <div class="v1-kpis" id="kpi-grid"></div>
@@ -152,11 +152,114 @@
 
   </main>
 
+  <!-- ════════ Main (ECM) ════════ -->
+  <main class="v1-main" id="ecm-main" hidden>
+
+    <div class="v1-kpis" id="ecm-kpi-grid"></div>
+
+    <!-- 최근 IPO · 최근 유상증자 (분리) -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title">
+          <h2>최근 IPO 상장 <span class="count" id="ecm-ipo-count"></span></h2>
+          <a href="ecm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head">
+            <h3>신규 상장 (코스피 · 코스닥)</h3>
+          </div>
+          <div id="ecm-recent-ipo"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="v1-sec-title">
+          <h2>최근 유상증자 <span class="count" id="ecm-rights-count"></span></h2>
+          <a href="ecm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head">
+            <h3>주주배정 · 일반공모 · 제3자배정</h3>
+          </div>
+          <div id="ecm-recent-rights"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 통합 주관 리그 · 예정 IPO -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title">
+          <h2 id="ecm-league-title">ECM 통합 주관 리그</h2>
+          <a href="ecm-brokers/">전체보기 →</a>
+        </div>
+        <div class="v1-league">
+          <h3>주관 실적 TOP 10</h3>
+          <div class="meta" id="ecm-league-meta"></div>
+          <div id="ecm-league-rows"></div>
+          <div class="footnote">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            실적 = IPO 공모총액 + 유상증자 발행총액 기준 대표주관
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="v1-sec-title">
+          <h2>예정 IPO 상장</h2>
+          <a href="ecm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-upcoming">
+          <div class="head">
+            <h3>상장 예정</h3>
+          </div>
+          <div class="meta">상장예정일 임박순 · KIND</div>
+          <div id="ecm-upcoming-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="v1-quick-grid">
+      <a class="v1-quick" href="ecm-deals/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">IPO · 유상증자 발행 정보</div>
+          <div class="desc">딜 단위 발행 내역 조회</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="ecm-brokers/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">주관·인수 실적</div>
+          <div class="desc">증권사별 리그테이블 · 시장점유율</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="ecm-charts/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">인포그래픽</div>
+          <div class="desc">연도·시장·구분 8종 차트</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+
+  </main>
+
   <footer class="v1-foot">
     <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
     <div><a href="about/">데이터 안내</a></div>
   </footer>
 
-  <script src="home.js?v=20260526104243"></script>
+  <script src="home.js?v=20260529b"></script>
 </body>
 </html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numbers Pool — IPO·유상증자 주관·인수 실적</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../deallist.css?v=20260526104243" />
+  <link rel="stylesheet" href="style.css?v=20260526104243" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <div id="nav-mount" data-active="ecm-brokers" data-root=".."></div>
+  <script src="../nav.js?v=20260526104243"></script>
+
+  <header class="v1-subheader">
+    <div class="row">
+      <div>
+        <div class="kicker">ECM · 증권사 리그테이블</div>
+        <h1>IPO·유상증자 주관·인수 실적</h1>
+      </div>
+      <div class="meta">
+        <span id="updated" hidden></span>
+        <span id="period-range"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- scope: ECM 통합 / IPO / 유상증자 -->
+  <div class="ecm-scope-tabs">
+    <button class="ecm-scope-tab active" data-scope="all">ECM 통합</button>
+    <button class="ecm-scope-tab" data-scope="ipo">IPO</button>
+    <button class="ecm-scope-tab" data-scope="rights">유상증자</button>
+  </div>
+
+  <section class="kpi-strip" id="kpi-grid"></section>
+
+  <section class="filters">
+    <div class="filter-row">
+      <label>기간
+        <div class="date-range">
+          <input type="date" id="f-date-start" />
+          <span class="dash">~</span>
+          <input type="date" id="f-date-end" />
+        </div>
+        <div class="date-presets">
+          <button type="button" data-preset="ytd">올해</button>
+          <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="3y">최근 3년</button>
+          <button type="button" data-preset="all">전체</button>
+        </div>
+      </label>
+      <label>증권사
+        <select id="f-broker-select"></select>
+        <div class="issuer-chips" id="f-broker-chips"></div>
+        <div class="filter-hint">선택 시 그 회사들만 표시 (최대 10개)</div>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button id="btn-search" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        조회
+      </button>
+      <button id="btn-reset" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        초기화
+      </button>
+      <button id="btn-download" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Excel로 다운로드
+      </button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+  </section>
+
+  <nav class="result-tabs">
+    <button type="button" class="tab active" data-tab="lead">주관 실적</button>
+    <button type="button" class="tab" data-tab="uw">인수 실적</button>
+  </nav>
+
+  <section class="table-wrap">
+    <table id="grid">
+      <thead>
+        <tr>
+          <th>순위</th>
+          <th data-sort="name"><span id="th-name-label">주관사</span></th>
+          <th data-sort="count" class="num">건수</th>
+          <th data-sort="amount" class="num"><span id="th-amount-label">주관 실적</span>(억원)</th>
+          <th data-sort="share" class="num">점유율</th>
+          <th><span id="th-issuers-label">주요 주관 딜(억원)</span></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty hidden">조건에 맞는 실적이 없습니다.</div>
+  </section>
+
+  <div class="notes">
+    <small>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>ECM 통합 = IPO + 유상증자 합산 · 같은 증권사면 합쳐서 집계</span>
+    </small>
+    <small>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      점유율 = 해당 증권사 실적 / 조회 범위 전체 실적 × 100
+    </small>
+    <small>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <a href="../about/">데이터 안내</a> · 자세한 계산식 및 데이터 출처
+    </small>
+  </div>
+
+  <footer class="v1-foot">
+    <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
+    <div><a href="../about/">데이터 안내</a></div>
+  </footer>
+
+  <script src="app.js?v=20260526104243"></script>
+</body>
+</html>

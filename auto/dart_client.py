@@ -27,6 +27,7 @@ class Filing:
     report_nm: str
     rcept_dt: str  # YYYYMMDD
     flr_nm: str    # 제출인
+    rm: str = ""   # 비고 — DART 표시: "유" / "정" / "철" 등. "철" = 철회된 문서.
 
     @property
     def is_amendment(self) -> bool:
@@ -47,11 +48,14 @@ class Filing:
         return "initial"
 
 
-def _list_filings_chunk(start: date, end: date, corp_code: str = "") -> list[Filing]:
+def _list_filings_chunk(start: date, end: date, corp_code: str = "",
+                        pblntf_detail_ty: str = "C002") -> list[Filing]:
     """단일 청크(3개월 이내) 조회. corp_code 지정 시 해당 corp 만 (페이지 ↓ → 속도 ↑).
 
     DART API 는 corp_code 파라미터 지원: 특정 corp 의 공시만 반환 → 한 corp 의 한 기간
     공시는 보통 5건 이내라 페이지 1 만으로 끝. 검증 refetch 시 필수.
+
+    pblntf_detail_ty: C002=채무증권(DCM 기본), C003=지분증권(ECM). default 는 DCM 호환.
     """
     from datetime import timedelta
     out: list[Filing] = []
@@ -61,7 +65,7 @@ def _list_filings_chunk(start: date, end: date, corp_code: str = "") -> list[Fil
             "crtfc_key": config.DART_API_KEY,
             "bgn_de": start.strftime("%Y%m%d"),
             "end_de": end.strftime("%Y%m%d"),
-            "pblntf_detail_ty": "C002",
+            "pblntf_detail_ty": pblntf_detail_ty,
             "page_no": page,
             "page_count": 100,
         }
@@ -85,6 +89,7 @@ def _list_filings_chunk(start: date, end: date, corp_code: str = "") -> list[Fil
                 report_nm=item["report_nm"],
                 rcept_dt=item["rcept_dt"],
                 flr_nm=item.get("flr_nm", ""),
+                rm=item.get("rm", ""),  # 비고 — "철" 이면 철회
             ))
 
         total_page = data.get("total_page", 1)
@@ -96,12 +101,15 @@ def _list_filings_chunk(start: date, end: date, corp_code: str = "") -> list[Fil
 
 
 def list_filings(start: date, end: date, only_bond_registration: bool = True,
-                 corp_code: str = "") -> list[Filing]:
-    """채무증권 신고서 목록 조회. 3개월 초과 시 자동 청크 분할.
+                 corp_code: str = "", pblntf_detail_ty: str = "C002") -> list[Filing]:
+    """발행공시 신고서 목록 조회. 3개월 초과 시 자동 청크 분할.
 
     pblntf_detail_ty=C002는 발행공시 채무증권 카테고리 전체(증권발행실적보고서,
     일괄신고추가서류, ELS 등)를 반환하므로 only_bond_registration=True인 경우
     report_nm이 '증권신고서(채무증권)'인 것만 필터링.
+
+    pblntf_detail_ty=C003은 지분증권 (ECM). 이 경우 only_bond_registration 은
+    의미 없으므로 호출 측에서 False 로 두고 직접 필터링하는 것을 권장.
 
     DART API 제약: corp_code 없이 조회할 경우 검색 기간은 3개월(약 90일) 이내만 가능.
     그래서 긴 기간은 89일 단위로 청크 분할 후 합친다. 청크 경계 중복은 rcept_no 기준 dedup.
@@ -118,7 +126,8 @@ def list_filings(start: date, end: date, only_bond_registration: bool = True,
     chunk_start = start
     while chunk_start <= end:
         chunk_end = min(chunk_start + timedelta(days=89), end)
-        for f in _list_filings_chunk(chunk_start, chunk_end, corp_code=corp_code):
+        for f in _list_filings_chunk(chunk_start, chunk_end, corp_code=corp_code,
+                                     pblntf_detail_ty=pblntf_detail_ty):
             if f.rcept_no in seen:
                 continue
             seen.add(f.rcept_no)
@@ -129,6 +138,97 @@ def list_filings(start: date, end: date, only_bond_registration: bool = True,
 
     if only_bond_registration:
         out = [f for f in out if "증권신고서(채무증권)" in f.report_nm]
+    return out
+
+
+def list_ecm_filings(start: date, end: date, corp_code: str = "") -> list[Filing]:
+    """ECM (지분증권) 관련 공시 목록 — C001 + C003 통합 + report_nm 필터.
+
+    OpenDART 카테고리 분류 한계 우회:
+      - 일부 회사(특히 코스피 대형 발행)의 ECM 공시는 C001(증권신고)에 들어감
+      - 다른 회사들은 C003(지분증권)에 들어감
+      - 둘 다 받아서 rcept_no dedup 후 report_nm 으로 필터링
+
+    필터링 대상 report_nm (정규화 후 부분 일치):
+      - 증권신고서(지분증권)              ← stage1
+      - [기재정정]증권신고서(지분증권)    ← amend
+      - [발행조건확정]증권신고서(지분증권) ← final
+      - 증권발행실적보고서                ← report
+
+    Returns: 시간순 (rcept_no asc) Filing 리스트.
+    """
+    # 사용자 룰 2026-05-26: 철회신고서도 결과에 포함 (group_into_deals 단계에서
+    # deal 단위로 is_withdrawn 표시 → 그 deal 만 skip. corp_code 전체 skip 아님 —
+    # 에스투더블유처럼 같은 corp 의 별개 시기 정상 deal 도 살려야 하기 때문).
+    out: list[Filing] = []
+    seen: set[str] = set()
+    for cat in ("C001", "C003"):
+        for f in list_filings(start, end, only_bond_registration=False,
+                              corp_code=corp_code, pblntf_detail_ty=cat):
+            if f.rcept_no in seen:
+                continue
+            name_norm = (f.report_nm or "").replace(" ", "")
+            if ("증권신고서(지분증권)" in name_norm
+                    or "증권발행실적보고서" in name_norm
+                    or "철회신고서" in name_norm):
+                seen.add(f.rcept_no)
+                out.append(f)
+    out.sort(key=lambda x: x.rcept_no)
+    return out
+
+
+def fetch_deal_filings(any_rcept_no: str, timeout: int = 30) -> list[Filing]:
+    """한 ECM 딜의 모든 관련 공시를 main.do "본문선택" dropdown 으로 받기.
+
+    DART 의 main.do?rcpNo=XXX 페이지에는 그 딜의 stage1 ~ report 까지 같은 묶음 안에
+    포함된 모든 공시 rcept_no 가 select option 으로 노출. 이를 파싱해서 Filing 리스트로
+    반환 — `list_ecm_filings` 의 기간 검색을 우회하여 진짜 stage1 까지 따라 올라가는 용도.
+
+    Args:
+        any_rcept_no: 그 딜에 속한 어떤 공시 rcept_no 든 OK (가장 후속도 가능)
+
+    Returns:
+        Filing 리스트 (rcept_no asc). corp_name/corp_code 는 빈 값으로 둠
+        (caller 가 알고 있는 값 사용). report_nm 은 dropdown 표시 텍스트를 정규화
+        — 예: "2026.05.12 [발행조건확정] 증권신고서(지분증권)" → "[발행조건확정]증권신고서(지분증권)"
+        단 [기재정정]/[첨부정정]/[첨부추가]/[정정제출요구] 같은 세부 구분은 dropdown 에서
+        "[정정]" 으로 단일화되어 표시 — 즉 진짜 stage1 (접두어 없음) 식별만 신뢰 가능.
+    """
+    r = _request_with_retry(
+        config.DART_VIEWER_MAIN, params={"rcpNo": any_rcept_no}, timeout=timeout
+    )
+    html = r.text
+
+    # 첫 번째 <select> = 본문선택 dropdown
+    sel_match = re.search(r"<select[^>]*>.*?</select>", html, re.DOTALL)
+    if not sel_match:
+        return []
+
+    out: list[Filing] = []
+    for m in re.finditer(
+        r"<option\s+value=[\"']rcpNo=(\d+)[\"'][^>]*>([^<]*)</option>",
+        sel_match.group(0),
+    ):
+        rcept_no = m.group(1)
+        raw_text = m.group(2)
+        # 공백·탭·개행·&nbsp; 정리 → 한 줄
+        text = raw_text.replace("&nbsp;", " ")
+        text = re.sub(r"\s+", " ", text).strip()
+        # "2026.05.12 [발행조건확정] 증권신고서(지분증권)"
+        date_m = re.match(r"(\d{4})\.(\d{2})\.(\d{2})\s*(.*)$", text)
+        if date_m:
+            rcept_dt = date_m.group(1) + date_m.group(2) + date_m.group(3)
+            report_nm = date_m.group(4).strip().replace(" ", "")
+        else:
+            rcept_dt = ""
+            report_nm = text.replace(" ", "")
+        if not report_nm:
+            continue
+        out.append(Filing(
+            rcept_no=rcept_no, corp_name="", corp_code="",
+            report_nm=report_nm, rcept_dt=rcept_dt, flr_nm="",
+        ))
+    out.sort(key=lambda x: x.rcept_no)
     return out
 
 
@@ -261,11 +361,16 @@ def fetch_section_html(section: DocSection) -> str:
     return _decode_safely(r.content)
 
 
-def _request_with_retry(url, params=None, timeout=30, max_retries=2):
-    """SSL/일시적 네트워크 오류 시 재시도. 매 재시도 사이 짧은 sleep.
+def _request_with_retry(url, params=None, timeout=30, max_retries=5):
+    """SSL/일시적 네트워크 오류 시 재시도. 매 재시도 사이 점차 길어지는 sleep (지수형).
 
     RemoteDisconnected 는 DART 서버 부하 시 자주 발생 — 즉시 재시도해도 또 끊김.
-    backoff 길이 늘려 (3s, 6s) DART 가 회복할 시간 확보.
+    backoff: 5s, 10s, 20s, 40s, 80s (총 최대 155초 대기 + 5 회 재시도).
+    DART 의 short-window IP throttling 이 풀릴 때까지 충분한 시간 확보.
+
+    **차단 감지 fallback** (2026-05-24 추가):
+    5회 retry 모두 ConnectionError 면 IP 차단 (WAF) 가능성 — 30분 대기 후
+    1회 더 시도. 그래도 실패면 raise (사용자 개입 필요).
     """
     import requests as _req
     last_exc = None
@@ -278,10 +383,40 @@ def _request_with_retry(url, params=None, timeout=30, max_retries=2):
                 _req.exceptions.ChunkedEncodingError) as e:
             last_exc = e
             if attempt < max_retries:
-                # backoff 늘림: 3s, 6s (기존 1s, 2s 보다 길게 — DART 회복 대기)
-                time.sleep(3.0 * (attempt + 1))
+                # 지수형 backoff: 5s → 10s → 20s → 40s → 80s
+                # DART 의 short-window throttling 회복 대기
+                backoff = 5.0 * (2 ** attempt)
+                log.warning("DART 요청 실패 (시도 %d/%d, %ds 대기): %s",
+                            attempt + 1, max_retries + 1, int(backoff), e)
+                time.sleep(backoff)
                 continue
-            raise
+            # 모든 retry 실패 — IP 차단 (WAF) 의심. 30분 대기 후 1회 더 시도.
+            # Monitor / 사용자가 즉시 인지 가능한 sentinel 출력 (flush=True).
+            import sys as _sys
+            print("[DART_BLOCKED] 5회 retry 모두 실패 — IP 차단 의심. "
+                  "30분 대기 후 재시도. 라우터 리부팅 권장.",
+                  file=_sys.stderr, flush=True)
+            print("[DART_BLOCKED] 5회 retry 모두 실패 — IP 차단 의심. "
+                  "30분 대기 후 재시도. 라우터 리부팅 권장.",
+                  flush=True)
+            log.warning("DART 5회 retry 모두 실패 — IP 차단 (WAF) 의심. "
+                        "30분 대기 후 1회 재시도. (라우터 리부팅으로 IP 갱신 시 즉시 복구)")
+            time.sleep(1800)  # 30분
+            try:
+                r = requests.get(url, params=params, timeout=timeout, headers=DEFAULT_HEADERS)
+                r.raise_for_status()
+                print("[DART_RECOVERED] 30분 대기 후 재시도 성공 — 작업 계속",
+                      flush=True)
+                log.info("DART 차단 해제 — 재시도 성공")
+                return r
+            except Exception as e2:
+                print(f"[DART_STILL_BLOCKED] 30분 후에도 실패 — 사용자 개입 필요: {e2}",
+                      file=_sys.stderr, flush=True)
+                print(f"[DART_STILL_BLOCKED] 30분 후에도 실패 — 사용자 개입 필요: {e2}",
+                      flush=True)
+                log.error("30분 대기 후에도 실패 — 사용자 개입 필요 "
+                          "(라우터 리부팅 또는 시간 더 두고 재시도): %s", e2)
+                raise
 
 
 def fetch_full_document(rcept_no: str, title_predicate=None) -> dict[str, str]:
@@ -305,6 +440,44 @@ def fetch_full_document(rcept_no: str, title_predicate=None) -> dict[str, str]:
     return out
 
 
+def fetch_ecm_stage1_document(rcept_no: str) -> dict[str, str]:
+    """ECM 증권신고서(지분증권) 1단계 본문 fetch — 2단 필터:
+    1. 제2부 순서 기반 컷오프 (기존)
+    2. **ecm_stage1_strict_predicate** 로 제1부 안에서도 parser 가 진짜 쓰는 섹션만
+       (2026-05-24 추가, DART WAF 부하 감소 위함)
+
+    감축 효과:
+      - 원본: 총 66 섹션
+      - 제2부 컷오프: ~20 섹션 (1/3)
+      - + strict predicate: **~3-5 섹션** (1/15)
+      - 한 공시당 fetch 시간: ~60초 → ~10초
+
+    필요 섹션: I. 모집 또는 매출에 관한 사항 + 하위 공모개요/공모방법/공모가격
+              결정방법/모집매출절차/인수등 + III. 투자위험요소 + 요약정보/핵심투자위험.
+    """
+    sections = list_doc_sections(rcept_no)
+    keep = []
+    for s in sections:
+        t = (s.title or "").replace(" ", "")
+        # '제2부' 가 제목 시작에 등장하면 거기서 stop.
+        if t.startswith("제2부") or "제2부발행인" in t:
+            break
+        # strict predicate — 제1부 안에서도 parser 가 진짜 쓰는 섹션만
+        if not ecm_stage1_strict_predicate(s.title or ""):
+            continue
+        keep.append(s)
+    out = {}
+    for sec in keep:
+        try:
+            html = fetch_section_html(sec)
+            out[sec.title] = html
+            time.sleep(config.REQUEST_SLEEP)
+        except Exception as e:
+            log.warning("ECM stage1 섹션 fetch 실패 rcept_no=%s title=%s: %s",
+                        rcept_no, sec.title, e)
+    return out
+
+
 def stage1_title_predicate(title: str) -> bool:
     """초기 '증권신고서(채무증권)' 에서 1단계 데이터 (청약일/회차/만기/등급/
     최초모집/발행한도/희망금리) 추출에 필요한 섹션만 매칭.
@@ -320,6 +493,119 @@ def stage1_title_predicate(title: str) -> bool:
     # 숫자로 시작 + 채권 관련 키워드 있으면 매칭.
     if re.match(r"^\d+\.", title.strip()):
         for kw in ("모집", "공모", "인수", "사채", "발행", "청약"):
+            if kw in norm:
+                return True
+    return False
+
+
+def ecm_stage1_strict_predicate(title: str) -> bool:
+    """ECM stage1 (증권신고서 지분증권 / 정정) — parser 가 진짜 쓰는 섹션만 fetch.
+
+    사용자 확인 (2026-05-24): 진짜 필요한 건 단 2 섹션.
+      1. "요약정보 / 2. 모집 또는 매출에 관한 일반사항"
+         → 모집 표 (모집수량/가액/방법) + 인수단 표 + 일정 표 (배정기준일/납입일)
+         → method, market, init_qty, init_price, record_date, payment_date,
+           underwriter_rows 모두 추출
+      2. "제1부 모집 또는 매출에 관한 사항 / I. 모집 또는 매출에 관한 일반사항 / 2. 공모방법"
+         → 유증의 [구주주 1주당 배정비율 산출근거] 표 = 발행주식총수 (existing_qty)
+
+    일반공모/제3자배정 의 특수 케이스에서는 위 2 섹션에 existing_qty 없을 수
+    있음 → main_ecm._process_rights 가 lazy fallback 으로 III. 투자위험요소
+    추가 fetch (ecm_risk_factors_predicate 사용).
+
+    부하: 기존 fetch_ecm_stage1_document 가 제2부 컷오프로 ~20 섹션 → 이 predicate
+    적용 후 **2 섹션** (1/10 감소).
+    """
+    norm = title.replace(" ", "")
+    # (1) 요약정보 안의 일반사항 — 핵심
+    if "2.모집또는매출에관한일반사항" in norm:
+        return True
+    # (2) I. 모집 또는 매출에 관한 일반사항 / 2. 공모방법
+    if "2.공모방법" in norm:
+        return True
+    return False
+
+
+def ecm_amend_strict_predicate(title: str) -> bool:
+    """amend (정정 신고서) — 일정/발행주식총수 변경 확인 2 섹션.
+
+    (1) "요약정보 / 2. 모집 또는 매출에 관한 일반사항"
+        → 배정기준일/납입일 (일정) 변경
+    (2) "제1부 모집 또는 매출에 관한 사항 / I. 모집 또는 매출에 관한 일반사항
+        / 2. 공모방법"
+        → 발행주식총수(자기주식) 변경 → 증자비율 갱신 (현대아산 2023.03.30 케이스)
+
+    부하: amend 당 2 섹션 fetch (기존 11 → 2, 2/11 ≈ 1/5 감소).
+    stage1 strict 와 동일 수준.
+    """
+    norm = title.replace(" ", "")
+    # (1) 일정 변경
+    if "2.모집또는매출에관한일반사항" in norm:
+        return True
+    # (2) 발행주식총수(자기주식) 변경 → existing_qty / 증자비율 갱신
+    if "2.공모방법" in norm:
+        return True
+    return False
+
+
+def ecm_total_shares_predicate(title: str) -> bool:
+    """일반공모/제3자배정 fallback — 제2부 발행인에 관한 사항 / I. 회사의 개요 /
+    4. 주식의 총수 등 표에서 "IV. 발행주식의 총수 (II-III)" 행 추출용.
+
+    OCI홀딩스 2023-08-31 케이스: 일반공모 → "I. 모집 또는 매출에 관한 일반사항 /
+    2. 공모방법" 에 "구주주 1주당 배정비율 산출근거" 표 없음 → 발행주식수 추출 실패.
+    "4. 주식의 총수 등" 표의 IV 행 값을 사용 (캡처: 16,412,642).
+
+    main_ecm._process_rights 가 stage1 첫 fetch 후 existing_qty None 이고
+    offering_type 이 일반공모/제3자배정 이면 추가로 이 predicate 로 fetch.
+
+    부담: 1 섹션만 추가 — 제2부 안의 다른 섹션은 절대 열지 않음.
+    (이전: III. 투자위험요소 fallback — 분량 너무 커 폐기.)
+    """
+    norm = title.replace(" ", "")
+    # "4. 주식의 총수 등" 또는 변종 "4. 주식의 총수"
+    return "4.주식의총수" in norm
+
+
+def ecm_risk_factors_predicate(title: str) -> bool:
+    """3차 fallback (옵션 A — 2026-05-25 복원): "4. 주식의 총수 등" 본문이 회사 측
+    생략된 케이스 (아미코젠 2025-12: "기재를 생략하였으며 반기보고서 참고") 대비.
+
+    III. 투자위험요소 의 sub-section (사업위험/회사위험/기타위험) 에 [당사 주가 및
+    유상증자에 따른 발행주식수 및 가격] 또는 [유통주식수 증가] 표가 있고 거기서
+    "현재 발행주식총수" 패턴 매칭 가능. parse_rights_stage1 의 패턴 3/4 가 잡음.
+
+    분량 분담 최소화 — III. 자체 (overview) 는 안 받고 sub-section 만 fetch.
+    호출 조건 (main_ecm._process_rights):
+        existing_qty None + "4. 주식의 총수 등" fallback 도 None → 이 predicate 시도.
+    """
+    norm = title.replace(" ", "")
+    # III. 의 sub-section 만 fetch (overview 는 정보 거의 없고 분량만 크므로 skip)
+    # 보통 "회사위험" 에 [당사 주가 및 유상증자에 따른 발행주식수 및 가격] 표 위치.
+    if re.match(r"^\d+\.", title.strip()):
+        for kw in ("사업위험", "회사위험", "기타위험"):
+            if kw in norm:
+                return True
+    return False
+
+
+def ecm_final_strict_predicate(title: str) -> bool:
+    """ECM final ([발행조건확정] 증권신고서) — '증권발행조건확정' 섹션만."""
+    norm = title.replace(" ", "")
+    return "발행조건확정" in norm or "증권발행조건" in norm
+
+
+def ecm_report_strict_predicate(title: str) -> bool:
+    """ECM IPO 증권발행실적보고서 — 청약/배정 + 증권교부일 섹션만."""
+    norm = title.replace(" ", "")
+    # 메인 chapter
+    if "청약및배정에관한사항" in norm or "청약및배정" in norm:
+        return True
+    if "증권교부일" in norm:
+        return True
+    # 숫자/로마자 prefix + 키워드
+    if re.match(r"^[\dIVX]+\.", title.strip()):
+        for kw in ("청약", "배정", "교부일", "인수기관"):
             if kw in norm:
                 return True
     return False

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numbers Pool — IPO·유상증자 인포그래픽</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../deallist.css?v=20260526104243" />
+  <link rel="stylesheet" href="style.css?v=20260526104243" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+</head>
+<body>
+
+  <div id="nav-mount" data-active="ecm-charts" data-root=".."></div>
+  <script src="../nav.js?v=20260526104243"></script>
+
+  <header class="v1-subheader">
+    <div class="row">
+      <div>
+        <div class="kicker">ECM · 시장 통계 8종</div>
+        <h1>IPO·유상증자 인포그래픽</h1>
+      </div>
+      <div class="meta">
+        <span id="updated" hidden></span>
+        <span id="period-range"></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="filters">
+    <div class="filter-row">
+      <label>기간
+        <div class="date-range">
+          <input type="date" id="f-date-start" />
+          <span class="dash">~</span>
+          <input type="date" id="f-date-end" />
+        </div>
+        <div class="date-presets">
+          <button type="button" data-preset="ytd">올해</button>
+          <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="3y">최근 3년</button>
+          <button type="button" data-preset="all">전체</button>
+        </div>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button id="btn-search" class="btn primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        조회
+      </button>
+      <button id="btn-reset" class="btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        초기화
+      </button>
+      <span id="result-count" class="result-count"></span>
+    </div>
+  </section>
+
+  <div class="charts-wrap" id="charts-wrap">
+    <div class="charts-grid">
+      <div class="chart-card wide">
+        <h3><span class="num">1</span> 연도별 발행 추이</h3>
+        <div class="chart-desc">막대 = 발행건수(IPO·유증) · 선 = 발행총액</div>
+        <div class="chart-wrap"><canvas id="ch-yearly"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">2</span> IPO vs 유상증자 (건수)</h3>
+        <div class="chart-wrap"><canvas id="ch-split-count"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">3</span> IPO vs 유상증자 (발행총액)</h3>
+        <div class="chart-wrap"><canvas id="ch-split-amt"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">4</span> IPO 시장별 (건수)</h3>
+        <div class="chart-desc">코스닥 · 코스피</div>
+        <div class="chart-wrap"><canvas id="ch-market"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">5</span> 유상증자 구분별 (건수)</h3>
+        <div class="chart-wrap"><canvas id="ch-rights-type"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">6</span> 발행사 Top 10</h3>
+        <div class="chart-desc">발행총액 기준 (IPO+유증)</div>
+        <div class="chart-wrap"><canvas id="ch-top-issuers"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">7</span> 주관사 Top 10</h3>
+        <div class="chart-desc">ECM 통합 주관 실적 기준</div>
+        <div class="chart-wrap"><canvas id="ch-top-leads"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3><span class="num">8</span> IPO 신주/구주 구성</h3>
+        <div class="chart-desc">100% 신주 · 혼합 · 100% 구주매출</div>
+        <div class="chart-wrap"><canvas id="ch-newshare"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding: 0 40px 24px; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 6px;">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    모든 차트는 위 기간 필터가 적용된 발행 데이터 기준입니다.
+  </div>
+
+  <footer class="v1-foot">
+    <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
+    <div><a href="../about/">데이터 안내</a></div>
+  </footer>
+
+  <script src="app.js?v=20260526104243"></script>
+</body>
+</html>

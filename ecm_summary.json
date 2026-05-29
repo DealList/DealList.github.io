@@ -1,0 +1,30 @@
+{
+  "updated": "2026-05-29 22:08",
+  "ipo_count": 655,
+  "rights_count": 485,
+  "this_year": "2026",
+  "this_year_ipo": 24,
+  "this_year_rights": 43,
+  "top_leads": [
+    {
+      "alias": "NH",
+      "amount": 194142
+    },
+    {
+      "alias": "한투",
+      "amount": 184896
+    },
+    {
+      "alias": "KB",
+      "amount": 172239
+    },
+    {
+      "alias": "미래",
+      "amount": 96393
+    },
+    {
+      "alias": "대신",
+      "amount": 58242
+    }
+  ]
+}

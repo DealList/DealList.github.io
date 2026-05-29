@@ -1,0 +1,142 @@
+/* ─────────────────────────────────────────────────────────────
+ * Deal List — DCM 인포그래픽 페이지 (charts/) 전용 스타일
+ * ───────────────────────────────────────────────────────────── */
+
+/* Filters (deals와 동일 구조) */
+.filters {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 40px;
+}
+.filter-row {
+  display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 16px;
+  margin-bottom: 14px;
+}
+.filter-row label {
+  display: flex; flex-direction: column;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em; text-transform: uppercase; gap: 6px;
+}
+.filter-row .filter-col { display: flex; flex-direction: column; gap: 8px; }
+.filter-row input, .filter-row select {
+  font: inherit; font-size: 13px;
+  padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface);
+  color: var(--text); letter-spacing: -0.01em; text-transform: none;
+}
+.date-range, .rating-range { display: flex; align-items: center; gap: 6px; }
+.date-range input, .rating-range select { flex: 1; min-width: 0; }
+.dash { color: var(--muted); }
+.date-presets {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px;
+}
+.date-presets button {
+  font: inherit; font-size: 11px; font-weight: 500;
+  padding: 4px 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  border-radius: 5px; cursor: pointer;
+  text-transform: none; letter-spacing: -0.01em;
+}
+.date-presets button.active {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent); font-weight: 600;
+}
+.issuer-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.filter-hint {
+  font-size: 10px; color: var(--muted); margin-top: 4px;
+  font-weight: 500; text-transform: none; letter-spacing: 0;
+}
+.filter-actions {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 14px; border-top: 1px dashed var(--border);
+}
+.btn {
+  font: inherit; font-size: 13px; font-weight: 500;
+  padding: 8px 16px; background: var(--surface);
+  border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--bg); }
+.btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn svg { width: 14px; height: 14px; }
+.result-count {
+  margin-left: auto; font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.result-count strong { color: var(--text); font-weight: 700; }
+
+/* ============ Charts grid — 2 columns (#1 spans both) ============ */
+.charts-wrap { padding: 0; }
+.charts-grid {
+  padding: 24px 40px 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex; flex-direction: column;
+  position: relative; /* 우상단 다운로드 버튼 absolute 기준점 */
+}
+.chart-card.wide { grid-column: span 2; }
+
+/* JPG 다운로드 버튼 (각 차트 카드 우상단) — 평소 옅게, hover 시 강조 */
+.chart-card .chart-download-btn {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.15s, color 0.15s, background 0.15s, border-color 0.15s;
+}
+.chart-card:hover .chart-download-btn {
+  opacity: 1;
+}
+.chart-card .chart-download-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft, rgba(29, 78, 216, 0.08));
+}
+.chart-card .chart-download-btn:active {
+  transform: scale(0.94);
+}
+.chart-card h3 {
+  margin: 0; font-size: 14px; font-weight: 700;
+  letter-spacing: -0.01em; color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+  padding-right: 38px; /* 우상단 다운로드 버튼과 겹침 방지 */
+}
+.chart-card h3 .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.chart-card .chart-desc {
+  font-size: 11.5px; color: var(--muted); margin-top: 4px;
+  line-height: 1.5;
+}
+.chart-card .chart-wrap {
+  flex: 1; margin-top: 14px;
+  min-height: 260px;
+  position: relative;
+}
+.chart-card.wide .chart-wrap { min-height: 320px; }
+.chart-card canvas { max-height: 320px; }
+
+/* Mobile */
+@media (max-width: 720px) {
+  .filters { padding: 14px 16px; }
+  .filter-row { grid-template-columns: 1fr; gap: 10px; }
+  .charts-grid { grid-template-columns: 1fr; padding: 16px; }
+  .chart-card.wide { grid-column: span 1; }
+  .chart-card .chart-wrap { min-height: 220px; }
+}

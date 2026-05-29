@@ -1,0 +1,236 @@
+﻿/* ─────────────────────────────────────────────────────────────
+ * Deal List — DCM 발행 정보 페이지 (deals/) 전용 스타일
+ * deallist.css 다음에 import.
+ * ───────────────────────────────────────────────────────────── */
+
+/* ============ Filters ============ */
+.filters {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 40px;
+}
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.filter-row label {
+  display: flex; flex-direction: column;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em; text-transform: uppercase; gap: 6px;
+}
+.filter-row .filter-col {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.filter-row input,
+.filter-row select {
+  font: inherit; font-size: 13px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  letter-spacing: -0.01em; text-transform: none;
+}
+.filter-row input:focus,
+.filter-row select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
+}
+.date-range,
+.rating-range {
+  display: flex; align-items: center; gap: 6px;
+}
+.date-range input,
+.rating-range select { flex: 1; min-width: 0; }
+.dash { color: var(--muted); flex-shrink: 0; }
+
+.date-presets {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+  margin-top: 4px;
+}
+.date-presets button {
+  font: inherit; font-size: 11px; font-weight: 500;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  border-radius: 5px; cursor: pointer;
+  text-align: center; text-transform: none; letter-spacing: -0.01em;
+}
+.date-presets button:hover {
+  background: var(--bg); color: var(--text);
+}
+.date-presets button.active {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent); font-weight: 600;
+}
+
+.issuer-chips {
+  display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px;
+}
+.issuer-chips:empty { display: none; }
+.filter-hint {
+  font-size: 10px; color: var(--muted); margin-top: 4px;
+  font-weight: 500; text-transform: none; letter-spacing: 0;
+}
+
+.filter-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+}
+.btn {
+  font: inherit; font-size: 13px; font-weight: 500;
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+  letter-spacing: -0.01em;
+}
+.btn:hover { background: var(--bg); border-color: var(--border-strong); }
+.btn.primary {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+.btn.primary:hover { background: var(--accent-2); }
+.btn svg { width: 14px; height: 14px; }
+
+.result-count {
+  margin-left: auto; font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.result-count strong { color: var(--text); font-weight: 700; }
+
+/* ============ Table ============ */
+.table-wrap {
+  background: var(--surface);
+  margin: 20px 40px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+.grid {
+  width: 100%; border-collapse: collapse;
+  font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+.grid thead th {
+  padding: 10px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-weight: 600; font-size: 11px;
+  letter-spacing: 0.02em;
+  text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  cursor: pointer;
+}
+.grid thead th.num { text-align: right; }
+.grid thead th:hover { background: var(--bg); color: var(--accent); }
+.grid thead th.sorted-asc::after,
+.grid thead th.sorted-desc::after {
+  content: ''; display: inline-block; margin-left: 4px;
+  border: 4px solid transparent;
+  color: var(--accent);
+}
+.grid thead th.sorted-asc::after { border-bottom-color: currentColor; transform: translateY(-2px); }
+.grid thead th.sorted-desc::after { border-top-color: currentColor; transform: translateY(2px); }
+
+.grid tbody td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  white-space: nowrap;
+  color: var(--text);
+}
+.grid tbody tr:last-child td { border-bottom: 0; }
+.grid tbody tr:hover td { background: var(--surface-2); }
+.grid td.num { text-align: right; }
+.grid td.issuer {
+  font-weight: 600; min-width: 130px;
+}
+.grid td.issuer a {
+  color: var(--accent); text-decoration: none;
+}
+.grid td.issuer a:hover { text-decoration: underline; }
+
+.type-pill {
+  display: inline-block; padding: 1px 6px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 3px; font-size: 10.5px; color: var(--text-2);
+}
+
+.empty {
+  padding: 60px 20px; text-align: center; color: var(--muted);
+  font-size: 14px;
+}
+.empty.hidden { display: none; }
+
+/* ============ Pager ============ */
+.pager {
+  padding: 18px 40px;
+  display: flex; justify-content: center; align-items: center; gap: 4px;
+  flex-wrap: wrap;
+}
+.pager button, .pager a {
+  font: inherit; font-size: 12px; font-weight: 500;
+  padding: 6px 10px; min-width: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-radius: 5px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.pager button:hover, .pager a:hover {
+  background: var(--bg); color: var(--accent); border-color: var(--accent);
+}
+.pager .active {
+  background: var(--accent); color: white; border-color: var(--accent);
+}
+
+/* ============ 발행사 → DART 공시 팝업 링크 ============ */
+/* JS 가 .dart-link 클릭을 잡아 window.open() 으로 팝업 띄움.
+   기본은 본문과 같은 색/장식 없음 → hover 시 강조해서 클릭 가능하다는 단서. */
+.grid tbody td a.dart-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.grid tbody td a.dart-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+/* ============ Mobile ============ */
+@media (max-width: 720px) {
+  .filters { padding: 14px 16px; }
+  .filter-row { grid-template-columns: 1fr; gap: 10px; }
+  .filter-actions { padding-top: 10px; }
+  .table-wrap { margin: 14px 16px 0; border-radius: 8px; }
+  .pager { padding: 14px 16px; }
+}
+
+
+/* ===== ECM IPO/유상증자 탭 (deallist.css 변수 사용) ===== */
+.ecm-tabs {
+  display:flex; gap:6px; padding:14px 40px 0;
+  background:var(--surface); border-bottom:1px solid var(--border);
+}
+.ecm-tab {
+  font:inherit; font-size:14px; font-weight:600;
+  padding:9px 22px; cursor:pointer;
+  background:transparent; color:var(--muted);
+  border:1px solid transparent; border-bottom:none;
+  border-radius:8px 8px 0 0; margin-bottom:-1px;
+}
+.ecm-tab:hover { color:var(--text); }
+.ecm-tab.active {
+  background:var(--bg); color:var(--accent);
+  border-color:var(--border); border-bottom:1px solid var(--bg);
+}
+.brokers-cell { white-space:normal; min-width:160px; line-height:1.5; }
+.brokers-cell .bk { color:var(--text-2); }
+@media (max-width:720px){ .ecm-tabs{ padding:12px 16px 0; } }

@@ -1,0 +1,221 @@
+/* ─────────────────────────────────────────────────────────────
+ * Deal List — DCM 주관·인수 실적 페이지 (brokers/) 전용 스타일
+ * deallist.css + ../deals/style.css 패턴 재사용. brokers 고유 추가만.
+ * ───────────────────────────────────────────────────────────── */
+
+/* Filters/buttons/pager는 deals/style.css 와 동일 — 페이지마다 자체 보유 */
+.filters {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 18px 40px;
+}
+.filter-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 14px;
+}
+.filter-row label {
+  display: flex; flex-direction: column;
+  font-size: 11px; font-weight: 600; color: var(--muted);
+  letter-spacing: 0.04em; text-transform: uppercase; gap: 6px;
+}
+.filter-row input, .filter-row select {
+  font: inherit; font-size: 13px;
+  padding: 7px 10px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surface);
+  color: var(--text); letter-spacing: -0.01em; text-transform: none;
+}
+.filter-row input:focus, .filter-row select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(29,78,216,0.12);
+}
+.date-range { display: flex; align-items: center; gap: 6px; }
+.date-range input { flex: 1; min-width: 0; }
+.dash { color: var(--muted); }
+.date-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 4px; }
+.date-presets button {
+  font: inherit; font-size: 11px; font-weight: 500;
+  padding: 4px 6px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--muted);
+  border-radius: 5px; cursor: pointer;
+  text-transform: none; letter-spacing: -0.01em;
+}
+.date-presets button:hover { background: var(--bg); color: var(--text); }
+.date-presets button.active {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent); font-weight: 600;
+}
+.issuer-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.issuer-chips:empty { display: none; }
+.filter-hint {
+  font-size: 10px; color: var(--muted); margin-top: 4px;
+  font-weight: 500; text-transform: none; letter-spacing: 0;
+}
+.filter-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding-top: 14px; border-top: 1px dashed var(--border);
+}
+.btn {
+  font: inherit; font-size: 13px; font-weight: 500;
+  padding: 8px 16px; background: var(--surface);
+  border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn:hover { background: var(--bg); border-color: var(--border-strong); }
+.btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-2); }
+.btn svg { width: 14px; height: 14px; }
+.result-count {
+  margin-left: auto; font-size: 12px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.result-count strong { color: var(--text); font-weight: 700; }
+
+/* ============ Result tabs (주관 / 인수) ============ */
+.result-tabs {
+  padding: 24px 40px 0;
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.tab {
+  padding: 11px 22px; font-size: 14px; font-weight: 500;
+  color: var(--muted); cursor: pointer;
+  border: none; background: transparent;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+  font: inherit;
+}
+.tab.active {
+  color: var(--accent); border-bottom-color: var(--accent); font-weight: 700;
+}
+.tab:hover { color: var(--text); }
+
+/* ============ Table ============ */
+.table-wrap {
+  background: var(--surface);
+  margin: 20px 40px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  overflow-x: auto;
+}
+#grid {
+  width: 100%; border-collapse: collapse;
+  font-size: 13px; font-variant-numeric: tabular-nums;
+}
+#grid thead th {
+  padding: 12px 14px; background: var(--surface-2);
+  color: var(--text-2); font-weight: 600; font-size: 11.5px;
+  text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+#grid thead th.num { text-align: right; }
+#grid thead th:hover { background: var(--bg); color: var(--accent); }
+#grid thead th.sorted-asc::after,
+#grid thead th.sorted-desc::after {
+  content: ''; display: inline-block; margin-left: 4px;
+  border: 4px solid transparent;
+}
+#grid thead th.sorted-asc::after { border-bottom-color: var(--accent); transform: translateY(-2px); }
+#grid thead th.sorted-desc::after { border-top-color: var(--accent); transform: translateY(2px); }
+
+#grid tbody td {
+  padding: 12px 14px; border-bottom: 1px solid var(--border-soft);
+}
+#grid tbody tr:last-child td { border-bottom: 0; }
+#grid tbody tr:hover td { background: var(--surface-2); }
+#grid td.num { text-align: right; }
+
+/* Rank cell */
+#grid td.rank-cell {
+  font-weight: 700; color: var(--text); width: 60px;
+}
+.rank-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 6px;
+  background: var(--surface-2); color: var(--text-2);
+  font-size: 12px; font-weight: 700;
+}
+.rank-num.r1 { background: var(--accent); color: white; }
+.rank-num.r2 { background: #475569; color: white; }
+.rank-num.r3 { background: #94a3b8; color: white; }
+
+#grid td.name-cell {
+  font-weight: 600; font-size: 14px; color: var(--text);
+}
+#grid td.amount-cell {
+  font-weight: 700; font-size: 14px; letter-spacing: -0.01em;
+}
+#grid td.share-cell {
+  font-weight: 600; color: var(--accent);
+}
+#grid td.share-cell .bar {
+  display: block; margin-top: 4px; height: 3px; width: 100%;
+  background: var(--surface-2); border-radius: 2px; overflow: hidden;
+}
+#grid td.share-cell .bar > i {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, #60a5fa 100%);
+}
+#grid td.issuers-cell {
+  color: var(--text-2); font-size: 12.5px; line-height: 1.7;
+  max-width: 480px;
+}
+.deal-chip {
+  display: inline-block; padding: 2px 8px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 4px; font-size: 11.5px;
+  margin: 2px 4px 2px 0; color: var(--text-2);
+}
+.deal-chip b { color: var(--text); font-weight: 600; }
+.deal-chip i {
+  color: var(--muted); font-style: normal; font-weight: 500; margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.empty {
+  padding: 60px 20px; text-align: center; color: var(--muted);
+  font-size: 14px;
+}
+.empty.hidden { display: none; }
+
+/* ============ Notes (footer formula) ============ */
+.notes {
+  padding: 18px 40px 24px;
+  background: var(--surface-2);
+  color: var(--muted); font-size: 12px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.notes small {
+  display: flex; align-items: center; gap: 6px;
+}
+.notes small svg { width: 12px; height: 12px; flex-shrink: 0; }
+.notes a { color: var(--accent); text-decoration: none; }
+
+/* Mobile */
+@media (max-width: 720px) {
+  .filters { padding: 14px 16px; }
+  .filter-row { grid-template-columns: 1fr; gap: 10px; }
+  .result-tabs { padding: 16px 16px 0; }
+  .table-wrap { margin: 14px 16px 0; }
+  .notes { padding: 14px 16px 18px; }
+}
+
+/* ===== ECM scope 탭 (통합/IPO/유상증자) ===== */
+.ecm-scope-tabs {
+  display:flex; gap:6px; padding:16px 40px 0;
+}
+.ecm-scope-tab {
+  font:inherit; font-size:14px; font-weight:600;
+  padding:9px 20px; cursor:pointer;
+  background:var(--surface); color:var(--muted);
+  border:1px solid var(--border);
+  border-radius:8px;
+}
+.ecm-scope-tab:hover { color:var(--text); border-color:var(--border-strong); }
+.ecm-scope-tab.active {
+  background:var(--accent); color:#fff; border-color:var(--accent);
+}
+.rel-issuers { white-space:normal; min-width:200px; color:var(--text-2); font-size:11.5px; line-height:1.5; }
+@media (max-width:720px){ .ecm-scope-tabs{ padding:14px 16px 0; } }

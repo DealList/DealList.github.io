@@ -179,6 +179,14 @@
     if (!ds.length) return { min:"", max:"" };
     return { min: ds.reduce((a,b)=>b<a?b:a), max: ds.reduce((a,b)=>b>a?b:a) };
   }
+  function applyDefaultRange() {  // 페이지/탭 진입 기본 = 최근 1년 (maxDate 기준) — DCM 동일
+    const { max } = dateRange();
+    if (max) {
+      const s = new Date(max); s.setFullYear(s.getFullYear()-1); s.setDate(s.getDate()+1);
+      $("f-date-start").value = s.toISOString().slice(0,10); $("f-date-end").value = max;
+    } else { $("f-date-start").value=""; $("f-date-end").value=""; }
+    state.dateStart = $("f-date-start").value; state.dateEnd = $("f-date-end").value; state.page = 1;
+  }
   function applyFilters() {
     state.dateStart = $("f-date-start").value||""; state.dateEnd = $("f-date-end").value||"";
     state.cat = $("f-cat").value||""; state.page = 1; render();
@@ -189,7 +197,7 @@
     state.leads.clear(); state.issuers.clear();
     chipBox("f-lead-chips",state.leads); chipBox("f-issuer-chips",state.issuers);
     const db=$("date-basis"); if(db) db.textContent = tab==="ipo" ? "상장일" : "신주배정기준일";
-    populateCat(); populateLeads(); populateIssuers(); render();
+    populateCat(); populateLeads(); populateIssuers(); applyDefaultRange(); render();
   }
 
   function download() {
@@ -324,7 +332,7 @@
       state.dateStart=state.dateEnd=state.cat=""; state.page=1; render();
     });
     $("btn-download").addEventListener("click", download);
-    render();
+    applyDefaultRange(); render();
   }
   document.addEventListener("DOMContentLoaded", init);
 })();

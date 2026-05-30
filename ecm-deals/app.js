@@ -17,7 +17,8 @@
   let META = null;
   let issuerSet = new Map();  // 현재 탭 발행사 (lowercase → canonical), 정확일치 검증용
   const state = { tab:"ipo", sort:{key:"date",dir:"desc"}, page:1,
-    issuers:new Set(), leads:new Set(), dateStart:"", dateEnd:"", cat:"" };
+    issuers:new Set(), leads:new Set(), dateStart:"", dateEnd:"", cat:"", priceMin:0, priceMax:0 };
+  const PRICE_OPTS = [1000,2000,5000,10000,20000,30000,50000,100000,200000,500000];  // 모집 가액(원) 범위 브래킷
 
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s==null?"":s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
@@ -81,6 +82,12 @@
       }
       if (state.issuers.size && !state.issuers.has(r.issuer)) return false;
       if (state.cat && (r[cf]||"") !== state.cat) return false;
+      if (state.tab==="ipo" && (state.priceMin || state.priceMax)) {
+        const p = r.final_price ?? r.init_price;
+        if (p == null) return false;
+        if (state.priceMin && p < state.priceMin) return false;
+        if (state.priceMax && p > state.priceMax) return false;
+      }
       if (state.leads.size) {
         const ks = new Set([...Object.keys(r.leads||{}), ...Object.keys(r.uw||{})]);
         if (![...state.leads].some(b => ks.has(b))) return false;
@@ -174,6 +181,11 @@
     const dl = $("issuers-datalist");
     if (dl) dl.innerHTML = names.map(n=>`<option value="${esc(n)}"></option>`).join("");
   }
+  function populatePrices() {  // 모집 가액 범위 드롭다운 (1회 채움)
+    const opt = v => `<option value="${v}">${v.toLocaleString()}</option>`;
+    $("f-price-min").innerHTML = `<option value="">하한 없음</option>` + PRICE_OPTS.map(opt).join("");
+    $("f-price-max").innerHTML = `<option value="">상한 없음</option>` + PRICE_OPTS.map(opt).join("");
+  }
   function dateRange() {  // 현재 탭 데이터의 최소/최대 날짜 (preset 기준)
     const ds = (DATA[state.tab]||[]).map(r=>r.date).filter(Boolean);
     if (!ds.length) return { min:"", max:"" };
@@ -193,7 +205,9 @@
   }
   function applyFilters() {
     state.dateStart = $("f-date-start").value||""; state.dateEnd = $("f-date-end").value||"";
-    state.cat = $("f-cat").value||""; state.page = 1; render();
+    state.cat = $("f-cat").value||"";
+    state.priceMin = +($("f-price-min").value||0); state.priceMax = +($("f-price-max").value||0);
+    state.page = 1; render();
   }
   function switchTab(tab) {
     if (tab === state.tab) return;
@@ -201,6 +215,8 @@
     state.leads.clear(); state.issuers.clear();
     chipBox("f-lead-chips",state.leads); chipBox("f-issuer-chips",state.issuers);
     const db=$("date-basis"); if(db) db.textContent = tab==="ipo" ? "상장일" : "신주배정기준일";
+    const pf=$("price-filter"); if(pf) pf.style.display = tab==="ipo" ? "" : "none";
+    $("f-price-min").value=""; $("f-price-max").value=""; state.priceMin=state.priceMax=0;
     populateCat(); populateLeads(); populateIssuers(); applyDefaultRange(); render();
   }
 
@@ -300,7 +316,7 @@
       }
     } catch (e) { console.error(e); const nu=$("nav-updated"); if(nu) nu.textContent="데이터 로드 실패"; return; }
 
-    populateCat(); populateLeads(); populateIssuers();
+    populateCat(); populateLeads(); populateIssuers(); populatePrices();
     document.querySelectorAll(".ecm-tab").forEach(t => t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
     $("f-issuer").addEventListener("keydown", e => {
       if (e.key!=="Enter") return; e.preventDefault();
@@ -335,6 +351,7 @@
       state.issuers.clear(); state.leads.clear();
       chipBox("f-issuer-chips",state.issuers); chipBox("f-lead-chips",state.leads);
       $("f-issuer").value=""; $("f-cat").value=""; state.cat="";
+      $("f-price-min").value=""; $("f-price-max").value=""; state.priceMin=state.priceMax=0;
       applyDefaultRange(); render();
     });
     $("btn-download").addEventListener("click", download);

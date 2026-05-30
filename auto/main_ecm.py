@@ -1579,7 +1579,9 @@ def _finalize_overdue_ipo_reports(xlsx_path: Path,
                 ws.cell(r, col).value = v
 
         _set_if(12, "inst_initial")     # L
-        _set_if(13, "inst_subscribed")  # M
+        # M(13, inst_subscribed) — 보고서로 덮어쓰지 않는다. 사용자 룰 2026-05-25:
+        # 기관 청약수량(M)은 [발행조건확정] 수요예측 합만 사용, 보고서 청약현황수량은 의미가 다름.
+        # (process_deal 의 보고서 적용 루프도 동일하게 M 제외 — finalize 도 일치시킴.)
         _set_if(15, "inst_final")       # O
         _set_if(16, "general_initial")  # P
         _set_if(17, "general_subscribed")  # Q
@@ -1587,8 +1589,9 @@ def _finalize_overdue_ipo_reports(xlsx_path: Path,
         _set_if(20, "esop_initial")     # T
         _set_if(21, "esop_final")       # U
 
-        # 경쟁률/청약률 수식 — 분자/분모 다 채워졌으면 자동 채움
-        if report.get("inst_initial") and report.get("inst_subscribed"):
+        # 경쟁률/청약률 수식 — 분자/분모 다 채워졌으면 자동 채움.
+        # N(기관 경쟁률): L 은 보고서값, M 은 [발행조건확정] 유지값 → M 셀 실제값으로 판단.
+        if report.get("inst_initial") and ws.cell(r, 13).value not in (None, ""):
             ws.cell(r, 14).value = f"=M{r}/L{r}"  # N
         if report.get("general_initial") and report.get("general_subscribed"):
             ws.cell(r, 18).value = f"=Q{r}/P{r}"  # R

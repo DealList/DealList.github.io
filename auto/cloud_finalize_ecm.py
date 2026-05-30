@@ -104,7 +104,10 @@ def finalize(today, dry=False):
             lc = parser_ecm._maybe_fix_listing_date_typo(lc, r["rcept_no_stage1"])
         if lc:
             patch["listing_date"] = lc.isoformat()[:10]
-        for k in ("inst_initial", "inst_subscribed", "inst_final",
+        # 주의: inst_subscribed(M, 기관 수요예측 수량)는 보고서로 덮지 않는다.
+        # 사용자 룰 2026-05-25 — M 은 [발행조건확정] 수요예측 합만 사용.
+        # 보고서의 청약현황수량(=배정수량)으로 덮으면 기관 경쟁률이 1.0 으로 망가짐.
+        for k in ("inst_initial", "inst_final",
                   "general_initial", "general_subscribed", "general_final",
                   "esop_initial", "esop_final"):
             if report.get(k) is not None:

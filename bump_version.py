@@ -20,9 +20,9 @@ ROOT = Path(__file__).resolve().parent
 TARGETS = [
     "index.html",
     "about/index.html",
-    "brokers/index.html",
-    "charts/index.html",
-    "deals/index.html",
+    "dcm-brokers/index.html",
+    "dcm-charts/index.html",
+    "dcm-deals/index.html",
 ]
 
 # <script src="..."> 또는 <link rel="..." href="..."> 의 로컬 .js / .css 참조에

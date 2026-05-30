@@ -53,15 +53,15 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
                 DCM
               </div>
-              <a${cls(dcmSub === 'deals' ? 'active' : '')} href="${root}/deals/">
+              <a${cls(dcmSub === 'deals' ? 'active' : '')} href="${root}/dcm-deals/">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 발행 정보
               </a>
-              <a${cls(dcmSub === 'brokers' ? 'active' : '')} href="${root}/brokers/">
+              <a${cls(dcmSub === 'brokers' ? 'active' : '')} href="${root}/dcm-brokers/">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/></svg>
                 주관·인수 실적
               </a>
-              <a${cls(dcmSub === 'charts' ? 'active' : '')} href="${root}/charts/">
+              <a${cls(dcmSub === 'charts' ? 'active' : '')} href="${root}/dcm-charts/">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg>
                 인포그래픽
               </a>

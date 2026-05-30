@@ -280,7 +280,7 @@ function renderRecentDeals(list) {
       ? `<div class="leads">${[...s.leads].slice(0, 3).join(' · ')}</div>`
       : `<div class="leads"></div>`;
     return `
-    <a class="v1-deal-row" href="deals/" data-type="${s.type || ''}">
+    <a class="v1-deal-row" href="dcm-deals/" data-type="${s.type || ''}">
       <div class="date">
         <span class="d">${shortDay(s.date)}</span>
         <span>${shortMonth(s.date)}</span>
@@ -320,7 +320,7 @@ function renderUpcoming(list) {
     //       아직 없으면 (회차합산 미확정) 모든 트랜치 최초모집액 합 (initAmt)
     const amt = (s.seriesTotal != null && s.seriesTotal > 0) ? s.seriesTotal : (s.initAmt || 0);
     return `
-    <a class="v1-up-row" href="deals/">
+    <a class="v1-up-row" href="dcm-deals/">
       <div class="when">
         <span class="day">${shortDay(s.date)}</span>
         <span class="month">${monthAbbr[parseInt(s.date.slice(5,7))-1]}</span>
@@ -348,7 +348,7 @@ function renderLeague(rows, year) {
     const rank = i + 1;
     const topClass = rank <= 3 ? `top${rank}` : '';
     return `
-      <a class="v1-league-row ${topClass}" href="brokers/">
+      <a class="v1-league-row ${topClass}" href="dcm-brokers/">
         <div class="rank">${rank}</div>
         <div class="name">${r.name}</div>
         <div class="amt">${fmtAmt(Math.round(r.amount))}</div>
@@ -370,7 +370,7 @@ function renderTrend(months, mode) {
 
   // SVG 내부 전체를 <a> 로 감싸 클릭 시 charts/ (인포그래픽) 페이지로 이동.
   // 막대·점 개별 hover 효과는 landing.css 에서 처리.
-  let html = `<a href="charts/" target="_self">`;
+  let html = `<a href="dcm-charts/" target="_self">`;
 
   // gridlines (5 lines)
   for (let i = 0; i <= 4; i++) {

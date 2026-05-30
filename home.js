@@ -433,7 +433,7 @@ function renderTrend(months, mode) {
 /* ═══════════════ ECM 랜딩 (IPO·유상증자 분리) ═══════════════ */
 let _ecmLoaded = false;
 const $$ = (id) => document.getElementById(id);
-const ecmTotal = (r) => r.final_total || r.init_total || 0;
+const ecmTotal = (r) => r.final_total != null ? r.final_total : (r.total_1 != null ? r.total_1 : (r.init_total || 0));
 const leadTop = (leads) => {
   const e = Object.entries(leads || {});
   if (!e.length) return '';
@@ -534,19 +534,22 @@ async function loadEcm() {
   const ic = $$('ecm-ipo-count'); if (ic) ic.textContent = `${yr}년 ${summary.this_year_ipo ?? 0}건`;
   const rc = $$('ecm-rights-count'); if (rc) rc.textContent = `${yr}년 ${summary.this_year_rights ?? 0}건`;
 
-  // 최근 IPO (상장 완료, date<=today)
-  const recentIpo = ipo.filter(r => r.date && r.date <= today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
-  renderEcmDeals('ecm-recent-ipo', recentIpo, 'ipo');
-  // 최근 유상증자 (기준일 desc)
-  const recentRights = rights.filter(r => r.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
-  renderEcmDeals('ecm-recent-rights', recentRights, 'rights');
-  // 주관 TOP 10 — 통합 / IPO / 유상증자 (완료 딜 기준)
+  // 1행: 주관 TOP 10 — 통합 / IPO / 유상증자 (완료 딜 기준)
   renderLeagueRows('ecm-league-all-rows', leagueAll.slice(0, 10));
   renderLeagueRows('ecm-league-ipo-rows', leagueIpo.slice(0, 10));
   renderLeagueRows('ecm-league-rights-rows', leagueRt.slice(0, 10));
-  // 예정 IPO (상장예정일 > today, 임박순)
-  const upIpo = ipo.filter(r => r.date && r.date > today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
-  renderEcmUpcoming(upIpo);
+
+  // 2행: 최근 IPO (완료 딜) / 다가오는 IPO (미완료)
+  const dDesc = (a, b) => (b.date || '').localeCompare(a.date || '');
+  const dDescNull1st = (a, b) => (b.date || '9999-99-99').localeCompare(a.date || '9999-99-99');
+  renderEcmDeals('ecm-recent-ipo', ipo.filter(r => ipoDone(r) && r.date).sort(dDesc).slice(0, 10), 'ipo');
+  renderEcmUpcomingDeals('ecm-upcoming-ipo', ipo.filter(r => !ipoDone(r)).sort(dDescNull1st).slice(0, 10), 'ipo');
+  // 3행: 최근 유상증자 (1차·최종 확정) / 다가오는 유상증자 (최초희망만)
+  renderEcmDeals('ecm-recent-rights', rights.filter(r => rightsDone(r) && r.date).sort(dDesc).slice(0, 10), 'rights');
+  renderEcmUpcomingDeals('ecm-upcoming-rights', rights.filter(r => !rightsDone(r)).sort(dDescNull1st).slice(0, 10), 'rights');
+  // 4·5행: 월별 추이 (완료 딜, 최근 13개월) — 건수/금액 토글
+  setupEcmTrend('ecm-ipo-trend', monthly13(ipo, ipoDone));
+  setupEcmTrend('ecm-rights-trend', monthly13(rights, rightsDone));
 }
 
 function renderEcmDeals(rootId, list, kind) {
@@ -611,6 +614,69 @@ function renderEcmUpcoming(list) {
       <div class="amt">${total > 0 ? fmtAmt(total) : '미확정'}</div>
     </a>`;
   }).join('');
+}
+
+// 다가오는(미완료) 딜 렌더 — 날짜 미정(상장예정)도 표기
+function renderEcmUpcomingDeals(rootId, list, kind) {
+  const root = $$(rootId); if (!root) return;
+  if (!list.length) { root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">해당 건이 없습니다.</div>`; return; }
+  root.innerHTML = list.map(s => {
+    const total = ecmTotal(s);
+    const amtHtml = total > 0 ? `<div class="amt">${fmtAmt(total)}</div>` : `<div class="amt pending">미확정</div>`;
+    const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
+    const sub = kind === 'ipo' ? '상장 예정' : ecmTypeShort(s.type);
+    const dt = s.date ? `<span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span>` : `<span class="d" style="font-size:12px;">예정</span>`;
+    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}<div class="leads">${leadTop(s.leads)}</div></a>`;
+  }).join('');
+}
+
+// 월별 13개월 집계 (완료 딜) — 인포그래픽 1번 카드 데이터와 동일
+function monthly13(arr, done) {
+  const m = new Map();
+  for (const r of arr) { if (!done(r) || !r.date) continue; const ym = r.date.slice(0, 7); const v = m.get(ym) || { count: 0, amount: 0 }; v.count++; v.amount += ecmTotal(r); m.set(ym, v); }
+  const keys = [...m.keys()].sort(); if (!keys.length) return [];
+  let [y, mo] = keys[keys.length - 1].split('-').map(Number); const seq = [];
+  for (let i = 0; i < 13; i++) { const k = `${y}-${String(mo).padStart(2, '0')}`; const v = m.get(k) || { count: 0, amount: 0 }; seq.unshift({ label: k, count: v.count, amount: v.amount }); if (--mo === 0) { mo = 12; y--; } }
+  return seq;
+}
+
+// 월별 추이 SVG (DCM 월별 발행 추이 스타일) — 막대=건수 / 선=금액
+function drawEcmTrend(svg, months, mode) {
+  if (!svg || !months || !months.length) { if (svg) svg.innerHTML = ''; return; }
+  mode = mode || 'count';
+  const W = 600, H = 200, padL = 40, padR = 5, padT = 20, padB = 30;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const step = innerW / months.length, barW = step * 0.55;
+  const gid = 'g-' + svg.id;
+  let html = `<a href="ecm-charts/" target="_self">`;
+  for (let i = 0; i <= 4; i++) { const y = padT + innerH * i / 4; html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eef2f7" stroke-width="1"/>`; }
+  if (mode === 'count') {
+    const maxC = Math.max(...months.map(m => m.count), 1);
+    months.forEach((m, i) => { if (!m.count) return; const h = (m.count / maxC) * innerH; const x = padL + i * step + (step - barW) / 2; html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#94a3b8" rx="2"/>`; });
+  } else {
+    const maxA = Math.max(...months.map(m => m.amount), 1);
+    const pts = months.map((m, i) => { const x = padL + i * step + step / 2; const y = padT + innerH - (m.amount / maxA) * innerH; return `${x},${y}`; }).join(' ');
+    html = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.18"/><stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient></defs>` + html;
+    const first = `${padL + step / 2},${padT + innerH}`, last = `${padL + (months.length - 1) * step + step / 2},${padT + innerH}`;
+    html += `<path d="M ${first} L ${pts} L ${last} Z" fill="url(#${gid})"/>`;
+    html += `<polyline points="${pts}" fill="none" stroke="#1d4ed8" stroke-width="2"/>`;
+    months.forEach((m, i) => { const x = padL + i * step + step / 2; const y = padT + innerH - (m.amount / maxA) * innerH; html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#1d4ed8" stroke-width="2"/>`; });
+  }
+  months.forEach((m, i) => { const x = padL + i * step + step / 2; const lbl = m.label.slice(2).replace('-', '/'); html += `<text x="${x}" y="${H - 10}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl}</text>`; });
+  html += `</a>`; svg.innerHTML = html;
+}
+
+// 차트 카드 토글(건수/금액) + 범례 동기화
+function setupEcmTrend(svgId, months) {
+  const svg = $$(svgId); if (!svg) return;
+  const card = svg.closest('.v1-chart'); if (!card) return;
+  const syncLegend = (mode) => { const it = card.querySelectorAll('.legend > span'); if (it.length >= 2) { it[0].style.display = mode === 'count' ? '' : 'none'; it[1].style.display = mode === 'amount' ? '' : 'none'; } };
+  const draw = (mode) => { drawEcmTrend(svg, months, mode); syncLegend(mode); };
+  draw(card.querySelector('.toggle span.active')?.dataset.mode || 'count');
+  card.querySelectorAll('.toggle span').forEach(sp => sp.addEventListener('click', () => {
+    card.querySelectorAll('.toggle span').forEach(x => x.classList.toggle('active', x === sp));
+    draw(sp.dataset.mode);
+  }));
 }
 
 function wireSectionTabs() {

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="deallist.css?v=20260526104243" />
-  <link rel="stylesheet" href="landing.css?v=20260531a" />
+  <link rel="stylesheet" href="landing.css?v=20260531b" />
 </head>
 <body>
 
@@ -173,50 +173,80 @@
       </div>
     </div>
 
-    <!-- 최근 IPO · 최근 유상증자 (분리) -->
+    <!-- 2행: 최근 IPO · 다가오는 IPO -->
     <div class="v1-two-col">
       <div>
         <div class="v1-sec-title">
-          <h2>최근 IPO 상장 <span class="count" id="ecm-ipo-count"></span></h2>
+          <h2>최근 IPO <span class="count" id="ecm-ipo-count"></span></h2>
           <a href="ecm-deals/">전체보기 →</a>
         </div>
         <div class="v1-deals">
-          <div class="head">
-            <h3>신규 상장 (코스피 · 코스닥)</h3>
-          </div>
+          <div class="head"><h3>완료 IPO · 신규 상장</h3></div>
           <div id="ecm-recent-ipo"></div>
         </div>
       </div>
+      <div>
+        <div class="v1-sec-title">
+          <h2>다가오는 IPO</h2>
+          <a href="ecm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>상장 예정 · 딜 진행 중</h3></div>
+          <div id="ecm-upcoming-ipo"></div>
+        </div>
+      </div>
+    </div>
 
+    <!-- 3행: 최근 유상증자 · 다가오는 유상증자 -->
+    <div class="v1-two-col">
       <div>
         <div class="v1-sec-title">
           <h2>최근 유상증자 <span class="count" id="ecm-rights-count"></span></h2>
           <a href="ecm-deals/">전체보기 →</a>
         </div>
         <div class="v1-deals">
-          <div class="head">
-            <h3>주주배정 · 일반공모 · 제3자배정</h3>
-          </div>
+          <div class="head"><h3>발행가액 확정 · 주주배정 등</h3></div>
           <div id="ecm-recent-rights"></div>
+        </div>
+      </div>
+      <div>
+        <div class="v1-sec-title">
+          <h2>다가오는 유상증자</h2>
+          <a href="ecm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>발행가액 확정 전 · 딜 진행 중</h3></div>
+          <div id="ecm-upcoming-rights"></div>
         </div>
       </div>
     </div>
 
-    <!-- 예정 IPO -->
-    <div class="v1-two-col">
-      <div>
-        <div class="v1-sec-title">
-          <h2>예정 IPO 상장</h2>
-          <a href="ecm-deals/">전체보기 →</a>
-        </div>
-        <div class="v1-upcoming">
-          <div class="head">
-            <h3>상장 예정</h3>
-          </div>
-          <div class="meta">상장예정일 임박순 · KIND</div>
-          <div id="ecm-upcoming-rows"></div>
+    <!-- 4행: 월별 IPO 추이 -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 IPO 추이</h3>
+        <div class="head-right">
+          <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
+          <a href="ecm-charts/" class="head-link">전체보기 →</a>
         </div>
       </div>
+      <div class="meta">완료 IPO · 최근 13개월 · 단위: 건 / 억원</div>
+      <svg id="ecm-ipo-trend" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend"><span><i style="background:#94a3b8;"></i>IPO 건수(막대)</span><span><i style="background:#1d4ed8;"></i>발행총액(선)</span></div>
+    </div>
+
+    <!-- 5행: 월별 유상증자 추이 -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 유상증자 추이</h3>
+        <div class="head-right">
+          <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
+          <a href="ecm-charts/" class="head-link">전체보기 →</a>
+        </div>
+      </div>
+      <div class="meta">발행가액 확정 유상증자 · 최근 13개월 · 단위: 건 / 억원</div>
+      <svg id="ecm-rights-trend" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend"><span><i style="background:#94a3b8;"></i>유상증자 건수(막대)</span><span><i style="background:#1d4ed8;"></i>발행총액(선)</span></div>
     </div>
 
     <!-- Quick links -->
@@ -260,6 +290,6 @@
     <div><a href="about/">데이터 안내</a></div>
   </footer>
 
-  <script src="home.js?v=20260531c"></script>
+  <script src="home.js?v=20260531d"></script>
 </body>
 </html>

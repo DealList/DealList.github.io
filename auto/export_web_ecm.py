@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 import supabase_client as sb
+import config_ecm
 
 KST = ZoneInfo("Asia/Seoul")
 WEB = ROOT.parent / "web"
@@ -140,6 +141,8 @@ def main():
         "markets": collect(ipo, "market"),
         "types": collect(rt, "type"),
         "brokers": brokers(ipo + rt),
+        "lead_order": config_ecm.LEAD_ECM,  # 원본 xlsx 주관 컬럼 순서 (Excel 다운로드용)
+        "uw_order": config_ecm.UW_ECM,      # 원본 xlsx 인수 컬럼 순서
     }
     (WEB / "ecm_meta.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

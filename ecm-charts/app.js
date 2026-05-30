@@ -1,4 +1,4 @@
-// Numbers Pool — ECM 인포그래픽 (8 차트, IPO/유상증자)
+// Numbers Pool — ECM 인포그래픽 (IPO / 유상증자 탭별 차트)
 (function () {
   "use strict";
   const BROKER_FULL = {
@@ -13,7 +13,7 @@
   const PALETTE = ["#3b82f6","#14b8a6","#f59e0b","#a855f7","#ef4444","#10b981","#6366f1","#ec4899","#eab308","#06b6d4"];
   const IPO_C = "#3b82f6", RIGHTS_C = "#14b8a6";
 
-  let RAW = { ipo:[], rights:[] }, META = {}, charts = {};
+  let RAW = { ipo:[], rights:[] }, META = {}, charts = {}, tab = "ipo";
   const $ = (id) => document.getElementById(id);
   const dn = (a) => BROKER_FULL[a] || a;
   const total = (r) => (r.final_total!=null?r.final_total:(r.init_total!=null?r.init_total:0))||0;
@@ -49,6 +49,14 @@
       setTimeout(()=>{ runQuery(); btn.disabled=false; btn.innerHTML=orig; delete btn.dataset.busy; },250);
     });
     $("btn-reset").addEventListener("click",()=>{ applyPreset("1y",max,min); runQuery(); });
+    // 탭 전환 (IPO / 유상증자)
+    document.querySelectorAll(".ecm-tab").forEach(t=>t.addEventListener("click",()=>{
+      if (t.dataset.tab===tab) return;
+      document.querySelectorAll(".ecm-tab").forEach(x=>x.classList.remove("active"));
+      t.classList.add("active"); tab=t.dataset.tab;
+      document.querySelectorAll(".charts-grid").forEach(g=>{ g.hidden = g.dataset.panel!==tab; });
+      runQuery();
+    }));
   }
   function clearPreset(){ document.querySelectorAll(".date-presets button").forEach(b=>b.classList.remove("active")); }
   function applyPreset(p,max,min){
@@ -66,8 +74,9 @@
     $("period-range").textContent=`조회 기간: ${ds||"처음"} ~ ${de||"끝"}`;
     const inR=(r)=> r.date && (!ds||r.date>=ds) && (!de||r.date<=de);
     const ipo=RAW.ipo.filter(r=>inR(r)&&ipoDone(r)), rights=RAW.rights.filter(r=>inR(r)&&rightsDone(r));
-    const amt=[...ipo,...rights].reduce((s,r)=>s+total(r),0);
-    $("result-count").innerHTML=`IPO <strong>${ipo.length}</strong> · 유증 <strong>${rights.length}</strong> · 발행총액 ${fmtAmt(amt)}`;
+    const list = tab==="ipo"?ipo:rights, tl = tab==="ipo"?"IPO":"유상증자";
+    const amt = list.reduce((s,r)=>s+total(r),0);
+    $("result-count").innerHTML=`${tl} <strong>${list.length.toLocaleString()}</strong>건 · 발행총액 ${fmtAmt(amt)}`;
     renderCharts(ipo,rights);
   }
 
@@ -87,46 +96,50 @@
     const pct = (v,ctx)=>{ const t=(ctx.dataset.data||[]).reduce((a,b)=>a+(+b||0),0); return t>0 && v/t>=0.03 ? Math.round(v/t*100)+"%":""; };
     const noGrid = { grid:{display:false} };
 
-    // ① 연도별 추이 (IPO/유증 건수 bar + 총액 line)
-    const yrs = [...new Set([...ipo,...rights].map(r=>r.date.slice(0,4)))].sort();
-    const yc = (arr,y)=>arr.filter(r=>r.date.slice(0,4)===y).length;
-    const yamt = (y)=>[...ipo,...rights].filter(r=>r.date.slice(0,4)===y).reduce((s,r)=>s+total(r),0);
-    charts.yearly = new Chart($("ch-yearly"), { data:{ labels:yrs, datasets:[
-      {type:"bar",label:"IPO 건수",data:yrs.map(y=>yc(ipo,y)),backgroundColor:IPO_C,yAxisID:"y",datalabels:dl(cntL)},
-      {type:"bar",label:"유증 건수",data:yrs.map(y=>yc(rights,y)),backgroundColor:RIGHTS_C,yAxisID:"y",datalabels:dl(cntL)},
-      {type:"line",label:"발행총액",data:yrs.map(y=>yamt(y)),borderColor:"#f59e0b",backgroundColor:"#f59e0b",yAxisID:"y1",tension:0.3,datalabels:{display:false}},
-    ]}, options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{position:"bottom"}}, scales:{ y:{position:"left",...noGrid,title:{display:true,text:"건수"}}, y1:{position:"right",grid:{display:false},title:{display:true,text:"억원"},ticks:{callback:v=>amtL(v)}} } } });
+    // 연도별 추이 (해당 유형 건수 bar + 발행총액 line)
+    const yearly = (id, arr, color, barLabel) => {
+      const yrs=[...new Set(arr.map(r=>r.date.slice(0,4)))].sort();
+      const yc=(y)=>arr.filter(r=>r.date.slice(0,4)===y).length;
+      const yamt=(y)=>arr.filter(r=>r.date.slice(0,4)===y).reduce((s,r)=>s+total(r),0);
+      return new Chart($(id), { data:{ labels:yrs, datasets:[
+        {type:"bar",label:barLabel,data:yrs.map(yc),backgroundColor:color,yAxisID:"y",datalabels:dl(cntL)},
+        {type:"line",label:"발행총액",data:yrs.map(yamt),borderColor:"#f59e0b",backgroundColor:"#f59e0b",yAxisID:"y1",tension:0.3,datalabels:{display:false}},
+      ]}, options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{position:"bottom"}}, scales:{ y:{position:"left",...noGrid,title:{display:true,text:"건수"}}, y1:{position:"right",grid:{display:false},title:{display:true,text:"억원"},ticks:{callback:v=>amtL(v)}} } } });
+    };
+    // 발행사 Top 10 (총액) — 해당 유형
+    const topIssuers = (id, arr) => {
+      const iss={}; arr.forEach(r=>{ iss[r.issuer]=(iss[r.issuer]||0)+total(r); });
+      const ti=Object.entries(iss).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      return new Chart($(id), { type:"bar", data:{ labels:ti.map(x=>x[0]), datasets:[{data:ti.map(x=>Math.round(x[1])),backgroundColor:"#6366f1",datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
+    };
+    // 주관사 Top 10 (주관 실적) — 해당 유형
+    const topLeads = (id, arr) => {
+      const ld={}; arr.forEach(r=>{ for(const[a,v]of Object.entries(r.leads||{})) ld[a]=(ld[a]||0)+v; });
+      const tl=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      return new Chart($(id), { type:"bar", data:{ labels:tl.map(x=>dn(x[0])), datasets:[{data:tl.map(x=>Math.round(x[1])),backgroundColor:"#0ea5e9",datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
+    };
 
-    // ② IPO vs 유증 (건수)
-    charts.sc = new Chart($("ch-split-count"), { type:"doughnut", data:{ labels:["IPO","유상증자"], datasets:[{data:[ipo.length,rights.length],backgroundColor:[IPO_C,RIGHTS_C],datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
-    // ③ IPO vs 유증 (총액)
-    const ia=ipo.reduce((s,r)=>s+total(r),0), ra=rights.reduce((s,r)=>s+total(r),0);
-    charts.sa = new Chart($("ch-split-amt"), { type:"doughnut", data:{ labels:["IPO","유상증자"], datasets:[{data:[ia,ra],backgroundColor:[IPO_C,RIGHTS_C],_isAmount:1,datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmtAmt(c.raw)}`}}}} });
-
-    // ④ IPO 시장별 (건수)
-    const mkts={}; ipo.forEach(r=>{ const m=r.market||"기타"; mkts[m]=(mkts[m]||0)+1; });
-    const mk=Object.entries(mkts).sort((a,b)=>b[1]-a[1]);
-    charts.mk = new Chart($("ch-market"), { type:"doughnut", data:{ labels:mk.map(x=>x[0]), datasets:[{data:mk.map(x=>x[1]),backgroundColor:PALETTE,datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
-
-    // ⑤ 유증 구분별 (건수, 가로 막대)
-    const tps={}; rights.forEach(r=>{ const t=r.type||"기타"; tps[t]=(tps[t]||0)+1; });
-    const tp=Object.entries(tps).sort((a,b)=>b[1]-a[1]);
-    charts.tp = new Chart($("ch-rights-type"), { type:"bar", data:{ labels:tp.map(x=>x[0]), datasets:[{data:tp.map(x=>x[1]),backgroundColor:RIGHTS_C,datalabels:{...dl(cntL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...noGrid},y:noGrid}} });
-
-    // ⑥ 발행사 Top 10 (총액)
-    const iss={}; [...ipo,...rights].forEach(r=>{ iss[r.issuer]=(iss[r.issuer]||0)+total(r); });
-    const ti=Object.entries(iss).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    charts.ti = new Chart($("ch-top-issuers"), { type:"bar", data:{ labels:ti.map(x=>x[0]), datasets:[{data:ti.map(x=>Math.round(x[1])),backgroundColor:"#6366f1",_isAmount:1,datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
-
-    // ⑦ 주관사 Top 10 (ECM 통합 주관실적)
-    const ld={}; [...ipo,...rights].forEach(r=>{ for(const[a,v]of Object.entries(r.leads||{})) ld[a]=(ld[a]||0)+v; });
-    const tl=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    charts.tl = new Chart($("ch-top-leads"), { type:"bar", data:{ labels:tl.map(x=>dn(x[0])), datasets:[{data:tl.map(x=>Math.round(x[1])),backgroundColor:"#0ea5e9",_isAmount:1,datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
-
-    // ⑧ IPO 신주/구주 구성
-    let pure=0,mix=0,old=0;
-    ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; if(n>=0.999)pure++; else if(n<=0.001)old++; else mix++; });
-    charts.ns = new Chart($("ch-newshare"), { type:"doughnut", data:{ labels:["100% 신주","신주+구주 혼합","100% 구주매출"], datasets:[{data:[pure,mix,old],backgroundColor:["#3b82f6","#a855f7","#f59e0b"],datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
+    if (tab === "ipo") {
+      charts.iy = yearly("ch-ipo-yearly", ipo, IPO_C, "IPO 건수");
+      // IPO 시장별 (건수)
+      const mkts={}; ipo.forEach(r=>{ const m=r.market||"기타"; mkts[m]=(mkts[m]||0)+1; });
+      const mk=Object.entries(mkts).sort((a,b)=>b[1]-a[1]);
+      charts.mk = new Chart($("ch-ipo-market"), { type:"doughnut", data:{ labels:mk.map(x=>x[0]), datasets:[{data:mk.map(x=>x[1]),backgroundColor:PALETTE,datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
+      // IPO 신주/구주 구성
+      let pure=0,mix=0,old=0;
+      ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; if(n>=0.999)pure++; else if(n<=0.001)old++; else mix++; });
+      charts.ns = new Chart($("ch-ipo-newshare"), { type:"doughnut", data:{ labels:["100% 신주","신주+구주 혼합","100% 구주매출"], datasets:[{data:[pure,mix,old],backgroundColor:["#3b82f6","#a855f7","#f59e0b"],datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
+      charts.ti = topIssuers("ch-ipo-issuers", ipo);
+      charts.tl = topLeads("ch-ipo-leads", ipo);
+    } else {
+      charts.ry = yearly("ch-rt-yearly", rights, RIGHTS_C, "유상증자 건수");
+      // 유상증자 구분별 (건수, 가로 막대)
+      const tps={}; rights.forEach(r=>{ const t=r.type||"기타"; tps[t]=(tps[t]||0)+1; });
+      const tp=Object.entries(tps).sort((a,b)=>b[1]-a[1]);
+      charts.tp = new Chart($("ch-rt-type"), { type:"bar", data:{ labels:tp.map(x=>x[0]), datasets:[{data:tp.map(x=>x[1]),backgroundColor:RIGHTS_C,datalabels:{...dl(cntL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...noGrid},y:noGrid}} });
+      charts.ti = topIssuers("ch-rt-issuers", rights);
+      charts.tl = topLeads("ch-rt-leads", rights);
+    }
   }
 
   // 테마 토글 시 차트 색 갱신

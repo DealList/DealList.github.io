@@ -23,6 +23,8 @@
   const fmtPct = (v) => (typeof v==="number" ? (v*100).toFixed(1)+"%" : "-");
   const fmtX = (v) => (typeof v==="number" ? v.toLocaleString()+"배" : "-");
   const fmtMan = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString()+"만" : "-");  // 만 단위 반올림 표시
+  const fmtManN = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString() : "-");  // 만 단위 숫자만 (단위는 헤더)
+  const fmtPctN = (v) => (typeof v==="number" ? (v*100).toFixed(1) : "-");  // % 숫자만 (단위는 헤더)
   const fmtDate = (s) => s || "미정";
   function fmtBrokers(map) {
     const e = Object.entries(map||{}).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);
@@ -42,13 +44,13 @@
       {id:"date",label:"상장일",cell:r=>esc(r.date||"상장 예정"),val:r=>r.date,xls:r=>r.date||"상장 예정"},
       {id:"issuer",label:"회사명",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"market",label:"시장",cell:r=>esc(r.market),val:r=>r.market,xls:r=>r.market},
-      {id:"qty",label:"모집 수량(주)",num:1,cell:r=>fmtMan(r.final_qty??r.init_qty),val:r=>r.final_qty??r.init_qty,xls:r=>r.final_qty??r.init_qty??""},
+      {id:"qty",label:"모집 수량(만주)",num:1,cell:r=>fmtManN(r.final_qty??r.init_qty),val:r=>r.final_qty??r.init_qty,xls:r=>r.final_qty??r.init_qty??""},
       {id:"price",label:"1주당 모집 가액(원)",num:1,cell:r=>fmtN(r.final_price??r.init_price),val:r=>r.final_price??r.init_price,xls:r=>r.final_price??r.init_price??""},
       {id:"total",label:"모집 총액(억원)",num:1,cell:r=>fmtN(r.final_total??r.init_total),val:r=>r.final_total??r.init_total,xls:r=>r.final_total??r.init_total??""},
-      {id:"new_ratio",label:"신주비율",num:1,cell:r=>fmtPct(r.new_ratio),val:r=>r.new_ratio,xls:r=>r.new_ratio??""},
-      {id:"ic",label:"기관 경쟁률",num:1,cell:r=>fmtX(r.inst&&r.inst.compete),val:r=>(r.inst&&r.inst.compete)||0,xls:r=>(r.inst&&r.inst.compete)??""},
-      {id:"gc",label:"일반 경쟁률",num:1,cell:r=>fmtX(r.general&&r.general.compete),val:r=>(r.general&&r.general.compete)||0,xls:r=>(r.general&&r.general.compete)??""},
-      {id:"ec",label:"우리사주 청약률",num:1,cell:r=>fmtPct(r.esop&&r.esop.rate),val:r=>(r.esop&&r.esop.rate)||0,xls:r=>(r.esop&&r.esop.rate)??""},
+      {id:"new_ratio",label:"신주 비율(%)",num:1,cell:r=>fmtPctN(r.new_ratio),val:r=>r.new_ratio,xls:r=>r.new_ratio??""},
+      {id:"ic",label:"기관 경쟁률(배)",num:1,cell:r=>fmtN(r.inst&&r.inst.compete),val:r=>(r.inst&&r.inst.compete)||0,xls:r=>(r.inst&&r.inst.compete)??""},
+      {id:"gc",label:"일반 경쟁률(배)",num:1,cell:r=>fmtN(r.general&&r.general.compete),val:r=>(r.general&&r.general.compete)||0,xls:r=>(r.general&&r.general.compete)??""},
+      {id:"ec",label:"우리사주 청약률(%)",num:1,cell:r=>fmtPctN(r.esop&&r.esop.rate),val:r=>(r.esop&&r.esop.rate)||0,xls:r=>(r.esop&&r.esop.rate)??""},
       {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
       {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
     ],

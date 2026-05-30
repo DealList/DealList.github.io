@@ -167,6 +167,31 @@ def recheck_kind(dry=False):
     return updated
 
 
+def warn_suspicious_inst():
+    """기관청약(M)==기관최초배정(L) IPO 경고 — 보고서가 M 을 덮어쓴 시그니처(기관경쟁률 1.0).
+
+    2026-05-30 버그(보고서 청약현황수량이 M 덮어씀)의 재발 조기경보. verified 는 제외.
+    Actions 로그에 [DATA_WARN] 으로 노출.
+    """
+    rows = fetch_ipo()
+    hits = [r for r in rows
+            if not r.get("verified")
+            and isinstance(r.get("inst_initial"), (int, float))
+            and isinstance(r.get("inst_subscribed"), (int, float))
+            and r["inst_initial"] > 0
+            and r["inst_subscribed"] == r["inst_initial"]]
+    if hits:
+        print(f"  [DATA_WARN] 기관청약==기관최초배정 의심 {len(hits)}건 "
+              f"(기관경쟁률 1.0 — 보고서가 M 덮어쓴 흔적? [발행조건확정] 값으로 복구 필요):",
+              flush=True)
+        for r in hits:
+            print(f"    - {r.get('issuer')} (id={r.get('id')}): "
+                  f"L=M={r.get('inst_initial'):,}", flush=True)
+    else:
+        print("  [check] 기관청약 이상 없음 (M==L IPO 0건)")
+    return len(hits)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true")
@@ -177,6 +202,7 @@ def main():
     print(f"=== ECM finalize + KIND (today={today}) ===")
     finalize(today, dry=a.dry)
     recheck_kind(dry=a.dry)
+    warn_suspicious_inst()
 
 
 if __name__ == "__main__":

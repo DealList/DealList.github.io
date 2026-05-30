@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="deallist.css?v=20260526104243" />
-  <link rel="stylesheet" href="landing.css?v=20260531b" />
+  <link rel="stylesheet" href="landing.css?v=20260531c" />
 </head>
 <body>
 
@@ -47,16 +47,28 @@
     <!-- KPI grid (filled by home.js from summary.json) -->
     <div class="v1-kpis" id="kpi-grid"></div>
 
-    <!-- Two-col: deals + league -->
+    <!-- 1행: 공모채 주관 / 인수 TOP 10 -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title"><h2>올해 공모채 주관 TOP 10</h2><a href="dcm-brokers/">전체보기 →</a></div>
+        <div class="v1-league"><div id="league-rows"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2>올해 공모채 인수 TOP 10</h2><a href="dcm-brokers/">전체보기 →</a></div>
+        <div class="v1-league"><div id="league-uw-rows"></div></div>
+      </div>
+    </div>
+
+    <!-- 2행: 최근 발행 공모채 / 다가오는 공모채 청약 -->
     <div class="v1-two-col">
       <div>
         <div class="v1-sec-title">
-          <h2>최근 발행 <span class="count" id="recent-count">최근 30일</span></h2>
+          <h2>최근 발행 공모채</h2>
           <a href="dcm-deals/">전체보기 →</a>
         </div>
         <div class="v1-deals">
           <div class="head">
-            <h3>공모 회사채 발행 내역</h3>
+            <h3>딜 완료 · 발행 내역</h3>
             <div class="head-actions">
               <span class="pill active" data-filter="all">전체</span>
               <span class="pill" data-filter="무보증">무보증</span>
@@ -67,52 +79,36 @@
           <div id="recent-deals"></div>
         </div>
       </div>
-
       <div>
         <div class="v1-sec-title">
-          <h2 id="league-title">2026 주관 리그테이블</h2>
-          <a href="dcm-brokers/">전체보기 →</a>
+          <h2>다가오는 공모채 청약</h2>
+          <a href="dcm-deals/">전체보기 →</a>
         </div>
-        <div class="v1-league">
-          <h3>주관 실적 TOP 10</h3>
-          <div class="meta" id="league-meta">2026 YTD</div>
-          <div id="league-rows"></div>
-          <div class="footnote">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            실적 = 본인 인수금액 + (인수합 잔여분 ÷ 주관사 수)
-          </div>
+        <div class="v1-upcoming">
+          <div class="head"><h3>증권신고서 제출 · 수요예측 전</h3></div>
+          <div class="meta">딜 진행 중 · 청약 예정</div>
+          <div id="upcoming-rows"></div>
         </div>
       </div>
     </div>
 
-    <!-- Upcoming + Trend (위치 swap) -->
-    <div class="v1-trend-row">
-      <div class="v1-upcoming">
-        <div class="head">
-          <h3>다가오는 청약</h3>
-          <a href="dcm-deals/" class="head-link">전체보기 →</a>
+    <!-- 3행: 월별 공모채 발행 추이 (전체폭) -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 공모채 발행 추이</h3>
+        <div class="head-right">
+          <span class="toggle">
+            <span class="active" data-mode="count">건수</span>
+            <span data-mode="amount">금액</span>
+          </span>
+          <a href="dcm-charts/" class="head-link">전체보기 →</a>
         </div>
-        <div class="meta">증권신고서 제출 · 청약일 임박순</div>
-        <div id="upcoming-rows"></div>
       </div>
-
-      <div class="v1-chart">
-        <div class="head">
-          <h3>월별 발행 추이</h3>
-          <div class="head-right">
-            <span class="toggle">
-              <span class="active" data-mode="count">건수</span>
-              <span data-mode="amount">금액</span>
-            </span>
-            <a href="dcm-charts/" class="head-link">전체보기 →</a>
-          </div>
-        </div>
-        <div class="meta">최근 1년 · 단위: 건 / 억원</div>
-        <svg id="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
-        <div class="legend">
-          <span><i style="background: #cbd5e1;"></i>발행건수(막대)</span>
-          <span><i style="background: var(--accent);"></i>발행총액(선)</span>
-        </div>
+      <div class="meta">최근 13개월 · 단위: 건 / 억원</div>
+      <svg id="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend">
+        <span><i style="background: #cbd5e1;"></i>발행건수(막대)</span>
+        <span><i style="background: var(--accent);"></i>발행총액(선)</span>
       </div>
     </div>
 
@@ -290,6 +286,6 @@
     <div><a href="about/">데이터 안내</a></div>
   </footer>
 
-  <script src="home.js?v=20260531d"></script>
+  <script src="home.js?v=20260531e"></script>
 </body>
 </html>

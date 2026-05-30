@@ -153,8 +153,8 @@
 }
 .v1-three-col > div { display: flex; flex-direction: column; }
 .v1-three-col > div > .v1-league { flex: 1; }
-/* ECM 월별 추이 — 전체폭 차트 카드 간격 */
-#ecm-main > .v1-chart { margin-top: 28px; }
+/* 월별 추이 — 전체폭 차트 카드 간격 (DCM·ECM 공통) */
+.v1-main > .v1-chart { margin-top: 28px; }
 
 /* Recent deals */
 .v1-deals {

@@ -154,6 +154,7 @@ async function fillFromData() {
         rating: d.rating,
         leads: new Set(d.leads || []),
         leadAmts: { ...(d.lead_amt || {}) },
+        uwAmts: { ...(d.uw || {}) },
         finalAmt: d.final || 0,
         initAmt: d.init || 0,  // 트랜치별 최초모집액 합 (series_total 미정 시 사용)
         limit: d.limit || 0,
@@ -165,6 +166,9 @@ async function fillFromData() {
       (d.leads || []).forEach(L => e.leads.add(L));
       Object.entries(d.lead_amt || {}).forEach(([k, v]) => {
         e.leadAmts[k] = (e.leadAmts[k] || 0) + v;
+      });
+      Object.entries(d.uw || {}).forEach(([k, v]) => {
+        e.uwAmts[k] = (e.uwAmts[k] || 0) + v;
       });
       e.finalAmt += d.final || 0;
       e.initAmt += d.init || 0;
@@ -182,42 +186,24 @@ async function fillFromData() {
   const _todayDt = new Date();
   const today = `${_todayDt.getFullYear()}-${String(_todayDt.getMonth() + 1).padStart(2, '0')}-${String(_todayDt.getDate()).padStart(2, '0')}`;
 
-  /* ─── Recent deals (latest 10 issued, exclude future ones) ─── */
-  const recentList = series.filter(s => s.date <= today).slice(0, 10);
-  renderRecentDeals(recentList);
+  /* ─── 2행: 최근 발행 공모채(딜 완료=finalAmt>0, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
+  renderRecentDeals(series.filter(s => (s.finalAmt || 0) > 0).slice(0, 10));
+  renderUpcoming(series.filter(s => (s.finalAmt || 0) === 0).slice(0, 10));
 
-  /* ─── 다가오는 청약 — deals 페이지 정렬 (date desc) 의 상위 5건.
-       사용자 today 와 무관 (과거/미래 섞여도 OK). 금액 표기:
-       finalAmt > 0 (수요예측 완료) → series_total (= finalAmt 합)
-       finalAmt 없음 (수요예측 전)   → initAmt (모든 트랜치 init 합) */
-  const upcomingList = series.slice(0, 5);
-  renderUpcoming(upcomingList);
-
-  /* ─── League table TOP 10 (current year) ─── */
-  // 매년 1월 한 달 동안은 직전 해 데이터를 유지 (새 해 1월은 데이터가 거의 없어
-  // 의미 없음 — 2월 1일부터 새 해로 전환). 사용자 룰 (2026-05-26).
+  /* ─── 1행: 주관 / 인수 리그 TOP 10 (올해) ─── */
+  // 매년 1월 한 달은 직전 해 유지 (2월 1일부터 새 해 전환). 사용자 룰 (2026-05-26).
   const _yr = _todayDt.getFullYear();
   const _mo = _todayDt.getMonth() + 1;
   const year = String(_mo === 1 ? _yr - 1 : _yr);
   const yearSeries = series.filter(s => s.date.startsWith(year));
   const yearTotal = yearSeries.reduce((sum, s) => sum + (s.finalAmt || 0), 0);
-  const brokerAgg = {};
-  for (const s of yearSeries) {
-    Object.entries(s.leadAmts).forEach(([broker, amt]) => {
-      if (!brokerAgg[broker]) brokerAgg[broker] = { amount: 0, count: 0 };
-      brokerAgg[broker].amount += amt;
-      brokerAgg[broker].count++;
-    });
-  }
-  const leagueRows = Object.entries(brokerAgg)
-    .map(([broker, v]) => ({
-      name: BROKER_FULL[broker] || broker,
-      amount: v.amount,
-      share: yearTotal > 0 ? (v.amount / yearTotal) * 100 : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10);
-  renderLeague(leagueRows, year);
+  const mkDcmLeague = (field) => {
+    const agg = {};
+    for (const s of yearSeries) for (const [b, amt] of Object.entries(s[field] || {})) { (agg[b] || (agg[b] = { amount: 0 })).amount += amt; }
+    return Object.entries(agg).map(([b, v]) => ({ name: BROKER_FULL[b] || b, amount: v.amount, share: yearTotal > 0 ? v.amount / yearTotal * 100 : 0 })).sort((a, b) => b.amount - a.amount).slice(0, 10);
+  };
+  renderDcmLeagueRows('league-rows', mkDcmLeague('leadAmts'));
+  renderDcmLeagueRows('league-uw-rows', mkDcmLeague('uwAmts'));
 
   /* ─── Monthly trend (current month + 12 prior = 13 months) ─── */
   // 1) 오늘 기준 13개월 range (좌: 전년 동월, 우: 현재월)
@@ -244,15 +230,15 @@ async function fillFromData() {
   }
   _trendData = months.map(m => ({ label: m, ...monthAgg[m] }));
 
-  // 4) 초기 mode 는 .toggle .active 가 가진 mode (기본 count)
-  const activeToggle = document.querySelector(".v1-chart .toggle span.active");
+  // 4) 초기 mode 는 .toggle .active 가 가진 mode (기본 count). DCM 트렌드 카드만 (#dcm-main).
+  const activeToggle = document.querySelector("#dcm-main .v1-chart .toggle span.active");
   const initMode = activeToggle ? activeToggle.dataset.mode : "count";
   renderTrend(_trendData, initMode);
 
-  // 5) 토글 클릭 → mode 전환 + 즉시 재렌더
-  document.querySelectorAll(".v1-chart .toggle span").forEach((sp) => {
+  // 5) 토글 클릭 → mode 전환 + 즉시 재렌더 (DCM 트렌드 카드 한정)
+  document.querySelectorAll("#dcm-main .v1-chart .toggle span").forEach((sp) => {
     sp.onclick = () => {
-      document.querySelectorAll(".v1-chart .toggle span")
+      document.querySelectorAll("#dcm-main .v1-chart .toggle span")
         .forEach((x) => x.classList.remove("active"));
       sp.classList.add("active");
       renderTrend(_trendData, sp.dataset.mode);
@@ -358,6 +344,16 @@ function renderLeague(rows, year) {
   }).join('');
 }
 
+// 공모채 주관/인수 리그 rows 렌더 (지정 컨테이너)
+function renderDcmLeagueRows(rootId, rows) {
+  const root = document.getElementById(rootId); if (!root) return;
+  if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
+  root.innerHTML = rows.map((r, i) => {
+    const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';
+    return `<a class="v1-league-row ${topClass}" href="dcm-brokers/"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
+  }).join('');
+}
+
 function renderTrend(months, mode) {
   if (!months || !months.length) return;
   mode = mode || "count";
@@ -422,8 +418,9 @@ function renderTrend(months, mode) {
   html += `</a>`;
   svg.innerHTML = html;
 
-  // legend 동기화 — 활성 모드만 표시
-  const legendItems = document.querySelectorAll(".v1-chart .legend > span");
+  // legend 동기화 — 활성 모드만 표시 (해당 차트 카드 한정)
+  const _card = svg.closest(".v1-chart");
+  const legendItems = _card ? _card.querySelectorAll(".legend > span") : [];
   if (legendItems.length >= 2) {
     legendItems[0].style.display = mode === "count" ? "" : "none";
     legendItems[1].style.display = mode === "amount" ? "" : "none";

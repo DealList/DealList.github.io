@@ -65,11 +65,12 @@
     ],
     rights: [
       {id:"date",label:"신주배정기준일",cell:r=>esc(fmtDate(r.date)),val:r=>r.date,xls:r=>fmtDate(r.date)},
-      {id:"issuer",label:"발행사",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
+      {id:"issuer",label:"회사명",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"type",label:"구분",cell:r=>`<span class="type-pill">${esc(r.type)}</span>`,val:r=>r.type,xls:r=>r.type},
       {id:"payment",label:"납입일",cell:r=>esc(r.payment||"-"),val:r=>r.payment,xls:r=>r.payment||""},
       {id:"new_qty",label:"모집수량",num:1,cell:r=>fmtN(r.new_qty),val:r=>r.new_qty,xls:r=>r.new_qty??""},
       {id:"increase_ratio",label:"증자비율",num:1,cell:r=>fmtPct(r.increase_ratio),val:r=>r.increase_ratio,xls:r=>r.increase_ratio??""},
+      {id:"init_price",label:"최초희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},
       {id:"price_1",label:"1차 가액(원)",num:1,cell:r=>fmtN(r.price_1),val:r=>r.price_1,xls:r=>r.price_1??""},
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
       {id:"final_price",label:"최종 가액(원)",num:1,cell:r=>fmtN(r.final_price),val:r=>r.final_price,xls:r=>r.final_price??""},

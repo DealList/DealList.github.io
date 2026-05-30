@@ -442,13 +442,17 @@
       const rcept = a.dataset.rcept; if (!rcept) return;
       window.open(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`, "dart-viewer", "width=1100,height=800,scrollbars=yes,resizable=yes");
     });
+    // 입력창의 발행사 텍스트를 칩으로 커밋 (정확일치 검증). silent=true 면 미일치 시 alert 생략(조회 버튼용).
+    function commitIssuerText(silent) {
+      const v=$("f-issuer").value.trim(); if(!v) return false;
+      const canonical = issuerSet.get(v.toLowerCase());
+      if (!canonical) { if(!silent) alert("'"+v+"' 발행사를 찾을 수 없습니다.\n\nDART 공시 기준 정확한 회사명을 입력하거나 자동완성 목록에서 선택해 주세요."); return false; }
+      if (state.issuers.size>=10 || state.issuers.has(canonical)) { $("f-issuer").value=""; return false; }
+      state.issuers.add(canonical); chipBox("f-issuer-chips",state.issuers); $("f-issuer").value=""; return true;
+    }
     $("f-issuer").addEventListener("keydown", e => {
       if (e.key!=="Enter") return; e.preventDefault();
-      const v=$("f-issuer").value.trim(); if(!v) return;
-      const canonical = issuerSet.get(v.toLowerCase());
-      if (!canonical) { alert("'"+v+"' 발행사를 찾을 수 없습니다.\n\nDART 공시 기준 정확한 회사명을 입력하거나 자동완성 목록에서 선택해 주세요."); return; }
-      if (state.issuers.size>=10 || state.issuers.has(canonical)) { $("f-issuer").value=""; return; }
-      state.issuers.add(canonical); chipBox("f-issuer-chips",state.issuers); $("f-issuer").value="";
+      commitIssuerText(false);
     });
     $("f-lead").addEventListener("change", e => {
       const v=e.target.value; if (v && state.leads.size<5){ state.leads.add(v); chipBox("f-lead-chips",state.leads); } e.target.value="";
@@ -480,6 +484,7 @@
       btn.dataset.busy = "1"; btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>조회 중';
       setTimeout(() => {
+        commitIssuerText(true);   // 텍스트만 입력(엔터 미입력)한 발행사도 검색에 포함
         applyFilters();
         btn.disabled = false; btn.innerHTML = orig; delete btn.dataset.busy;
       }, 250);

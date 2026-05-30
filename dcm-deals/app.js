@@ -220,33 +220,32 @@
       dl.appendChild(o);
     }
 
-    // 발행사 검색: 엔터로 chip 추가 — 데이터에 정확히 일치하는 발행사명만 허용
-    $("f-issuer").addEventListener("keydown", (e) => {
-      if (e.key !== "Enter") return;
-      e.preventDefault();
+    // 입력창의 발행사 텍스트를 chip 으로 커밋 (정확일치 검증). silent=true 면 미일치 시 alert 생략(조회 버튼용).
+    function commitIssuerText(silent) {
       const val = $("f-issuer").value.trim();
-      if (!val) return;
+      if (!val) return false;
       const canonical = issuerSet.get(val.toLowerCase());
       if (!canonical) {
-        alert(
+        if (!silent) alert(
           "'" + val + "' 발행사를 찾을 수 없습니다.\n\n" +
           "금융감독원 DART 공시 기준의 정확한 전체 기업명을 입력해 주세요.\n" +
           "(예: SK, SK네트웍스, 에스케이에코플랜트 등)\n\n" +
           "기업명이 올바르더라도 발행 내역이 없으면 조회가 되지 않습니다."
         );
-        return;
+        return false;
       }
-      if (issuerKeywords.length >= MAX_ISSUER_CHIPS) {
-        $("f-issuer").value = "";
-        return;
-      }
-      if (issuerKeywords.includes(canonical)) {
-        $("f-issuer").value = "";
-        return;
-      }
+      if (issuerKeywords.length >= MAX_ISSUER_CHIPS) { $("f-issuer").value = ""; return false; }
+      if (issuerKeywords.includes(canonical)) { $("f-issuer").value = ""; return false; }
       issuerKeywords.push(canonical);
       $("f-issuer").value = "";
       renderIssuerChips();
+      return true;
+    }
+    // 발행사 검색: 엔터로 chip 추가 — 데이터에 정확히 일치하는 발행사명만 허용
+    $("f-issuer").addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      commitIssuerText(false);
     });
 
     // 기간 preset 버튼 — 날짜 input 만 갱신, 데이터는 "조회" 눌러야 반영
@@ -266,6 +265,7 @@
       tableWrap.classList.add("loading");
       // 다음 paint 후 + 짧은 딜레이로 시각적 피드백
       setTimeout(() => {
+        commitIssuerText(true);   // 텍스트만 입력(엔터 미입력)한 발행사도 검색에 포함
         currentPage = 1;
         applyFilters();
         btn.disabled = false;

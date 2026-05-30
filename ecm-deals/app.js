@@ -15,6 +15,7 @@
 
   let DATA = { ipo: [], rights: [] };
   let META = null;
+  let issuerSet = new Map();  // 현재 탭 발행사 (lowercase → canonical), 정확일치 검증용
   const state = { tab:"ipo", sort:{key:"date",dir:"desc"}, page:1,
     issuers:new Set(), leads:new Set(), dateStart:"", dateEnd:"", cat:"" };
 
@@ -78,7 +79,7 @@
         if (state.dateStart && r.date < state.dateStart) return false;
         if (state.dateEnd && r.date > state.dateEnd) return false;
       }
-      if (state.issuers.size && ![...state.issuers].some(q => r.issuer.includes(q))) return false;
+      if (state.issuers.size && !state.issuers.has(r.issuer)) return false;
       if (state.cat && (r[cf]||"") !== state.cat) return false;
       if (state.leads.size) {
         const ks = new Set([...Object.keys(r.leads||{}), ...Object.keys(r.uw||{})]);
@@ -167,6 +168,17 @@
     (DATA[state.tab]||[]).forEach(r => { Object.keys(r.leads||{}).forEach(a=>s.add(a)); Object.keys(r.uw||{}).forEach(a=>s.add(a)); });
     $("f-lead").innerHTML = `<option value="">추가…</option>` + [...s].sort().map(a=>`<option value="${esc(a)}">${esc(BROKER_FULL[a]||a)}</option>`).join("");
   }
+  function populateIssuers() {  // 발행사 datalist 자동완성 + 정확일치용 set (현재 탭)
+    const names = [...new Set((DATA[state.tab]||[]).map(r=>r.issuer).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko"));
+    issuerSet = new Map(names.map(n=>[n.toLowerCase(), n]));
+    const dl = $("issuers-datalist");
+    if (dl) dl.innerHTML = names.map(n=>`<option value="${esc(n)}"></option>`).join("");
+  }
+  function dateRange() {  // 현재 탭 데이터의 최소/최대 날짜 (preset 기준)
+    const ds = (DATA[state.tab]||[]).map(r=>r.date).filter(Boolean);
+    if (!ds.length) return { min:"", max:"" };
+    return { min: ds.reduce((a,b)=>b<a?b:a), max: ds.reduce((a,b)=>b>a?b:a) };
+  }
   function applyFilters() {
     state.dateStart = $("f-date-start").value||""; state.dateEnd = $("f-date-end").value||"";
     state.cat = $("f-cat").value||""; state.page = 1; render();
@@ -176,7 +188,8 @@
     state.tab = tab; state.page = 1; state.sort = {key:"date",dir:"desc"};
     state.leads.clear(); state.issuers.clear();
     chipBox("f-lead-chips",state.leads); chipBox("f-issuer-chips",state.issuers);
-    populateCat(); populateLeads(); render();
+    const db=$("date-basis"); if(db) db.textContent = tab==="ipo" ? "상장일" : "신주배정기준일";
+    populateCat(); populateLeads(); populateIssuers(); render();
   }
 
   function download() {
@@ -275,23 +288,32 @@
       }
     } catch (e) { console.error(e); const nu=$("nav-updated"); if(nu) nu.textContent="데이터 로드 실패"; return; }
 
-    populateCat(); populateLeads();
+    populateCat(); populateLeads(); populateIssuers();
     document.querySelectorAll(".ecm-tab").forEach(t => t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
     $("f-issuer").addEventListener("keydown", e => {
-      if (e.key==="Enter") { e.preventDefault(); const v=e.target.value.trim();
-        if (v && state.issuers.size<10){ state.issuers.add(v); chipBox("f-issuer-chips",state.issuers); e.target.value=""; } }
+      if (e.key!=="Enter") return; e.preventDefault();
+      const v=$("f-issuer").value.trim(); if(!v) return;
+      const canonical = issuerSet.get(v.toLowerCase());
+      if (!canonical) { alert("'"+v+"' 발행사를 찾을 수 없습니다.\n\nDART 공시 기준 정확한 회사명을 입력하거나 자동완성 목록에서 선택해 주세요."); return; }
+      if (state.issuers.size>=10 || state.issuers.has(canonical)) { $("f-issuer").value=""; return; }
+      state.issuers.add(canonical); chipBox("f-issuer-chips",state.issuers); $("f-issuer").value="";
     });
     $("f-lead").addEventListener("change", e => {
       const v=e.target.value; if (v && state.leads.size<5){ state.leads.add(v); chipBox("f-lead-chips",state.leads); } e.target.value="";
     });
     document.querySelectorAll(".date-presets button").forEach(b =>
       b.addEventListener("click", ()=>{
-        const p=b.dataset.preset, end=new Date(), start=new Date();
-        if (p==="1y") start.setFullYear(end.getFullYear()-1);
-        else if (p==="3y") start.setFullYear(end.getFullYear()-3);
-        else { $("f-date-start").value=""; $("f-date-end").value=""; applyFilters(); return; }
-        $("f-date-start").value=start.toISOString().slice(0,10);
-        $("f-date-end").value=end.toISOString().slice(0,10);
+        const p=b.dataset.preset;
+        const {min,max}=dateRange();
+        if (p==="all"){ $("f-date-start").value=min||""; $("f-date-end").value=max||""; applyFilters(); return; }
+        if (!max){ applyFilters(); return; }
+        const s=new Date(max);
+        if (p==="3m") s.setMonth(s.getMonth()-3);
+        else if (p==="6m") s.setMonth(s.getMonth()-6);
+        else if (p==="1y") s.setFullYear(s.getFullYear()-1);
+        s.setDate(s.getDate()+1);
+        $("f-date-end").value=max;
+        $("f-date-start").value=s.toISOString().slice(0,10);
         applyFilters();
       }));
     $("btn-search").addEventListener("click", applyFilters);

@@ -37,22 +37,25 @@
   <!-- Filters -->
   <section class="filters">
     <div class="filter-row">
-      <label>기간
+      <label>기간 (<span id="date-basis">상장일</span> 기준)
         <div class="date-range">
           <input type="date" id="f-date-start" />
           <span class="dash">~</span>
           <input type="date" id="f-date-end" />
         </div>
         <div class="date-presets">
+          <button type="button" data-preset="3m">최근 3개월</button>
+          <button type="button" data-preset="6m">최근 6개월</button>
           <button type="button" data-preset="1y">최근 1년</button>
-          <button type="button" data-preset="3y">최근 3년</button>
           <button type="button" data-preset="all">전체</button>
         </div>
       </label>
       <label>발행사 검색
-        <input id="f-issuer" type="search" placeholder="회사명 입력 (엔터로 추가)" autocomplete="off" />
+        <input id="f-issuer" type="search" list="issuers-datalist"
+               placeholder="예: 에코프로 (엔터로 추가)" autocomplete="off" />
+        <datalist id="issuers-datalist"></datalist>
         <div class="issuer-chips" id="f-issuer-chips"></div>
-        <div class="filter-hint">최대 10개까지 추가</div>
+        <div class="filter-hint">최대 10개까지 추가 가능</div>
       </label>
       <div class="filter-col">
         <label><span id="cat-name">시장</span>
@@ -100,6 +103,6 @@
     <div><a href="../about/">데이터 안내</a></div>
   </footer>
 
-  <script src="app.js?v=20260530i"></script>
+  <script src="app.js?v=20260530j"></script>
 </body>
 </html>

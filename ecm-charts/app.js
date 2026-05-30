@@ -184,21 +184,26 @@
         },
       });
     };
+    // 가로막대 값축 max — 데이터 최댓값에 라벨 여유 추가(막대 끝 라벨이 잘리지 않게).
+    // 데이터 기반이라 조회 기간 변경 시 자동 재계산. 금액 라벨이 길어 30%, 건수는 15%.
+    const hbarMax = (vals, isAmount) => { const m=Math.max(0,...vals.map(v=>+v||0)); return m>0 ? Math.ceil(m*(isAmount?1.3:1.15)) : undefined; };
     // 발행사 Top 10 (총액, 가로막대) — DCM hbar 스타일 (글로벌 datalabels 16, _isAmount)
     const topIssuers = (id, arr) => {
       const iss={}; arr.forEach(r=>{ iss[r.issuer]=(iss[r.issuer]||0)+total(r); });
       const ti=Object.entries(iss).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const d=ti.map(x=>Math.round(x[1]));
       return new Chart($(id), { type:"bar",
-        data:{ labels:ti.map(x=>x[0]), datasets:[{ label:"발행총액(억)", data:ti.map(x=>Math.round(x[1])), backgroundColor:"#f97316", _isAmount:true }] },
-        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
+        data:{ labels:ti.map(x=>x[0]), datasets:[{ label:"발행총액(억)", data:d, backgroundColor:"#f97316", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(d,true) } } } });
     };
     // 주관사 Top 10 (주관 실적, 가로막대)
     const topLeads = (id, arr) => {
       const ld={}; arr.forEach(r=>{ for(const[a,v]of Object.entries(r.leads||{})) ld[a]=(ld[a]||0)+v; });
       const t=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      const d=t.map(x=>Math.round(x[1]));
       return new Chart($(id), { type:"bar",
-        data:{ labels:t.map(x=>dn(x[0])), datasets:[{ label:"주관 실적(억)", data:t.map(x=>Math.round(x[1])), backgroundColor:"#22c55e", _isAmount:true }] },
-        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
+        data:{ labels:t.map(x=>dn(x[0])), datasets:[{ label:"주관 실적(억)", data:d, backgroundColor:"#22c55e", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(d,true) } } } });
     };
 
     // 도넛 금액 차트 tooltip (전체 금액 표기)
@@ -233,12 +238,13 @@
       const tC={}, tA={};
       rights.forEach(r=>{ const t=r.type||"기타"; tC[t]=(tC[t]||0)+1; tA[t]=(tA[t]||0)+total(r); });
       const tOrder=Object.keys(tC).sort((a,b)=>tC[b]-tC[a]);
+      const tpCnt=tOrder.map(t=>tC[t]), tpAmt=tOrder.map(t=>Math.round(tA[t]));
       charts.tp = new Chart($("ch-rt-type"), { type:"bar",
-        data:{ labels:tOrder, datasets:[{ label:"건수", data:tOrder.map(t=>tC[t]), backgroundColor:RIGHTS_C }] },
-        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:48}}, plugins:{ legend:{display:false} } } });
+        data:{ labels:tOrder, datasets:[{ label:"건수", data:tpCnt, backgroundColor:RIGHTS_C }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ max:hbarMax(tpCnt,false) } } } });
       charts.tpa = new Chart($("ch-rt-type-amt"), { type:"bar",
-        data:{ labels:tOrder, datasets:[{ label:"발행총액(억)", data:tOrder.map(t=>Math.round(tA[t])), backgroundColor:"#0e7490", _isAmount:true }] },
-        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
+        data:{ labels:tOrder, datasets:[{ label:"발행총액(억)", data:tpAmt, backgroundColor:"#0e7490", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(tpAmt,true) } } } });
       charts.ti = topIssuers("ch-rt-issuers", rights);
       charts.tl = topLeads("ch-rt-leads", rights);
     }

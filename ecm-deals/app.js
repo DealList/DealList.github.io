@@ -131,10 +131,10 @@
     const tl = state.tab==="ipo" ? "IPO" : "유상증자";
     // 위젯 라벨 — IPO 탭은 '완료' 명시 문구, 유증 탭은 기존 형식 유지
     const L = state.tab==="ipo" ? {
-      cnt: "조회 기간 IPO 완료 건수",
-      amt: "조회 기간 완료 IPO 금액", amtSub: "모집 총액 합산",
-      avg: "조회 기간 완료 IPO 평균 금액",
-      max: "조회 기간 완료 IPO 중 최대 규모",
+      cnt: "조회 기간 내 IPO 완료 건수",
+      amt: "조회 기간 내 완료 IPO 금액", amtSub: "모집 총액 합산",
+      avg: "조회 기간 내 완료 IPO 평균 금액",
+      max: "조회 기간 내 완료 IPO 중 최대 규모",
     } : {
       cnt: `조회 기간 ${tl} 건수`,
       amt: `조회 기간 ${tl} 금액`, amtSub: "모집총액 합산",

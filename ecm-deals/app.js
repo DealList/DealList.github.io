@@ -129,9 +129,21 @@
   function updateKPI(list) {  // 조회 기간 주요 정보 위젯 — 완료된 딜만 집계 (표 목록과 별개)
     const grid = $("kpi-grid"); if (!grid) return;
     const tl = state.tab==="ipo" ? "IPO" : "유상증자";
+    // 위젯 라벨 — IPO 탭은 '완료' 명시 문구, 유증 탭은 기존 형식 유지
+    const L = state.tab==="ipo" ? {
+      cnt: "조회 기간 IPO 완료 건수",
+      amt: "조회 기간 완료 IPO 금액", amtSub: "모집 총액 합산",
+      avg: "조회 기간 완료 IPO 평균 금액",
+      max: "조회 기간 완료 IPO 중 최대 규모",
+    } : {
+      cnt: `조회 기간 ${tl} 건수`,
+      amt: `조회 기간 ${tl} 금액`, amtSub: "모집총액 합산",
+      avg: `조회 기간 평균 ${tl} 규모`,
+      max: `조회 기간 최대 단일 ${tl}`,
+    };
     const amt = r => r.final_total ?? r.total_1 ?? r.init_total ?? 0;
     if (!list.length) {
-      grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">조회 결과 없음</div></div>`;
+      grid.innerHTML = `<div class="kpi-cell"><div class="l">${L.cnt}</div><div class="v">0<small>건</small></div><div class="s">조회 결과 없음</div></div>`;
       return;
     }
     // 완료 딜 = IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 1차 발행가액 또는 최종가액 확정
@@ -140,7 +152,7 @@
       : r => typeof r.price_1==="number" || typeof r.final_price==="number";
     const done = list.filter(isDone);
     if (!done.length) {
-      grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">완료 딜 없음</div></div>`;
+      grid.innerHTML = `<div class="kpi-cell"><div class="l">${L.cnt}</div><div class="v">0<small>건</small></div><div class="s">완료 딜 없음</div></div>`;
       return;
     }
     const count = done.length;
@@ -150,10 +162,10 @@
     for (const r of done){ const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
     const basis = state.tab==="ipo" ? "상장일 기준" : "기준일 기준";
     grid.innerHTML = `
-      <div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">${count.toLocaleString()}<small>건</small></div><div class="s">${basis}</div></div>
-      <div class="kpi-cell"><div class="l">조회 기간 ${tl} 금액</div><div class="v">${fmtBig(total)}</div><div class="s">모집총액 합산</div></div>
-      <div class="kpi-cell"><div class="l">조회 기간 평균 ${tl} 규모</div><div class="v">${fmtBig(avg)}</div><div class="s">건당 평균</div></div>
-      <div class="kpi-cell"><div class="l">조회 기간 최대 단일 ${tl}</div><div class="v">${big?esc(big.issuer):"-"}</div><div class="s">${big?fmtBig(bigAmt)+(big.date?" · "+big.date:""):"완료 딜 없음"}</div></div>`;
+      <div class="kpi-cell"><div class="l">${L.cnt}</div><div class="v">${count.toLocaleString()}<small>건</small></div><div class="s">${basis}</div></div>
+      <div class="kpi-cell"><div class="l">${L.amt}</div><div class="v">${fmtBig(total)}</div><div class="s">${L.amtSub}</div></div>
+      <div class="kpi-cell"><div class="l">${L.avg}</div><div class="v">${fmtBig(avg)}</div><div class="s">건당 평균</div></div>
+      <div class="kpi-cell"><div class="l">${L.max}</div><div class="v">${big?esc(big.issuer):"-"}</div><div class="s">${big?fmtBig(bigAmt)+(big.date?" · "+big.date:""):"완료 딜 없음"}</div></div>`;
   }
 
   function render() {

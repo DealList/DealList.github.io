@@ -179,6 +179,9 @@
     if (!ds.length) return { min:"", max:"" };
     return { min: ds.reduce((a,b)=>b<a?b:a), max: ds.reduce((a,b)=>b>a?b:a) };
   }
+  function setActivePreset(p) {  // 프리셋 버튼 active 하이라이트 (p=null 이면 전부 해제)
+    document.querySelectorAll(".date-presets button").forEach(b => b.classList.toggle("active", b.dataset.preset === p));
+  }
   function applyDefaultRange() {  // 페이지/탭 진입 기본 = 최근 1년 (maxDate 기준) — DCM 동일
     const { max } = dateRange();
     if (max) {
@@ -186,6 +189,7 @@
       $("f-date-start").value = s.toISOString().slice(0,10); $("f-date-end").value = max;
     } else { $("f-date-start").value=""; $("f-date-end").value=""; }
     state.dateStart = $("f-date-start").value; state.dateEnd = $("f-date-end").value; state.page = 1;
+    setActivePreset("1y");
   }
   function applyFilters() {
     state.dateStart = $("f-date-start").value||""; state.dateEnd = $("f-date-end").value||"";
@@ -312,6 +316,7 @@
     document.querySelectorAll(".date-presets button").forEach(b =>
       b.addEventListener("click", ()=>{
         const p=b.dataset.preset;
+        setActivePreset(p);
         const {min,max}=dateRange();
         if (p==="all"){ $("f-date-start").value=min||""; $("f-date-end").value=max||""; applyFilters(); return; }
         if (!max){ applyFilters(); return; }
@@ -324,12 +329,13 @@
         $("f-date-start").value=s.toISOString().slice(0,10);
         applyFilters();
       }));
+    ["f-date-start","f-date-end"].forEach(id => $(id).addEventListener("change", ()=>setActivePreset(null)));
     $("btn-search").addEventListener("click", applyFilters);
     $("btn-reset").addEventListener("click", ()=>{
       state.issuers.clear(); state.leads.clear();
       chipBox("f-issuer-chips",state.issuers); chipBox("f-lead-chips",state.leads);
-      $("f-date-start").value=""; $("f-date-end").value=""; $("f-issuer").value=""; $("f-cat").value="";
-      state.dateStart=state.dateEnd=state.cat=""; state.page=1; render();
+      $("f-issuer").value=""; $("f-cat").value=""; state.cat="";
+      applyDefaultRange(); render();
     });
     $("btn-download").addEventListener("click", download);
     applyDefaultRange(); render();

@@ -264,16 +264,19 @@
       btn.dataset.key = chartKey;
       btn.dataset.label = title;
       btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc));
+      // 다운로드 이미지 제목 접두사 — IPO 탭=IPO / 유상증자 탭=유상증자 (카드 패널 기준)
+      const panel = card.closest(".charts-grid");
+      const prefix = panel && panel.dataset.panel === "rights" ? "유상증자" : "IPO";
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc, prefix));
       card.appendChild(btn);
     });
   }
 
   // ===== 다운로드 (1920×1080 JPG, 상단 제목+설명 합성) — DCM 동일 =====
-  function downloadChartAsJPG(chartKey, title, desc) {
+  function downloadChartAsJPG(chartKey, title, desc, prefix) {
     const src = charts[chartKey];
     if (!src) return;
-    const fullTitle = title;
+    const fullTitle = prefix ? `${prefix} ${title}` : title;
 
     const isDk = document.documentElement.getAttribute("data-theme") === "dark";
     const COLOR_BG    = isDk ? "#0a0a0a" : "#ffffff";

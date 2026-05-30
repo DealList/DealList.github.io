@@ -29,8 +29,15 @@
   function dealTotal(r) {
     return (r.final_total!=null?r.final_total:(r.init_total!=null?r.init_total:0)) || 0;
   }
+  // 주관/인수 실적 집계 대상 = "완료된 딜"만 (미완료 딜의 모집총액·배정액은 실적에서 제외)
+  //  · IPO: 청약 데이터(기관·일반 경쟁률)까지 입력된 건
+  //  · 유상증자: 1차 발행가액 이상 확정된 건 (최종가액 수집 건 포함, 최초희망까지만인 건 제외)
+  const isNum = (v) => typeof v === "number";
+  function ipoComplete(r){ return !!(r.inst && isNum(r.inst.compete) && r.general && isNum(r.general.compete)); }
+  function rightsComplete(r){ return isNum(r.price_1) || isNum(r.final_price); }
   function scopeDeals() {
-    const arr = scope==="ipo" ? RAW.ipo : scope==="rights" ? RAW.rights : RAW.ipo.concat(RAW.rights);
+    const ipo = RAW.ipo.filter(ipoComplete), rights = RAW.rights.filter(rightsComplete);
+    const arr = scope==="ipo" ? ipo : scope==="rights" ? rights : ipo.concat(rights);
     return arr.map(r => ({ date:r.date||"", issuer:r.issuer, leads:r.leads||{}, uw:r.uw||{}, total:dealTotal(r) }));
   }
 

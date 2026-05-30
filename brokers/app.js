@@ -135,17 +135,15 @@
     });
 
     // 조회 / 초기화 / 다운로드
-    $("btn-search").addEventListener("click", () => {
+    $("btn-search").addEventListener("click", () => {  // 짧은 로딩 스피너 후 적용
       const btn = $("btn-search");
-      const tableWrap = document.querySelector(".table-wrap");
-      btn.disabled = true;
+      if (btn.dataset.busy) return;
+      const orig = btn.innerHTML;            // 돋보기 SVG + "조회" 보존
+      btn.dataset.busy = "1"; btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>조회 중';
-      tableWrap.classList.add("loading");
       setTimeout(() => {
         runQuery();
-        btn.disabled = false;
-        btn.textContent = "조회";
-        tableWrap.classList.remove("loading");
+        btn.disabled = false; btn.innerHTML = orig; delete btn.dataset.busy;
       }, 250);
     });
 

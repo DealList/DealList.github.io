@@ -260,15 +260,72 @@
   }
 
   function download() {
-    if (state.tab === "ipo") { downloadIpoFull(); return; }
-    // 유상증자: 웹 컬럼 그대로 (추후 원본화 가능)
-    const cols = COLS.rights, list = filtered();
-    const aoa = [cols.map(c=>c.label)];
-    list.forEach(r => aoa.push(cols.map(c=>c.xls(r))));
-    const ws = XLSX.utils.aoa_to_sheet(aoa);
-    const wb = XLSX.utils.book_new();
+    if (state.tab === "ipo") downloadIpoFull();
+    else downloadRightsFull();
+  }
+
+  // 유상증자: 원본 ECM Table.xlsx 형태 — 2행 헤더 + 최초/1차/2차/최종 + 주관/인수 broker별 컬럼
+  function downloadRightsFull() {
+    const list = filtered();
+    const leadOrder = (META && META.lead_order) || [];
+    const uwOrder   = (META && META.uw_order)   || [];
+    const lKnown = new Set(leadOrder), uKnown = new Set(uwOrder);
+    const lExtra = new Set(), uExtra = new Set();
+    for (const r of list) {
+      for (const k of Object.keys(r.leads||{})) if (!lKnown.has(k)) lExtra.add(k);
+      for (const k of Object.keys(r.uw||{}))    if (!uKnown.has(k)) uExtra.add(k);
+    }
+    const LEAD = [...leadOrder, ...lExtra], UW = [...uwOrder, ...uExtra];
+    const L0 = 16, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
+
+    const row1 = new Array(TOTAL).fill(""), row2 = new Array(TOTAL).fill("");
+    row1[0]="신주배정기준일"; row1[1]="회사명"; row1[2]="구분"; row1[3]="납입일";
+    row1[4]="모집수량"; row1[5]="기존주식"; row1[6]="증자비율";
+    row1[7]="최초 희망"; row2[7]="수량"; row2[8]="가액(원)"; row2[9]="총액(억)";
+    row1[10]="1차"; row2[10]="가액(원)"; row2[11]="총액(억)";
+    row1[12]="2차"; row2[12]="가액(원)"; row2[13]="총액(억)";
+    row1[14]="최종"; row2[14]="가액(원)"; row2[15]="총액(억)";
+    row1[L0]="주관"; LEAD.forEach((b,i)=>row2[L0+i]=b);
+    row1[U0]="인수"; UW.forEach((b,i)=>row2[U0+i]=b);
+
+    const dataRows = list.map(r => {
+      const a = new Array(TOTAL).fill(null);
+      const la=r.leads||{}, uwm=r.uw||{};
+      a[0]=r.date||""; a[1]=r.issuer; a[2]=r.type; a[3]=r.payment||"";
+      a[4]=r.new_qty; a[5]=r.existing_qty; a[6]=r.increase_ratio;
+      a[7]=r.init_qty; a[8]=r.init_price; a[9]=r.init_total;
+      a[10]=r.price_1; a[11]=r.total_1;
+      a[12]=r.price_2; a[13]=r.total_2;
+      a[14]=r.final_price; a[15]=r.final_total;
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      return a;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([row1, row2, ...dataRows]);
+
+    const merges = [];
+    const grp=(c0,c1)=>merges.push({s:{r:0,c:c0},e:{r:0,c:c1}});
+    grp(7,9); grp(10,11); grp(12,13); grp(14,15); grp(L0,U0-1); grp(U0,TOTAL-1);
+    [0,1,2,3,4,5,6].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
+    ws["!merges"]=merges;
+
+    const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
+      fill:{fgColor:{rgb:"F1F5F9"},patternType:"solid"},
+      border:{top:{style:"thin",color:{rgb:"CBD5E1"}},bottom:{style:"thin",color:{rgb:"CBD5E1"}},
+              left:{style:"thin",color:{rgb:"CBD5E1"}},right:{style:"thin",color:{rgb:"CBD5E1"}}} };
+    for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
+
+    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:6}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }
+
+    const cw=new Array(TOTAL).fill({wch:6});
+    cw[0]={wch:13}; cw[1]={wch:16}; cw[2]={wch:18}; cw[3]={wch:11};
+    [4,5,7,8,9,10,11,12,13,14,15].forEach(c=>cw[c]={wch:11}); cw[6]={wch:8};
+    ws["!cols"]=cw; ws["!rows"]=[{hpt:20},{hpt:18}];
+
+    const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "유상증자");
-    XLSX.writeFile(wb, `NumbersPool_ECM_rights_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb, `NumbersPool_ECM_유상증자_${new Date().toISOString().slice(0,10)}.xlsx`);
   }
 
   // IPO: 원본 ECM Table.xlsx 형태 — 2행 헤더 + 최초/최종/청약 세부 + 주관/인수 broker별 컬럼

@@ -161,7 +161,7 @@
     const tl=[...leadSum.entries()].sort((a,b)=>b[1]-a[1])[0], tu=[...uwSum.entries()].sort((a,b)=>b[1]-a[1])[0];
     const lt=[...leadSum.values()].reduce((s,v)=>s+v,0), ut=[...uwSum.values()].reduce((s,v)=>s+v,0);
     const dealCnt = deals.filter(d=>d.total>0).length;
-    const scopeLabel = scope==="ipo"?"IPO":scope==="rights"?"유상증자":"IPO+유상증자";
+    const scopeLabel = scope==="ipo"?"완료 IPO":scope==="rights"?"유상증자":"IPO+유상증자";
     grid.innerHTML = `
       <div class="kpi-cell"><div class="l">조회 기간 내 ${scopeLabel} 건수</div><div class="v">${dealCnt.toLocaleString()}<small>건</small></div><div class="s">거래 건수 기준</div></div>
       <div class="kpi-cell"><div class="l">조회 기간 내 ${scopeLabel} 총액</div><div class="v">${fmtAmount(marketTotal)}</div><div class="s">시장 규모</div></div>

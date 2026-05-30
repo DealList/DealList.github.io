@@ -122,7 +122,8 @@
             cctx.fillStyle=ds._labelColor || "#1e40af";
             cctx.textAlign="center"; cctx.textBaseline="bottom";
             const topY=chart.chartArea.top-4;
-            const fmt=ds._labelFormatter || fmtAmtShort;
+            // 문자열 플래그라 JSON 복제(다운로드)에도 살아남음 → 웹·이미지 모두 "0.X조"
+            const fmt = ds._labelUnit==="jo" ? ((v)=>(v/10000).toFixed(1)+"조") : (ds._labelFormatter || fmtAmtShort);
             meta.data.forEach((point,i)=>{
               const value=ds.data[i];
               if(!Number.isFinite(value)||value<=0) return;
@@ -168,7 +169,7 @@
             yAxisID:"y2", tension:0.3, _isAmount:true,
             _labelAtTop:true, _labelColor:col.lineLabel,
             _labelFont:'700 15px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
-            _labelFormatter:(v)=>(v/10000).toFixed(1)+"조",
+            _labelUnit:"jo",
             datalabels:{display:false},
           },
         ]},

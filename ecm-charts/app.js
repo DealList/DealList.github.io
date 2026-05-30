@@ -228,12 +228,16 @@
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {
       charts.ry = monthly("ch-rt-monthly", RAW.rights.filter(rightsDone), RIGHTS_C, "유상증자 건수");  // 최근 13개월 고정(기간필터 무관)
-      // 유상증자 구분별 (건수, 가로막대)
-      const tps={}; rights.forEach(r=>{ const t=r.type||"기타"; tps[t]=(tps[t]||0)+1; });
-      const tp=Object.entries(tps).sort((a,b)=>b[1]-a[1]);
+      // 유상증자 구분별 (건수) + (금액) — 같은 구분 순서(건수 내림차순)
+      const tC={}, tA={};
+      rights.forEach(r=>{ const t=r.type||"기타"; tC[t]=(tC[t]||0)+1; tA[t]=(tA[t]||0)+total(r); });
+      const tOrder=Object.keys(tC).sort((a,b)=>tC[b]-tC[a]);
       charts.tp = new Chart($("ch-rt-type"), { type:"bar",
-        data:{ labels:tp.map(x=>x[0]), datasets:[{ label:"건수", data:tp.map(x=>x[1]), backgroundColor:RIGHTS_C }] },
+        data:{ labels:tOrder, datasets:[{ label:"건수", data:tOrder.map(t=>tC[t]), backgroundColor:RIGHTS_C }] },
         options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:48}}, plugins:{ legend:{display:false} } } });
+      charts.tpa = new Chart($("ch-rt-type-amt"), { type:"bar",
+        data:{ labels:tOrder, datasets:[{ label:"발행총액(억)", data:tOrder.map(t=>Math.round(tA[t])), backgroundColor:"#0e7490", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
       charts.ti = topIssuers("ch-rt-issuers", rights);
       charts.tl = topLeads("ch-rt-leads", rights);
     }

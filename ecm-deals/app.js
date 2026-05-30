@@ -91,8 +91,8 @@
       }
       if (state.issuers.size && !state.issuers.has(r.issuer)) return false;
       if (state.cat && (r[cf]||"") !== state.cat) return false;
-      if (state.tab==="ipo" && (state.totalMin || state.totalMax)) {
-        const t = r.final_total ?? r.init_total;
+      if (state.totalMin || state.totalMax) {
+        const t = r.final_total ?? r.total_1 ?? r.init_total;  // IPO/유증 공통 (유증은 단계별)
         if (t == null) return false;
         if (state.totalMin && t < state.totalMin) return false;
         if (state.totalMax && t > state.totalMax) return false;
@@ -255,7 +255,6 @@
     state.leads.clear(); state.uws.clear(); state.issuers.clear();
     chipBox("f-lead-chips",state.leads); chipBox("f-uw-chips",state.uws); chipBox("f-issuer-chips",state.issuers);
     const db=$("date-basis"); if(db) db.textContent = tab==="ipo" ? "상장일" : "신주배정기준일";
-    const pf=$("total-filter"); if(pf) pf.style.display = tab==="ipo" ? "" : "none";
     $("f-total-min").value=""; $("f-total-max").value=""; state.totalMin=state.totalMax=0;
     populateCat(); populateLeads(); populateUws(); populateIssuers(); applyDefaultRange(); render();
   }

@@ -146,6 +146,14 @@
 .v1-two-col > div > .v1-deals,
 .v1-two-col > div > .v1-league { flex: 1; }
 
+/* 3칸 행 (ECM 주관 TOP 10: 통합 / IPO / 유증) */
+.v1-three-col {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  align-items: start;
+}
+.v1-three-col > div { display: flex; flex-direction: column; }
+.v1-three-col > div > .v1-league { flex: 1; }
+
 /* Recent deals */
 .v1-deals {
   background: var(--surface); border: 1px solid var(--border);
@@ -397,7 +405,7 @@
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
   .v1-kpis, #ecm-kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .v1-two-col { grid-template-columns: 1fr; }
+  .v1-two-col, .v1-three-col { grid-template-columns: 1fr; }
   .v1-trend-row { grid-template-columns: 1fr; }
   .v1-quick-grid { grid-template-columns: 1fr; }
 }

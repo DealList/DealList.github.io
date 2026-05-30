@@ -483,27 +483,25 @@ async function loadEcm() {
   const ipoPrev = monthCnt(ipo, ipoDone, prevYM), ipoPrev2 = monthCnt(ipo, ipoDone, prevPrevYM);
   const rtPrev = monthCnt(rights, rightsDone, prevYM), rtPrev2 = monthCnt(rights, rightsDone, prevPrevYM);
 
-  // 올해 통합 주관 리그(완료 딜만) + 최대 IPO / 최대 유상증자
-  const agg = {}; let yTotal = 0, bigIpo = null, bigRt = null;
-  const accumulate = (r) => {
-    const t = amt(r); yTotal += t;
-    for (const [a, v] of Object.entries(r.leads || {})) { (agg[a] || (agg[a] = { amount: 0 })).amount += v; }
-    return t;
-  };
+  // 올해 주관 리그(완료 딜만) — 통합 / IPO / 유증 + 최대 IPO / 최대 유상증자
+  const aggAll = {}, aggIpo = {}, aggRt = {};
+  let yTotAll = 0, yTotIpo = 0, yTotRt = 0, bigIpo = null, bigRt = null;
+  const addLead = (g, a, v) => { (g[a] || (g[a] = { amount: 0 })).amount += v; };
   for (const r of ipo) {
     if (!ipoDone(r) || !(r.date || '').startsWith(yr)) continue;
-    const t = accumulate(r);
+    const t = amt(r); yTotAll += t; yTotIpo += t;
     if (t > 0 && (!bigIpo || t > bigIpo.amount)) bigIpo = { issuer: r.issuer, amount: t };
+    for (const [a, v] of Object.entries(r.leads || {})) { addLead(aggAll, a, v); addLead(aggIpo, a, v); }
   }
   for (const r of rights) {
     if (!rightsDone(r) || !(r.date || '').startsWith(yr)) continue;
-    const t = accumulate(r);
+    const t = amt(r); yTotAll += t; yTotRt += t;
     if (t > 0 && (!bigRt || t > bigRt.amount)) bigRt = { issuer: r.issuer, amount: t };
+    for (const [a, v] of Object.entries(r.leads || {})) { addLead(aggAll, a, v); addLead(aggRt, a, v); }
   }
-  const league = Object.entries(agg)
-    .map(([a, v]) => ({ name: BROKER_FULL[a] || a, amount: v.amount, share: yTotal > 0 ? v.amount / yTotal * 100 : 0 }))
-    .sort((a, b) => b.amount - a.amount);
-  const topB = league[0];
+  const mkLeague = (g, tot) => Object.entries(g).map(([a, v]) => ({ name: BROKER_FULL[a] || a, amount: v.amount, share: tot > 0 ? v.amount / tot * 100 : 0 })).sort((a, b) => b.amount - a.amount);
+  const leagueAll = mkLeague(aggAll, yTotAll), leagueIpo = mkLeague(aggIpo, yTotIpo), leagueRt = mkLeague(aggRt, yTotRt);
+  const topB = leagueAll[0];
 
   // KPI 5칸: 지난달 IPO / 지난달 유상증자 / 올해 주관1위 / 올해 최대 IPO / 올해 최대 유상증자
   $$('ecm-kpi-grid').innerHTML = `
@@ -542,8 +540,10 @@ async function loadEcm() {
   // 최근 유상증자 (기준일 desc)
   const recentRights = rights.filter(r => r.date).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 7);
   renderEcmDeals('ecm-recent-rights', recentRights, 'rights');
-  // 통합 주관 리그 TOP10
-  renderEcmLeague(league.slice(0, 10), yr);
+  // 주관 TOP 10 — 통합 / IPO / 유상증자 (완료 딜 기준)
+  renderLeagueRows('ecm-league-all-rows', leagueAll.slice(0, 10));
+  renderLeagueRows('ecm-league-ipo-rows', leagueIpo.slice(0, 10));
+  renderLeagueRows('ecm-league-rights-rows', leagueRt.slice(0, 10));
   // 예정 IPO (상장예정일 > today, 임박순)
   const upIpo = ipo.filter(r => r.date && r.date > today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
   renderEcmUpcoming(upIpo);
@@ -580,6 +580,16 @@ function renderEcmLeague(rows, yr) {
   const title = $$('ecm-league-title'); if (title) title.textContent = `${yr} ECM 통합 주관 리그`;
   const root = $$('ecm-league-rows');
   if (!root) return;
+  if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
+  root.innerHTML = rows.map((r, i) => {
+    const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';
+    return `<a class="v1-league-row ${topClass}" href="ecm-brokers/"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
+  }).join('');
+}
+
+// 주관 리그 rows 렌더 (지정 컨테이너) — 통합/IPO/유증 공용
+function renderLeagueRows(rootId, rows) {
+  const root = $$(rootId); if (!root) return;
   if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
   root.innerHTML = rows.map((r, i) => {
     const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';

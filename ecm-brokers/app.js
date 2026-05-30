@@ -147,12 +147,12 @@
     const tl=[...leadSum.entries()].sort((a,b)=>b[1]-a[1])[0], tu=[...uwSum.entries()].sort((a,b)=>b[1]-a[1])[0];
     const lt=[...leadSum.values()].reduce((s,v)=>s+v,0), ut=[...uwSum.values()].reduce((s,v)=>s+v,0);
     const dealCnt = deals.filter(d=>d.total>0).length;
-    const scopeLabel = scope==="ipo"?"IPO":scope==="rights"?"유상증자":"ECM 통합";
+    const scopeLabel = scope==="ipo"?"IPO":scope==="rights"?"유상증자":"IPO+유상증자";
     grid.innerHTML = `
-      <div class="kpi-cell"><div class="l">${scopeLabel} 발행건수</div><div class="v">${dealCnt.toLocaleString()}<small>건</small></div><div class="s">조회 기간</div></div>
-      <div class="kpi-cell"><div class="l">발행총액</div><div class="v">${fmtAmount(marketTotal)}</div><div class="s">조회 기간</div></div>
-      <div class="kpi-cell"><div class="l">주관 1위</div><div class="v">${esc(displayName(tl?tl[0]:""))}</div><div class="s">${tl?fmtAmount(tl[1])+" · "+(lt>0?(tl[1]/lt*100).toFixed(1):"0")+"%":""}</div></div>
-      <div class="kpi-cell"><div class="l">인수 1위</div><div class="v">${esc(displayName(tu?tu[0]:""))}</div><div class="s">${tu?fmtAmount(tu[1])+" · "+(ut>0?(tu[1]/ut*100).toFixed(1):"0")+"%":""}</div></div>`;
+      <div class="kpi-cell"><div class="l">조회 기간 ${scopeLabel} 건수</div><div class="v">${dealCnt.toLocaleString()}<small>건</small></div><div class="s">발행 건수</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 ${scopeLabel} 총액</div><div class="v">${fmtAmount(marketTotal)}</div><div class="s">발행총액 합산</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 ${scopeLabel} 주관 1위</div><div class="v">${esc(displayName(tl?tl[0]:""))}</div><div class="s">${tl?fmtAmount(tl[1])+" · "+(lt>0?(tl[1]/lt*100).toFixed(1):"0")+"%":""}</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 ${scopeLabel} 인수 1위</div><div class="v">${esc(displayName(tu?tu[0]:""))}</div><div class="s">${tu?fmtAmount(tu[1])+" · "+(ut>0?(tu[1]/ut*100).toFixed(1):"0")+"%":""}</div></div>`;
   }
 
   function renderTable() {

@@ -274,13 +274,14 @@
       // 다운로드 이미지 제목 접두사 — IPO 탭=IPO / 유상증자 탭=유상증자 (카드 패널 기준)
       const panel = card.closest(".charts-grid");
       const prefix = panel && panel.dataset.panel === "rights" ? "유상증자" : "IPO";
-      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc, prefix));
+      const showPeriod = !canvas.id.includes("monthly");  // 1번(월별) 카드는 기간 미표기
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc, prefix, showPeriod));
       card.appendChild(btn);
     });
   }
 
   // ===== 다운로드 (1920×1080 JPG, 상단 제목+설명 합성) — DCM 동일 =====
-  function downloadChartAsJPG(chartKey, title, desc, prefix) {
+  function downloadChartAsJPG(chartKey, title, desc, prefix, showPeriod) {
     const src = charts[chartKey];
     if (!src) return;
     const fullTitle = prefix ? `${prefix} ${title}` : title;
@@ -290,11 +291,20 @@
     const COLOR_TITLE = isDk ? "#f1f5f9" : "#0f172a";
     const COLOR_DESC  = isDk ? "#94a3b8" : "#64748b";
 
+    // 설명 줄: (조회 기간) + (원래 설명). 기간은 원래 설명 윗줄(제목과 설명 사이).
+    const descLines = [];
+    if (showPeriod) {
+      const ds = $("f-date-start").value || "처음", de = $("f-date-end").value || "끝";
+      descLines.push(`조회 기간: ${ds} ~ ${de}`);
+    }
+    if (desc) descLines.push(desc);
+
     const W = 1920, H = 1080;
     const PAD_X      = 72;
     const TITLE_TOP  = 92;
-    const DESC_TOP   = 152;
-    const CHART_Y    = desc ? 200 : 170;
+    const DESC_TOP   = 152;     // 첫 설명 줄 baseline
+    const DESC_LH    = 40;      // 설명 줄 간격
+    const CHART_Y    = descLines.length ? (DESC_TOP + (descLines.length - 1) * DESC_LH + 48) : 170;
     const CHART_PAD_B = 40;
     const CHART_W    = W;
     const CHART_H    = H - CHART_Y - CHART_PAD_B;
@@ -308,11 +318,10 @@
     mctx.font = `700 48px ${fontFamily}`;
     mctx.textBaseline = "alphabetic";
     mctx.fillText(fullTitle, PAD_X, TITLE_TOP);
-    if (desc) {
-      mctx.fillStyle = COLOR_DESC;
-      mctx.font = `400 28px ${fontFamily}`;
-      mctx.fillText(desc, PAD_X, DESC_TOP);
-    }
+    // 설명 줄들 — 제목 아래 작은 글씨와 동일 폰트/크기 (400 28px)
+    mctx.fillStyle = COLOR_DESC;
+    mctx.font = `400 28px ${fontFamily}`;
+    descLines.forEach((line, i) => mctx.fillText(line, PAD_X, DESC_TOP + i * DESC_LH));
 
     const chartCanvas = document.createElement("canvas");
     chartCanvas.width = CHART_W; chartCanvas.height = CHART_H;

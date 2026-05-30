@@ -200,20 +200,30 @@
         options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
     };
 
+    // 도넛 금액 차트 tooltip (전체 금액 표기)
+    const amtTip = { tooltip:{ callbacks:{ label:c=>` ${c.label}: ${fmtAmt(c.raw)}` } } };
     if (tab === "ipo") {
       charts.iy = monthly("ch-ipo-monthly", RAW.ipo.filter(ipoDone), IPO_C, "IPO 건수");  // 최근 13개월 고정(기간필터 무관)
-      // IPO 시장별 (건수) — doughnut
-      const mkts={}; ipo.forEach(r=>{ const m=r.market||"기타"; mkts[m]=(mkts[m]||0)+1; });
-      const mk=Object.entries(mkts).sort((a,b)=>b[1]-a[1]);
+      // IPO 시장별 (건수) + (금액) — 두 도넛 동일 라벨 순서
+      const mktC={}, mktA={};
+      ipo.forEach(r=>{ const m=r.market||"기타"; mktC[m]=(mktC[m]||0)+1; mktA[m]=(mktA[m]||0)+total(r); });
+      const mkOrder=Object.keys(mktC).sort((a,b)=>mktC[b]-mktC[a]);
       charts.mk = new Chart($("ch-ipo-market"), { type:"doughnut",
-        data:{ labels:mk.map(x=>x[0]), datasets:[{ data:mk.map(x=>x[1]), backgroundColor:PALETTE }] },
+        data:{ labels:mkOrder, datasets:[{ data:mkOrder.map(m=>mktC[m]), backgroundColor:PALETTE }] },
         options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts } } });
-      // IPO 신주/구주 구성 — doughnut
-      let pure=0,mix=0,old=0;
-      ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; if(n>=0.999)pure++; else if(n<=0.001)old++; else mix++; });
+      charts.mka = new Chart($("ch-ipo-market-amt"), { type:"doughnut",
+        data:{ labels:mkOrder, datasets:[{ data:mkOrder.map(m=>Math.round(mktA[m])), backgroundColor:PALETTE, _isAmount:true }] },
+        options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts, ...amtTip } } });
+      // IPO 신주/구주 구성 (건수) + (금액)
+      const nsLabels=["100% 신주","신주+구주 혼합","100% 구주매출"], nsColors=["#3b82f6","#a855f7","#f59e0b"];
+      const nsC=[0,0,0], nsA=[0,0,0];
+      ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; const i = n>=0.999?0 : (n<=0.001?2 : 1); nsC[i]++; nsA[i]+=total(r); });
       charts.ns = new Chart($("ch-ipo-newshare"), { type:"doughnut",
-        data:{ labels:["100% 신주","신주+구주 혼합","100% 구주매출"], datasets:[{ data:[pure,mix,old], backgroundColor:["#3b82f6","#a855f7","#f59e0b"] }] },
+        data:{ labels:nsLabels, datasets:[{ data:nsC, backgroundColor:nsColors }] },
         options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts } } });
+      charts.nsa = new Chart($("ch-ipo-newshare-amt"), { type:"doughnut",
+        data:{ labels:nsLabels, datasets:[{ data:nsA.map(v=>Math.round(v)), backgroundColor:nsColors, _isAmount:true }] },
+        options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts, ...amtTip } } });
       charts.ti = topIssuers("ch-ipo-issuers", ipo);
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {

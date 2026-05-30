@@ -35,7 +35,7 @@
   const COLS = {
     ipo: [
       {id:"date",label:"상장일",cell:r=>esc(r.date||"상장 예정"),val:r=>r.date,xls:r=>r.date||"상장 예정"},
-      {id:"issuer",label:"발행사",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
+      {id:"issuer",label:"회사명",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"market",label:"시장",cell:r=>esc(r.market),val:r=>r.market,xls:r=>r.market},
       {id:"qty",label:"최초희망 수량",num:1,cell:r=>fmtMan(r.init_qty),val:r=>r.init_qty,xls:r=>r.init_qty??""},
       {id:"price",label:"최초희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},

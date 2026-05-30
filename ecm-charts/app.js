@@ -96,14 +96,22 @@
     const pct = (v,ctx)=>{ const t=(ctx.dataset.data||[]).reduce((a,b)=>a+(+b||0),0); return t>0 && v/t>=0.03 ? Math.round(v/t*100)+"%":""; };
     const noGrid = { grid:{display:false} };
 
-    // 연도별 추이 (해당 유형 건수 bar + 발행총액 line)
-    const yearly = (id, arr, color, barLabel) => {
-      const yrs=[...new Set(arr.map(r=>r.date.slice(0,4)))].sort();
-      const yc=(y)=>arr.filter(r=>r.date.slice(0,4)===y).length;
-      const yamt=(y)=>arr.filter(r=>r.date.slice(0,4)===y).reduce((s,r)=>s+total(r),0);
-      return new Chart($(id), { data:{ labels:yrs, datasets:[
-        {type:"bar",label:barLabel,data:yrs.map(yc),backgroundColor:color,yAxisID:"y",datalabels:dl(cntL)},
-        {type:"line",label:"발행총액",data:yrs.map(yamt),borderColor:"#f59e0b",backgroundColor:"#f59e0b",yAxisID:"y1",tension:0.3,datalabels:{display:false}},
+    // 월별 추이 (최근 13개월 연속 축, 해당 유형 건수 bar + 발행총액 line)
+    const monthly = (id, arr, color, barLabel) => {
+      const m=new Map();
+      arr.forEach(r=>{ const ym=(r.date||"").slice(0,7); if(!ym)return; const v=m.get(ym)||{c:0,a:0}; v.c++; v.a+=total(r); m.set(ym,v); });
+      const keys=[...m.keys()].sort(), end=keys.length?keys[keys.length-1]:null;
+      let labels=[],counts=[],amts=[];
+      if (end){
+        let [y,mo]=end.split("-").map(Number); const seq=[];
+        for(let i=0;i<13;i++){ seq.push(`${y}-${String(mo).padStart(2,"0")}`); if(--mo===0){mo=12;y--;} }
+        seq.reverse(); labels=seq;
+        counts=seq.map(k=>(m.get(k)||{c:0}).c);
+        amts=seq.map(k=>Math.round((m.get(k)||{a:0}).a));
+      }
+      return new Chart($(id), { data:{ labels, datasets:[
+        {type:"bar",label:barLabel,data:counts,backgroundColor:color,yAxisID:"y",datalabels:dl(cntL)},
+        {type:"line",label:"발행총액",data:amts,borderColor:"#f59e0b",backgroundColor:"#f59e0b",yAxisID:"y1",tension:0.3,datalabels:{display:false}},
       ]}, options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{position:"bottom"}}, scales:{ y:{position:"left",...noGrid,title:{display:true,text:"건수"}}, y1:{position:"right",grid:{display:false},title:{display:true,text:"억원"},ticks:{callback:v=>amtL(v)}} } } });
     };
     // 발행사 Top 10 (총액) — 해당 유형
@@ -120,7 +128,7 @@
     };
 
     if (tab === "ipo") {
-      charts.iy = yearly("ch-ipo-yearly", ipo, IPO_C, "IPO 건수");
+      charts.iy = monthly("ch-ipo-monthly", RAW.ipo.filter(ipoDone), IPO_C, "IPO 건수");  // 최근 13개월 고정(기간필터 무관)
       // IPO 시장별 (건수)
       const mkts={}; ipo.forEach(r=>{ const m=r.market||"기타"; mkts[m]=(mkts[m]||0)+1; });
       const mk=Object.entries(mkts).sort((a,b)=>b[1]-a[1]);
@@ -132,7 +140,7 @@
       charts.ti = topIssuers("ch-ipo-issuers", ipo);
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {
-      charts.ry = yearly("ch-rt-yearly", rights, RIGHTS_C, "유상증자 건수");
+      charts.ry = monthly("ch-rt-monthly", RAW.rights.filter(rightsDone), RIGHTS_C, "유상증자 건수");  // 최근 13개월 고정(기간필터 무관)
       // 유상증자 구분별 (건수, 가로 막대)
       const tps={}; rights.forEach(r=>{ const t=r.type||"기타"; tps[t]=(tps[t]||0)+1; });
       const tp=Object.entries(tps).sort((a,b)=>b[1]-a[1]);

@@ -88,7 +88,14 @@
     document.querySelectorAll("#grid thead th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
       const k=th.dataset.sort; if(sortKey===k) sortDir=sortDir==="asc"?"desc":"asc"; else {sortKey=k; sortDir=k==="name"?"asc":"desc";} renderTable();
     }));
-    $("btn-search").addEventListener("click",runQuery);
+    $("btn-search").addEventListener("click",()=>{  // 짧은 로딩 스피너 후 적용
+      const btn=$("btn-search");
+      if (btn.dataset.busy) return;
+      const orig=btn.innerHTML;
+      btn.dataset.busy="1"; btn.disabled=true;
+      btn.innerHTML='<span class="spinner"></span>조회 중';
+      setTimeout(()=>{ runQuery(); btn.disabled=false; btn.innerHTML=orig; delete btn.dataset.busy; },250);
+    });
     $("btn-reset").addEventListener("click",()=>{ brokerKeywords=[]; renderChips(); $("f-broker-select").value=""; applyPreset("ytd",max,min); runQuery(); });
     $("btn-download").addEventListener("click",downloadExcel);
   }

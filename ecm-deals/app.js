@@ -33,7 +33,7 @@
   // 탭별 컬럼: id(정렬키) / label / num / cell(HTML) / val(정렬값) / xls(엑셀값)
   const COLS = {
     ipo: [
-      {id:"date",label:"상장일",cell:r=>esc(fmtDate(r.date)),val:r=>r.date,xls:r=>fmtDate(r.date)},
+      {id:"date",label:"상장일",cell:r=>esc(r.date||"상장 예정"),val:r=>r.date,xls:r=>r.date||"상장 예정"},
       {id:"issuer",label:"발행사",cls:"issuer",cell:r=>esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"market",label:"시장",cell:r=>esc(r.market),val:r=>r.market,xls:r=>r.market},
       {id:"qty",label:"공모수량",num:1,cell:r=>fmtN(r.final_qty??r.init_qty),val:r=>r.final_qty??r.init_qty,xls:r=>r.final_qty??r.init_qty??""},
@@ -84,7 +84,13 @@
         x = typeof x==="number"?x:-Infinity; y = typeof y==="number"?y:-Infinity;
         return (x-y)*sgn;
       }
-      return String(x||"").localeCompare(String(y||"")) * sgn;
+      const xs = String(x||""), ys = String(y||"");
+      // 날짜 컬럼: 빈 값(미정=상장 예정)은 '가장 최신'으로 취급 → date desc 맨 위 / asc 맨 아래
+      if (col.id === "date" && (xs === "" || ys === "")) {
+        if (xs === "" && ys === "") return 0;
+        return (xs === "" ? 1 : -1) * sgn;
+      }
+      return xs.localeCompare(ys) * sgn;
     });
     return out;
   }

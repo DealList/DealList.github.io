@@ -1,4 +1,5 @@
 // Numbers Pool — ECM 인포그래픽 (IPO / 유상증자 탭별 차트)
+// 시각 설정·다운로드는 DCM 인포그래픽(charts/app.js)과 동일하게 맞춤.
 (function () {
   "use strict";
   const BROKER_FULL = {
@@ -21,6 +22,19 @@
   // 완료 딜만 집계 — IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 1차 발행가액 또는 최종가액 확정
   const ipoDone = (r) => r.inst && typeof r.inst.compete==="number" && r.general && typeof r.general.compete==="number";
   const rightsDone = (r) => typeof r.price_1==="number" || typeof r.final_price==="number";
+
+  // ===== 데이터라벨 포맷 (DCM 인포그래픽과 동일) =====
+  function fmtCount(v){ if(!Number.isFinite(v)||v<=0) return ""; return v.toLocaleString()+"건"; }
+  function fmtAmtShort(v){ if(!Number.isFinite(v)||v<=0) return ""; if(v>=10000) return (v/10000).toFixed(1)+"조"; return Math.round(v).toLocaleString()+"억"; }
+  function smartDataLabel(value, ctx){
+    if(!Number.isFinite(value)||value<=0) return "";
+    const cType = ctx.chart.config.type;
+    if(cType==="doughnut"||cType==="pie"){
+      const t=(ctx.dataset.data||[]).reduce((a,b)=>(Number(a)||0)+(Number(b)||0),0);
+      if(t>0 && value/t<0.03) return "";
+    }
+    return ctx.dataset._isAmount ? fmtAmtShort(value) : fmtCount(value);
+  }
 
   async function loadAll() {
     try {
@@ -81,23 +95,52 @@
   }
 
   function isDark(){ return document.documentElement.getAttribute("data-theme")==="dark"; }
-  function C(){ const d=isDark(); return { label:d?"#e2e8f0":"#0f172a", axis:d?"#94a3b8":"#475569", grid:d?"#1e293b":"#eef2f7" }; }
+  function C(){ const d=isDark(); return { label:d?"#e2e8f0":"#0f172a", lineLabel:d?"#93c5fd":"#1e40af", axis:d?"#94a3b8":"#475569", grid:d?"#1e293b":"#eef2f7" }; }
 
   function renderCharts(ipo, rights) {
-    Chart.defaults.font.family="Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    Chart.defaults.font.family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif";
     Chart.defaults.font.size=11;
     const col=C(); Chart.defaults.color=col.axis; Chart.defaults.borderColor=col.grid;
     if (window.ChartDataLabels && !Chart.registry.plugins.get("datalabels")) Chart.register(window.ChartDataLabels);
+    // 데이터라벨 글로벌 기본값 (DCM 동일: size 16, 막대 끝 바깥)
+    Chart.defaults.set("plugins.datalabels", {
+      color: col.label, font:{size:16,weight:"700"},
+      anchor:"end", align:"end", offset:4, clip:false,
+      formatter: smartDataLabel,
+    });
+    // 라인 dataset 라벨을 차트 영역 상단에 고정 배치 (막대와 겹침 방지) — DCM 동일
+    if (!Chart.registry.plugins.get("lineLabelsAtTop")) {
+      Chart.register({
+        id:"lineLabelsAtTop",
+        afterDatasetsDraw(chart){
+          const cctx=chart.ctx;
+          chart.data.datasets.forEach((ds,dsIdx)=>{
+            if(!ds._labelAtTop) return;
+            const meta=chart.getDatasetMeta(dsIdx);
+            cctx.save();
+            cctx.font=ds._labelFont || '700 12px Pretendard, -apple-system, sans-serif';
+            cctx.fillStyle=ds._labelColor || "#1e40af";
+            cctx.textAlign="center"; cctx.textBaseline="bottom";
+            const topY=chart.chartArea.top-4;
+            const fmt=ds._labelFormatter || fmtAmtShort;
+            meta.data.forEach((point,i)=>{
+              const value=ds.data[i];
+              if(!Number.isFinite(value)||value<=0) return;
+              cctx.fillText(fmt(value), point.x, topY);
+            });
+            cctx.restore();
+          });
+        },
+      });
+    }
     Object.values(charts).forEach(c=>c&&c.destroy()); charts={};
 
-    const dl = (fmt) => ({ color:col.label, font:{size:11,weight:"700"}, formatter:fmt });
-    const cntL = (v)=> v>0? v.toLocaleString()+"건":"";
-    const amtL = (v)=> v>0? (v>=10000?(v/10000).toFixed(1)+"조":Math.round(v).toLocaleString()+"억"):"";
-    const pct = (v,ctx)=>{ const t=(ctx.dataset.data||[]).reduce((a,b)=>a+(+b||0),0); return t>0 && v/t>=0.03 ? Math.round(v/t*100)+"%":""; };
-    const noGrid = { grid:{display:false} };
+    // doughnut 공통: 슬라이스 안 흰 글씨(외곽선) + 우측 범례 — DCM 동일
+    const doughnutLabelOpts = { color:"#ffffff", font:{size:19,weight:"800"}, anchor:"center", align:"center", textStrokeColor:"rgba(0,0,0,0.55)", textStrokeWidth:4 };
+    const doughnutLegend = { position:"right", labels:{ font:{size:14,weight:"600"}, padding:12, boxWidth:18 } };
 
-    // 월별 추이 (최근 13개월 연속 축, 해당 유형 건수 bar + 발행총액 line)
-    const monthly = (id, arr, color, barLabel) => {
+    // 월별 추이 (최근 13개월 고정, 막대=건수 + 선=발행총액) — DCM ① 스타일
+    const monthly = (id, arr, barColor, barLabel) => {
       const m=new Map();
       arr.forEach(r=>{ const ym=(r.date||"").slice(0,7); if(!ym)return; const v=m.get(ym)||{c:0,a:0}; v.c++; v.a+=total(r); m.set(ym,v); });
       const keys=[...m.keys()].sort(), end=keys.length?keys[keys.length-1]:null;
@@ -109,45 +152,205 @@
         counts=seq.map(k=>(m.get(k)||{c:0}).c);
         amts=seq.map(k=>Math.round((m.get(k)||{a:0}).a));
       }
-      return new Chart($(id), { data:{ labels, datasets:[
-        {type:"bar",label:barLabel,data:counts,backgroundColor:color,yAxisID:"y",datalabels:dl(cntL)},
-        {type:"line",label:"발행총액",data:amts,borderColor:"#f59e0b",backgroundColor:"#f59e0b",yAxisID:"y1",tension:0.3,datalabels:{display:false}},
-      ]}, options:{ responsive:true,maintainAspectRatio:false, plugins:{legend:{position:"bottom"}}, scales:{ y:{position:"left",...noGrid,title:{display:true,text:"건수"}}, y1:{position:"right",grid:{display:false},title:{display:true,text:"억원"},ticks:{callback:v=>amtL(v)}} } } });
+      return new Chart($(id), {
+        type:"bar",
+        data:{ labels, datasets:[
+          { type:"bar", label:barLabel, data:counts, backgroundColor:barColor, yAxisID:"y",
+            datalabels:{
+              anchor:"end",
+              align:(ctx)=>{ const s=ctx.chart.scales.y; if(!s)return"start"; const val=ctx.dataset.data[ctx.dataIndex]; const barH=s.bottom-s.getPixelForValue(val); return barH<25?"end":"start"; },
+              offset:6,
+              color:(ctx)=>{ const s=ctx.chart.scales.y; if(!s)return"#fff"; const val=ctx.dataset.data[ctx.dataIndex]; const barH=s.bottom-s.getPixelForValue(val); return barH<25?col.label:"#ffffff"; },
+              font:{size:15,weight:"700"},
+            },
+          },
+          { type:"line", label:"발행총액(억)", data:amts, borderColor:"#f59e0b", backgroundColor:"#f59e0b",
+            yAxisID:"y2", tension:0.3, _isAmount:true,
+            _labelAtTop:true, _labelColor:col.lineLabel,
+            _labelFont:'700 15px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
+            _labelFormatter:(v)=>(v/10000).toFixed(1)+"조",
+            datalabels:{display:false},
+          },
+        ]},
+        options:{
+          maintainAspectRatio:false,
+          layout:{ padding:{ top:40, right:12 } },
+          plugins:{ legend:{ position:"bottom", labels:{ font:{size:14,weight:"600"}, padding:14, boxWidth:18 } } },
+          scales:{
+            y:{ type:"linear", position:"left", title:{display:true,text:"건수"} },
+            y2:{ type:"linear", position:"right", title:{display:true,text:"발행총액(억)"}, grid:{drawOnChartArea:false} },
+          },
+        },
+      });
     };
-    // 발행사 Top 10 (총액) — 해당 유형
+    // 발행사 Top 10 (총액, 가로막대) — DCM hbar 스타일 (글로벌 datalabels 16, _isAmount)
     const topIssuers = (id, arr) => {
       const iss={}; arr.forEach(r=>{ iss[r.issuer]=(iss[r.issuer]||0)+total(r); });
       const ti=Object.entries(iss).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      return new Chart($(id), { type:"bar", data:{ labels:ti.map(x=>x[0]), datasets:[{data:ti.map(x=>Math.round(x[1])),backgroundColor:"#6366f1",datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
+      return new Chart($(id), { type:"bar",
+        data:{ labels:ti.map(x=>x[0]), datasets:[{ label:"발행총액(억)", data:ti.map(x=>Math.round(x[1])), backgroundColor:"#f97316", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
     };
-    // 주관사 Top 10 (주관 실적) — 해당 유형
+    // 주관사 Top 10 (주관 실적, 가로막대)
     const topLeads = (id, arr) => {
       const ld={}; arr.forEach(r=>{ for(const[a,v]of Object.entries(r.leads||{})) ld[a]=(ld[a]||0)+v; });
-      const tl=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
-      return new Chart($(id), { type:"bar", data:{ labels:tl.map(x=>dn(x[0])), datasets:[{data:tl.map(x=>Math.round(x[1])),backgroundColor:"#0ea5e9",datalabels:{...dl(amtL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}}},scales:{x:{...noGrid,ticks:{callback:v=>amtL(v)}},y:noGrid}} });
+      const t=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
+      return new Chart($(id), { type:"bar",
+        data:{ labels:t.map(x=>dn(x[0])), datasets:[{ label:"주관 실적(억)", data:t.map(x=>Math.round(x[1])), backgroundColor:"#22c55e", _isAmount:true }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:60}}, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} } } });
     };
 
     if (tab === "ipo") {
       charts.iy = monthly("ch-ipo-monthly", RAW.ipo.filter(ipoDone), IPO_C, "IPO 건수");  // 최근 13개월 고정(기간필터 무관)
-      // IPO 시장별 (건수)
+      // IPO 시장별 (건수) — doughnut
       const mkts={}; ipo.forEach(r=>{ const m=r.market||"기타"; mkts[m]=(mkts[m]||0)+1; });
       const mk=Object.entries(mkts).sort((a,b)=>b[1]-a[1]);
-      charts.mk = new Chart($("ch-ipo-market"), { type:"doughnut", data:{ labels:mk.map(x=>x[0]), datasets:[{data:mk.map(x=>x[1]),backgroundColor:PALETTE,datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
-      // IPO 신주/구주 구성
+      charts.mk = new Chart($("ch-ipo-market"), { type:"doughnut",
+        data:{ labels:mk.map(x=>x[0]), datasets:[{ data:mk.map(x=>x[1]), backgroundColor:PALETTE }] },
+        options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts } } });
+      // IPO 신주/구주 구성 — doughnut
       let pure=0,mix=0,old=0;
       ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; if(n>=0.999)pure++; else if(n<=0.001)old++; else mix++; });
-      charts.ns = new Chart($("ch-ipo-newshare"), { type:"doughnut", data:{ labels:["100% 신주","신주+구주 혼합","100% 구주매출"], datasets:[{data:[pure,mix,old],backgroundColor:["#3b82f6","#a855f7","#f59e0b"],datalabels:dl(pct)}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}} });
+      charts.ns = new Chart($("ch-ipo-newshare"), { type:"doughnut",
+        data:{ labels:["100% 신주","신주+구주 혼합","100% 구주매출"], datasets:[{ data:[pure,mix,old], backgroundColor:["#3b82f6","#a855f7","#f59e0b"] }] },
+        options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts } } });
       charts.ti = topIssuers("ch-ipo-issuers", ipo);
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {
       charts.ry = monthly("ch-rt-monthly", RAW.rights.filter(rightsDone), RIGHTS_C, "유상증자 건수");  // 최근 13개월 고정(기간필터 무관)
-      // 유상증자 구분별 (건수, 가로 막대)
+      // 유상증자 구분별 (건수, 가로막대)
       const tps={}; rights.forEach(r=>{ const t=r.type||"기타"; tps[t]=(tps[t]||0)+1; });
       const tp=Object.entries(tps).sort((a,b)=>b[1]-a[1]);
-      charts.tp = new Chart($("ch-rt-type"), { type:"bar", data:{ labels:tp.map(x=>x[0]), datasets:[{data:tp.map(x=>x[1]),backgroundColor:RIGHTS_C,datalabels:{...dl(cntL),anchor:"end",align:"end"}}] }, options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{...noGrid},y:noGrid}} });
+      charts.tp = new Chart($("ch-rt-type"), { type:"bar",
+        data:{ labels:tp.map(x=>x[0]), datasets:[{ label:"건수", data:tp.map(x=>x[1]), backgroundColor:RIGHTS_C }] },
+        options:{ indexAxis:"y", maintainAspectRatio:false, layout:{padding:{right:48}}, plugins:{ legend:{display:false} } } });
       charts.ti = topIssuers("ch-rt-issuers", rights);
       charts.tl = topLeads("ch-rt-leads", rights);
     }
+
+    attachDownloadButtons();
+  }
+
+  // ===== 각 차트 카드에 JPG 다운로드 버튼 부착 (DCM 동일) =====
+  function attachDownloadButtons() {
+    document.querySelectorAll(".chart-card").forEach((card) => {
+      if (card.querySelector(".chart-download-btn")) return;
+      const canvas = card.querySelector("canvas");
+      if (!canvas) return;
+      const chartKey = Object.keys(charts).find((k) => charts[k] && charts[k].canvas === canvas);
+      if (!chartKey) return;
+      const h3 = card.querySelector("h3");
+      const title = h3 ? h3.textContent.replace(/^\s*\d+\s*/, "").trim() : canvas.id;
+      const descEl = card.querySelector(".chart-desc");
+      const desc = descEl ? descEl.textContent.trim() : "";
+      const btn = document.createElement("button");
+      btn.className = "chart-download-btn";
+      btn.type = "button";
+      btn.title = "이 차트를 JPG로 다운로드 (1920×1080)";
+      btn.dataset.key = chartKey;
+      btn.dataset.label = title;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc));
+      card.appendChild(btn);
+    });
+  }
+
+  // ===== 다운로드 (1920×1080 JPG, 상단 제목+설명 합성) — DCM 동일 =====
+  function downloadChartAsJPG(chartKey, title, desc) {
+    const src = charts[chartKey];
+    if (!src) return;
+    const fullTitle = title;
+
+    const isDk = document.documentElement.getAttribute("data-theme") === "dark";
+    const COLOR_BG    = isDk ? "#0a0a0a" : "#ffffff";
+    const COLOR_TITLE = isDk ? "#f1f5f9" : "#0f172a";
+    const COLOR_DESC  = isDk ? "#94a3b8" : "#64748b";
+
+    const W = 1920, H = 1080;
+    const PAD_X      = 72;
+    const TITLE_TOP  = 92;
+    const DESC_TOP   = 152;
+    const CHART_Y    = desc ? 200 : 170;
+    const CHART_PAD_B = 40;
+    const CHART_W    = W;
+    const CHART_H    = H - CHART_Y - CHART_PAD_B;
+
+    const mainCanvas = document.createElement("canvas");
+    mainCanvas.width = W; mainCanvas.height = H;
+    const mctx = mainCanvas.getContext("2d");
+    mctx.fillStyle = COLOR_BG; mctx.fillRect(0, 0, W, H);
+    const fontFamily = `Pretendard, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif`;
+    mctx.fillStyle = COLOR_TITLE;
+    mctx.font = `700 48px ${fontFamily}`;
+    mctx.textBaseline = "alphabetic";
+    mctx.fillText(fullTitle, PAD_X, TITLE_TOP);
+    if (desc) {
+      mctx.fillStyle = COLOR_DESC;
+      mctx.font = `400 28px ${fontFamily}`;
+      mctx.fillText(desc, PAD_X, DESC_TOP);
+    }
+
+    const chartCanvas = document.createElement("canvas");
+    chartCanvas.width = CHART_W; chartCanvas.height = CHART_H;
+    chartCanvas.style.cssText = "position:fixed;left:-99999px;top:-99999px;";
+    document.body.appendChild(chartCanvas);
+
+    const cfg = src.config;
+    const clonedData = JSON.parse(JSON.stringify(cfg.data));
+    const clonedOptions = JSON.parse(JSON.stringify(cfg.options || {}));
+    clonedOptions.animation = false;
+    clonedOptions.responsive = false;
+    clonedOptions.maintainAspectRatio = false;
+    clonedOptions.devicePixelRatio = 1;
+
+    const SCALE = 2.6;
+    const baseSize = (Chart.defaults.font && Chart.defaults.font.size) || 11;
+    clonedOptions.font = clonedOptions.font || {};
+    if (typeof clonedOptions.font.size !== "number") clonedOptions.font.size = baseSize;
+    const scaleFonts = (obj) => {
+      if (!obj || typeof obj !== "object") return;
+      if (Array.isArray(obj)) { obj.forEach(scaleFonts); return; }
+      for (const [k, v] of Object.entries(obj)) {
+        if (k === "font" && v && typeof v === "object" && typeof v.size === "number") {
+          v.size = Math.round(v.size * SCALE);
+        } else if (typeof v === "object") { scaleFonts(v); }
+      }
+    };
+    scaleFonts(clonedOptions);
+    scaleFonts(clonedData);
+    (clonedData.datasets || []).forEach((ds) => {
+      if (typeof ds._labelFont === "string") {
+        ds._labelFont = ds._labelFont.replace(/(\d+)px/, (_, sz) => `${Math.round(parseInt(sz,10)*SCALE)}px`);
+      }
+    });
+    clonedOptions.plugins = clonedOptions.plugins || {};
+    clonedOptions.plugins.datalabels = clonedOptions.plugins.datalabels || {};
+    if (!clonedOptions.plugins.datalabels.font) {
+      clonedOptions.plugins.datalabels.font = { size: Math.round(16 * SCALE), weight: "700" };
+    }
+
+    const origDefaultsFontSize = (Chart.defaults.font && Chart.defaults.font.size) || 11;
+    if (!Chart.defaults.font) Chart.defaults.font = {};
+    Chart.defaults.font.size = Math.round(origDefaultsFontSize * SCALE);
+
+    const tempChart = new Chart(chartCanvas, { type: cfg.type, data: clonedData, options: clonedOptions });
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try {
+        mctx.drawImage(chartCanvas, 0, CHART_Y);
+        const dataURL = mainCanvas.toDataURL("image/jpeg", 0.95);
+        const today = new Date().toISOString().slice(0, 10);
+        const safeTitle = fullTitle.replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "_");
+        const a = document.createElement("a");
+        a.href = dataURL;
+        a.download = `NumbersPool_${safeTitle}_${today}.jpg`;
+        document.body.appendChild(a); a.click(); a.remove();
+      } finally {
+        tempChart.destroy();
+        chartCanvas.remove();
+        Chart.defaults.font.size = origDefaultsFontSize;
+      }
+    }));
   }
 
   // 테마 토글 시 차트 색 갱신

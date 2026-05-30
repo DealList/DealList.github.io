@@ -137,14 +137,18 @@
     const count = list.length;
     const total = list.reduce((s,r)=>s+amt(r),0);
     const avg = count ? total/count : 0;
-    let big=list[0], bigAmt=amt(list[0]);
-    for (const r of list){ const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
+    // 최대 단일 — 완료된 딜만 (IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 최종가액 채워짐)
+    const isDone = state.tab==="ipo"
+      ? r => r.inst && typeof r.inst.compete==="number" && r.general && typeof r.general.compete==="number"
+      : r => typeof r.final_price === "number";
+    let big=null, bigAmt=-1;
+    for (const r of list){ if(!isDone(r)) continue; const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
     const basis = state.tab==="ipo" ? "상장일 기준" : "기준일 기준";
     grid.innerHTML = `
       <div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">${count.toLocaleString()}<small>건</small></div><div class="s">${basis}</div></div>
       <div class="kpi-cell"><div class="l">조회 기간 ${tl} 금액</div><div class="v">${fmtBig(total)}</div><div class="s">모집총액 합산</div></div>
       <div class="kpi-cell"><div class="l">조회 기간 평균 ${tl} 규모</div><div class="v">${fmtBig(avg)}</div><div class="s">건당 평균</div></div>
-      <div class="kpi-cell"><div class="l">조회 기간 최대 단일 ${tl}</div><div class="v">${esc(big.issuer)}</div><div class="s">${fmtBig(bigAmt)}${big.date?" · "+big.date:""}</div></div>`;
+      <div class="kpi-cell"><div class="l">조회 기간 최대 단일 ${tl}</div><div class="v">${big?esc(big.issuer):"-"}</div><div class="s">${big?fmtBig(bigAmt)+(big.date?" · "+big.date:""):"완료 딜 없음"}</div></div>`;
   }
 
   function render() {

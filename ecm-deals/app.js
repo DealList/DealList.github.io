@@ -70,7 +70,7 @@
       {id:"payment",label:"납입일",cell:r=>esc(r.payment||"-"),val:r=>r.payment,xls:r=>r.payment||""},
       {id:"new_qty",label:"모집 수량(만주)",num:1,cell:r=>fmtManN(r.new_qty),val:r=>r.new_qty,xls:r=>r.new_qty??""},
       {id:"increase_ratio",label:"증자 비율(%)",num:1,cell:r=>fmtPctN(r.increase_ratio),val:r=>r.increase_ratio,xls:r=>r.increase_ratio??""},
-      {id:"init_price",label:"최초희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},
+      {id:"init_price",label:"1주당 희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},
       {id:"price_1",label:"1차 가액(원)",num:1,cell:r=>fmtN(r.price_1),val:r=>r.price_1,xls:r=>r.price_1??""},
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
       {id:"final_price",label:"최종 가액(원)",num:1,cell:r=>fmtN(r.final_price),val:r=>r.final_price,xls:r=>r.final_price??""},

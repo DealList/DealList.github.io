@@ -535,6 +535,10 @@ async function loadEcm() {
   renderLeagueRows('ecm-league-all-rows', leagueAll.slice(0, 10));
   renderLeagueRows('ecm-league-ipo-rows', leagueIpo.slice(0, 10));
   renderLeagueRows('ecm-league-rights-rows', leagueRt.slice(0, 10));
+  const _setT = (id, t) => { const el = $$(id); if (el) el.textContent = t; };
+  _setT('ecm-league-all-title', `${yr} ECM 통합 리그테이블`);
+  _setT('ecm-league-ipo-title', `${yr} IPO 리그테이블`);
+  _setT('ecm-league-rt-title', `${yr} 유상증자 리그테이블`);
 
   // 2행: 최근 IPO (완료 딜) / 다가오는 IPO (미완료)
   const dDesc = (a, b) => (b.date || '').localeCompare(a.date || '');

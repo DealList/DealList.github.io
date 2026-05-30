@@ -197,9 +197,8 @@
 
     const d = new Date(maxDate);
     const start = new Date(d);
-    if (preset === "3m") start.setMonth(start.getMonth() - 3);
-    else if (preset === "6m") start.setMonth(start.getMonth() - 6);
-    else if (preset === "1y") start.setFullYear(start.getFullYear() - 1);
+    if (preset === "1y") start.setFullYear(start.getFullYear() - 1);
+    else if (preset === "3y") start.setFullYear(start.getFullYear() - 3);
     start.setDate(start.getDate() + 1);
     $("f-date-end").value = maxDate;
     $("f-date-start").value = start.toISOString().slice(0, 10);

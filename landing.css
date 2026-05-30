@@ -76,6 +76,8 @@
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
   margin-bottom: 28px;
 }
+/* ECM 위젯은 5칸 (지난달 IPO/유증 + 올해 주관1위/최대 IPO/최대 유증) */
+#ecm-kpi-grid { grid-template-columns: repeat(5, 1fr); }
 .v1-kpi {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: 10px; padding: 18px 20px;
@@ -394,7 +396,7 @@
 
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
-  .v1-kpis { grid-template-columns: repeat(2, 1fr); }
+  .v1-kpis, #ecm-kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .v1-two-col { grid-template-columns: 1fr; }
   .v1-trend-row { grid-template-columns: 1fr; }
   .v1-quick-grid { grid-template-columns: 1fr; }
@@ -405,7 +407,7 @@
   .v1-hero h1 { font-size: 52px; }
   .v1-hero .lead { font-size: 14px; }
   .v1-main { padding: 24px 16px 40px; }
-  .v1-kpis { grid-template-columns: 1fr; }
+  .v1-kpis, #ecm-kpi-grid { grid-template-columns: 1fr; }
   .v1-deal-row { grid-template-columns: 50px 1.2fr 0.8fr 0.6fr; gap: 8px; padding: 12px 14px; }
   .v1-deal-row .leads { display: none; }
 }

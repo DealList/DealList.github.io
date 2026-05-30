@@ -465,46 +465,72 @@ async function loadEcm() {
   const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
   const yr = String(summary.this_year || _t.getFullYear());
 
-  // 올해 통합 주관 리그 + 최대 공모 집계
-  const combined = [...ipo.map(r => ({ ...r, _k: 'IPO' })), ...rights.map(r => ({ ...r, _k: '유증' }))];
-  const agg = {};
-  let yTotal = 0, biggest = null;
-  for (const r of combined) {
-    if (!r.date || !r.date.startsWith(yr)) continue;
-    const t = ecmTotal(r);
-    yTotal += t;
-    if (t > 0 && (!biggest || t > biggest.amount)) biggest = { issuer: r.issuer, amount: t, kind: r._k };
-    for (const [a, v] of Object.entries(r.leads || {})) {
-      if (!agg[a]) agg[a] = { amount: 0, count: 0 };
-      agg[a].amount += v; agg[a].count++;
-    }
+  // 완료 딜 필터 (정보·실적 페이지와 동일) — IPO: 청약 현황(기관·일반 경쟁률) 입력 /
+  //   유증: 1차 발행가액 또는 최종가액 확정 (최초희망까지만인 건 제외)
+  const ipoDone = (r) => r.inst && typeof r.inst.compete === 'number' && r.general && typeof r.general.compete === 'number';
+  const rightsDone = (r) => typeof r.price_1 === 'number' || typeof r.final_price === 'number';
+  const amt = (r) => r.final_total ?? r.total_1 ?? r.init_total ?? 0;
+
+  // 지난 달 (오늘 기준 직전 월) — DCM 메인 위젯과 동일 (매월 1일에 넘어감)
+  const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const prevMonth = new Date(_t.getFullYear(), _t.getMonth() - 1, 1);
+  const prevPrevMonth = new Date(_t.getFullYear(), _t.getMonth() - 2, 1);
+  const prevYM = _ym(prevMonth), prevPrevYM = _ym(prevPrevMonth);
+  const monthLabel = `${prevMonth.getFullYear()}년 ${String(prevMonth.getMonth() + 1).padStart(2, '0')}월`;
+  const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
+  const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
+  const monthCnt = (arr, done, ym) => arr.filter(r => done(r) && (r.date || '').startsWith(ym)).length;
+  const ipoPrev = monthCnt(ipo, ipoDone, prevYM), ipoPrev2 = monthCnt(ipo, ipoDone, prevPrevYM);
+  const rtPrev = monthCnt(rights, rightsDone, prevYM), rtPrev2 = monthCnt(rights, rightsDone, prevPrevYM);
+
+  // 올해 통합 주관 리그(완료 딜만) + 최대 IPO / 최대 유상증자
+  const agg = {}; let yTotal = 0, bigIpo = null, bigRt = null;
+  const accumulate = (r) => {
+    const t = amt(r); yTotal += t;
+    for (const [a, v] of Object.entries(r.leads || {})) { (agg[a] || (agg[a] = { amount: 0 })).amount += v; }
+    return t;
+  };
+  for (const r of ipo) {
+    if (!ipoDone(r) || !(r.date || '').startsWith(yr)) continue;
+    const t = accumulate(r);
+    if (t > 0 && (!bigIpo || t > bigIpo.amount)) bigIpo = { issuer: r.issuer, amount: t };
+  }
+  for (const r of rights) {
+    if (!rightsDone(r) || !(r.date || '').startsWith(yr)) continue;
+    const t = accumulate(r);
+    if (t > 0 && (!bigRt || t > bigRt.amount)) bigRt = { issuer: r.issuer, amount: t };
   }
   const league = Object.entries(agg)
     .map(([a, v]) => ({ name: BROKER_FULL[a] || a, amount: v.amount, share: yTotal > 0 ? v.amount / yTotal * 100 : 0 }))
     .sort((a, b) => b.amount - a.amount);
   const topB = league[0];
 
-  // KPI 4칸
+  // KPI 5칸: 지난달 IPO / 지난달 유상증자 / 올해 주관1위 / 올해 최대 IPO / 올해 최대 유상증자
   $$('ecm-kpi-grid').innerHTML = `
     <div class="v1-kpi">
-      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${yr} IPO 상장</div>
-      <div class="value">${summary.this_year_ipo ?? 0}<small>건</small></div>
-      <div class="sub"><span class="sub-text">누적 ${(summary.ipo_count ?? ipo.length).toLocaleString()}건 (2020~)</span></div>
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} IPO</div>
+      <div class="value">${ipoPrev}<small>건</small></div>
+      <div class="sub">${fmtPct(pct(ipoPrev, ipoPrev2))} <span class="sub-text">전월 대비</span></div>
     </div>
     <div class="v1-kpi">
-      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${yr} 유상증자</div>
-      <div class="value">${summary.this_year_rights ?? 0}<small>건</small></div>
-      <div class="sub"><span class="sub-text">누적 ${(summary.rights_count ?? rights.length).toLocaleString()}건 (2020~)</span></div>
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} 유상증자</div>
+      <div class="value">${rtPrev}<small>건</small></div>
+      <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전월 대비</span></div>
     </div>
     <div class="v1-kpi">
-      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} 통합 주관 1위</div>
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} IPO+유상증자 주관 1위</div>
       <div class="value compact">${topB ? topB.name : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${topB ? fmtAmt(topB.amount) : ''}</span> <span class="sub-text">${topB ? '· 점유율 ' + topB.share.toFixed(1) + '%' : ''}</span></div>
     </div>
     <div class="v1-kpi">
-      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> ${yr} 최대 공모</div>
-      <div class="value compact">${biggest ? biggest.issuer : '—'} ${biggest ? `<span style="color:var(--muted);font-size:14px;">${biggest.kind}</span>` : ''}</div>
-      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${biggest ? fmtAmt(biggest.amount) : ''}</span></div>
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${yr} 최대 IPO</div>
+      <div class="value compact">${bigIpo ? bigIpo.issuer : '—'}</div>
+      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${bigIpo ? fmtAmt(bigIpo.amount) : ''}</span></div>
+    </div>
+    <div class="v1-kpi">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${yr} 최대 유상증자</div>
+      <div class="value compact">${bigRt ? bigRt.issuer : '—'}</div>
+      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${bigRt ? fmtAmt(bigRt.amount) : ''}</span></div>
     </div>`;
 
   const ic = $$('ecm-ipo-count'); if (ic) ic.textContent = `${yr}년 ${summary.this_year_ipo ?? 0}건`;

@@ -331,11 +331,12 @@
     });
     document.querySelectorAll(".date-presets button").forEach(b =>
       b.addEventListener("click", ()=>{
+        // 프리셋은 날짜 input 만 세팅 — 리스트는 "조회" 버튼 누를 때 반영 (DCM 동일)
         const p=b.dataset.preset;
         setActivePreset(p);
         const {min,max}=dateRange();
-        if (p==="all"){ $("f-date-start").value=min||""; $("f-date-end").value=max||""; applyFilters(); return; }
-        if (!max){ applyFilters(); return; }
+        if (p==="all"){ $("f-date-start").value=min||""; $("f-date-end").value=max||""; return; }
+        if (!max) return;
         const s=new Date(max);
         if (p==="3m") s.setMonth(s.getMonth()-3);
         else if (p==="6m") s.setMonth(s.getMonth()-6);
@@ -343,7 +344,6 @@
         s.setDate(s.getDate()+1);
         $("f-date-end").value=max;
         $("f-date-start").value=s.toISOString().slice(0,10);
-        applyFilters();
       }));
     ["f-date-start","f-date-end"].forEach(id => $(id).addEventListener("change", ()=>setActivePreset(null)));
     $("btn-search").addEventListener("click", applyFilters);

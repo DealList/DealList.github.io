@@ -40,7 +40,7 @@
     if (!e.length) return "-";
     return `<span class="bk">` + e.map(([a,v])=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)} ${fmtN(Math.round(v))}</span>`).join(", ") + `</span>`;
   }
-  function fmtBrokersNames(map) {  // 금액 없이 증권사명만 (IPO 주관/인수) — 금액 desc 순 유지
+  function fmtBrokersNames(map) {  // 금액 없이 증권사명만 (IPO·유증 주관/인수) — 금액 desc 순 유지
     const e = Object.entries(map||{}).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);
     if (!e.length) return "-";
     return `<span class="bk">` + e.map(([a])=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)}</span>`).join(", ") + `</span>`;
@@ -74,8 +74,8 @@
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
       {id:"final_price",label:"최종 가액(원)",num:1,cell:r=>fmtN(r.final_price),val:r=>r.final_price,xls:r=>r.final_price??""},
       {id:"final_total",label:"최종 총액(억)",num:1,cell:r=>fmtN(r.final_total),val:r=>r.final_total,xls:r=>r.final_total??""},
-      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokers(r.leads),xls:r=>brokStr(r.leads)},
-      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokers(r.uw),xls:r=>brokStr(r.uw)},
+      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
+      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
     ],
   };
   const catCfg = { ipo:{field:"market",label:"시장"}, rights:{field:"type",label:"구분"} };

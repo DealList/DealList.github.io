@@ -54,6 +54,13 @@ def _ratio(num, den):
     return None
 
 
+def _latest_rcept(*vals):
+    """묶음(증권신고서 + 정정신고서 체인) 중 최신 접수번호 = 가장 큰 rcpNo.
+    rcpNo 는 'YYYYMMDD + 6자리' 14자리 → 사전순 max == 최신. 실적보고서는 별개 묶음이라 제외."""
+    xs = [str(v) for v in vals if v]
+    return max(xs) if xs else ""
+
+
 def ipo_record(r: dict) -> dict:
     iq, ip = _n(r.get("init_qty")), _n(r.get("init_price"))
     fq, fp = _n(r.get("final_qty")), _n(r.get("final_price"))
@@ -73,7 +80,7 @@ def ipo_record(r: dict) -> dict:
         "esop": {"initial": ei, "final": ef, "rate": _ratio(ef, ei)},
         "leads": r.get("lead_amounts") or {},
         "uw": r.get("uw_amounts") or {},
-        "rcept": r.get("rcept_no_stage1") or "",
+        "rcept": _latest_rcept(r.get("rcept_no_stage1"), r.get("rcept_no_final")),
     }
 
 
@@ -95,7 +102,7 @@ def rights_record(r: dict) -> dict:
         "leads": r.get("lead_amounts") or {},
         "uw": r.get("uw_amounts") or {},
         "seq": r.get("issue_seq") or 0,
-        "rcept": r.get("rcept_no_stage1") or "",
+        "rcept": _latest_rcept(r.get("rcept_no_stage1"), r.get("rcept_no_final1"), r.get("rcept_no_final2")),
     }
 
 

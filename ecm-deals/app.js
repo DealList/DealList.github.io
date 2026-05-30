@@ -74,7 +74,7 @@
       {id:"price_1",label:"1차 가액(원)",num:1,cell:r=>fmtN(r.price_1),val:r=>r.price_1,xls:r=>r.price_1??""},
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
       {id:"final_price",label:"최종 가액(원)",num:1,cell:r=>fmtN(r.final_price),val:r=>r.final_price,xls:r=>r.final_price??""},
-      {id:"final_total",label:"최종 총액(억)",num:1,cell:r=>fmtN(r.final_total),val:r=>r.final_total,xls:r=>r.final_total??""},
+      {id:"final_total",label:"모집 총액(억원)",num:1,cell:r=>fmtN(r.final_total ?? r.total_1 ?? r.init_total),val:r=>r.final_total ?? r.total_1 ?? r.init_total,xls:r=>(r.final_total ?? r.total_1 ?? r.init_total)??""},
       {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
       {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
     ],
@@ -129,7 +129,7 @@
   function updateKPI(list) {  // 조회 기간 주요 정보 위젯 (현재 필터된 목록 기준)
     const grid = $("kpi-grid"); if (!grid) return;
     const tl = state.tab==="ipo" ? "IPO" : "유상증자";
-    const amt = r => r.final_total ?? r.init_total ?? 0;
+    const amt = r => r.final_total ?? r.total_1 ?? r.init_total ?? 0;
     if (!list.length) {
       grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">조회 결과 없음</div></div>`;
       return;

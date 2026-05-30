@@ -29,6 +29,11 @@
     if (!e.length) return "-";
     return `<span class="bk">` + e.map(([a,v])=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)} ${fmtN(Math.round(v))}</span>`).join(", ") + `</span>`;
   }
+  function fmtBrokersNames(map) {  // 금액 없이 증권사명만 (IPO 주관/인수) — 금액 desc 순 유지
+    const e = Object.entries(map||{}).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);
+    if (!e.length) return "-";
+    return `<span class="bk">` + e.map(([a])=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)}</span>`).join(", ") + `</span>`;
+  }
   const brokStr = (m) => Object.entries(m||{}).sort((a,b)=>b[1]-a[1]).map(([a,v])=>`${a} ${Math.round(v)}`).join(", ");
 
   // 탭별 컬럼: id(정렬키) / label / num / cell(HTML) / val(정렬값) / xls(엑셀값)
@@ -44,8 +49,8 @@
       {id:"ic",label:"기관 경쟁률",num:1,cell:r=>fmtX(r.inst&&r.inst.compete),val:r=>(r.inst&&r.inst.compete)||0,xls:r=>(r.inst&&r.inst.compete)??""},
       {id:"gc",label:"일반 경쟁률",num:1,cell:r=>fmtX(r.general&&r.general.compete),val:r=>(r.general&&r.general.compete)||0,xls:r=>(r.general&&r.general.compete)??""},
       {id:"ec",label:"우리사주 청약률",num:1,cell:r=>fmtPct(r.esop&&r.esop.rate),val:r=>(r.esop&&r.esop.rate)||0,xls:r=>(r.esop&&r.esop.rate)??""},
-      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokers(r.leads),xls:r=>brokStr(r.leads)},
-      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokers(r.uw),xls:r=>brokStr(r.uw)},
+      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
+      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
     ],
     rights: [
       {id:"date",label:"신주배정기준일",cell:r=>esc(fmtDate(r.date)),val:r=>r.date,xls:r=>fmtDate(r.date)},

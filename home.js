@@ -80,7 +80,7 @@ async function fillKPI() {
     const countChange = pct(prev.count, prevPrev.count);
     const amountChange = pct(prev.amount, prevPrev.amount);
 
-    const monthLabel = `${prevMonth.getFullYear()}년 ${String(prevMonth.getMonth() + 1).padStart(2, '0')}월`;
+    const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
     const fmtPct = (v) => v == null ? '—' :
       `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
 
@@ -476,7 +476,7 @@ async function loadEcm() {
   const prevMonth = new Date(_t.getFullYear(), _t.getMonth() - 1, 1);
   const prevPrevMonth = new Date(_t.getFullYear(), _t.getMonth() - 2, 1);
   const prevYM = _ym(prevMonth), prevPrevYM = _ym(prevPrevMonth);
-  const monthLabel = `${prevMonth.getFullYear()}년 ${String(prevMonth.getMonth() + 1).padStart(2, '0')}월`;
+  const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
   const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
   const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
   const monthCnt = (arr, done, ym) => arr.filter(r => done(r) && (r.date || '').startsWith(ym)).length;

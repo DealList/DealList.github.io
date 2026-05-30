@@ -25,6 +25,12 @@
   const fmtN = (v) => (typeof v==="number" ? v.toLocaleString() : "-");
   const fmtPct = (v) => (typeof v==="number" ? (v*100).toFixed(1)+"%" : "-");
   const fmtX = (v) => (typeof v==="number" ? v.toLocaleString()+"배" : "-");
+  const fmtBig = (eok) => {  // 억 → 조/억 (KPI 금액)
+    if (!eok || eok < 0) return "-";
+    if (eok >= 10000) { const jo=Math.floor(eok/10000), rest=Math.round(eok%10000);
+      return rest>0 ? `${jo.toLocaleString()}조 ${rest.toLocaleString()}억` : `${jo.toLocaleString()}조`; }
+    return `${Math.round(eok).toLocaleString()}억`;
+  };
   const fmtMan = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString()+"만" : "-");  // 만 단위 반올림 표시
   const fmtManN = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString() : "-");  // 만 단위 숫자만 (단위는 헤더)
   const fmtPctN = (v) => (typeof v==="number" ? (v*100).toFixed(1) : "-");  // % 숫자만 (단위는 헤더)
@@ -117,6 +123,27 @@
     return out;
   }
 
+  function updateKPI(list) {  // 조회 기간 주요 정보 위젯 (현재 필터된 목록 기준)
+    const grid = $("kpi-grid"); if (!grid) return;
+    const tl = state.tab==="ipo" ? "IPO" : "유상증자";
+    const amt = r => r.final_total ?? r.init_total ?? 0;
+    if (!list.length) {
+      grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">조회 결과 없음</div></div>`;
+      return;
+    }
+    const count = list.length;
+    const total = list.reduce((s,r)=>s+amt(r),0);
+    const avg = count ? total/count : 0;
+    let big=list[0], bigAmt=amt(list[0]);
+    for (const r of list){ const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
+    const basis = state.tab==="ipo" ? "상장일 기준" : "기준일 기준";
+    grid.innerHTML = `
+      <div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">${count.toLocaleString()}<small>건</small></div><div class="s">${basis}</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 ${tl} 금액</div><div class="v">${fmtBig(total)}</div><div class="s">모집총액 합산</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 평균 ${tl} 규모</div><div class="v">${fmtBig(avg)}</div><div class="s">건당 평균</div></div>
+      <div class="kpi-cell"><div class="l">조회 기간 최대 단일 ${tl}</div><div class="v">${esc(big.issuer)}</div><div class="s">${fmtBig(bigAmt)}${big.date?" · "+big.date:""}</div></div>`;
+  }
+
   function render() {
     const cols = COLS[state.tab];
     // thead
@@ -134,6 +161,7 @@
       }));
     // rows
     const list = filtered();
+    updateKPI(list);
     const pages = Math.max(1, Math.ceil(list.length / PAGE));
     if (state.page > pages) state.page = pages;
     const slice = list.slice((state.page-1)*PAGE, state.page*PAGE);

@@ -260,6 +260,7 @@
     $("btn-search").addEventListener("click", () => {
       const btn = $("btn-search");
       const tableWrap = document.querySelector(".table-wrap");
+      const orig = btn.innerHTML;  // 돋보기 아이콘 + '조회' 보존
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>조회 중';
       tableWrap.classList.add("loading");
@@ -268,7 +269,7 @@
         currentPage = 1;
         applyFilters();
         btn.disabled = false;
-        btn.textContent = "조회";
+        btn.innerHTML = orig;  // 아이콘 포함 원복 (textContent 대신)
         tableWrap.classList.remove("loading");
       }, 250);
     });

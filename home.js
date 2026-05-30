@@ -476,9 +476,9 @@ async function loadEcm() {
   const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
   const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
   const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
-  const monthCnt = (arr, done, ym) => arr.filter(r => done(r) && (r.date || '').startsWith(ym)).length;
-  const ipoPrev = monthCnt(ipo, ipoDone, prevYM), ipoPrev2 = monthCnt(ipo, ipoDone, prevPrevYM);
-  const rtPrev = monthCnt(rights, rightsDone, prevYM), rtPrev2 = monthCnt(rights, rightsDone, prevPrevYM);
+  const monthAmt = (arr, done, ym) => arr.filter(r => done(r) && (r.date || '').startsWith(ym)).reduce((s, r) => s + amt(r), 0);
+  const ipoPrev = monthAmt(ipo, ipoDone, prevYM), ipoPrev2 = monthAmt(ipo, ipoDone, prevPrevYM);
+  const rtPrev = monthAmt(rights, rightsDone, prevYM), rtPrev2 = monthAmt(rights, rightsDone, prevPrevYM);
 
   // 올해 주관 리그(완료 딜만) — 통합 / IPO / 유증 + 최대 IPO / 최대 유상증자
   const aggAll = {}, aggIpo = {}, aggRt = {};
@@ -504,12 +504,12 @@ async function loadEcm() {
   $$('ecm-kpi-grid').innerHTML = `
     <div class="v1-kpi">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} IPO</div>
-      <div class="value">${ipoPrev}<small>건</small></div>
+      <div class="value">${fmtAmt(ipoPrev)}</div>
       <div class="sub">${fmtPct(pct(ipoPrev, ipoPrev2))} <span class="sub-text">전월 대비</span></div>
     </div>
     <div class="v1-kpi">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} 유상증자</div>
-      <div class="value">${rtPrev}<small>건</small></div>
+      <div class="value">${fmtAmt(rtPrev)}</div>
       <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전월 대비</span></div>
     </div>
     <div class="v1-kpi">

@@ -126,7 +126,7 @@
     return out;
   }
 
-  function updateKPI(list) {  // 조회 기간 주요 정보 위젯 (현재 필터된 목록 기준)
+  function updateKPI(list) {  // 조회 기간 주요 정보 위젯 — 완료된 딜만 집계 (표 목록과 별개)
     const grid = $("kpi-grid"); if (!grid) return;
     const tl = state.tab==="ipo" ? "IPO" : "유상증자";
     const amt = r => r.final_total ?? r.total_1 ?? r.init_total ?? 0;
@@ -134,15 +134,20 @@
       grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">조회 결과 없음</div></div>`;
       return;
     }
-    const count = list.length;
-    const total = list.reduce((s,r)=>s+amt(r),0);
-    const avg = count ? total/count : 0;
-    // 최대 단일 — 완료된 딜만 (IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 최종가액 채워짐)
+    // 완료 딜 = IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 1차 발행가액 또는 최종가액 확정
     const isDone = state.tab==="ipo"
       ? r => r.inst && typeof r.inst.compete==="number" && r.general && typeof r.general.compete==="number"
-      : r => typeof r.final_price === "number";
+      : r => typeof r.price_1==="number" || typeof r.final_price==="number";
+    const done = list.filter(isDone);
+    if (!done.length) {
+      grid.innerHTML = `<div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">0<small>건</small></div><div class="s">완료 딜 없음</div></div>`;
+      return;
+    }
+    const count = done.length;
+    const total = done.reduce((s,r)=>s+amt(r),0);
+    const avg = count ? total/count : 0;
     let big=null, bigAmt=-1;
-    for (const r of list){ if(!isDone(r)) continue; const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
+    for (const r of done){ const a=amt(r); if(a>bigAmt){bigAmt=a;big=r;} }
     const basis = state.tab==="ipo" ? "상장일 기준" : "기준일 기준";
     grid.innerHTML = `
       <div class="kpi-cell"><div class="l">조회 기간 ${tl} 건수</div><div class="v">${count.toLocaleString()}<small>건</small></div><div class="s">${basis}</div></div>

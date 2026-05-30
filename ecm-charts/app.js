@@ -18,6 +18,9 @@
   const dn = (a) => BROKER_FULL[a] || a;
   const total = (r) => (r.final_total!=null?r.final_total:(r.init_total!=null?r.init_total:0))||0;
   const fmtAmt = (e) => e>=10000 ? `${Math.floor(e/10000).toLocaleString()}조 ${Math.round(e%10000).toLocaleString()}억` : `${Math.round(e).toLocaleString()}억`;
+  // 완료 딜만 집계 — IPO: 청약 현황(기관·일반 경쟁률) 채워짐 / 유증: 1차 발행가액 또는 최종가액 확정
+  const ipoDone = (r) => r.inst && typeof r.inst.compete==="number" && r.general && typeof r.general.compete==="number";
+  const rightsDone = (r) => typeof r.price_1==="number" || typeof r.final_price==="number";
 
   async function loadAll() {
     try {
@@ -62,7 +65,7 @@
     const ds=$("f-date-start").value||"", de=$("f-date-end").value||"";
     $("period-range").textContent=`조회 기간: ${ds||"처음"} ~ ${de||"끝"}`;
     const inR=(r)=> r.date && (!ds||r.date>=ds) && (!de||r.date<=de);
-    const ipo=RAW.ipo.filter(inR), rights=RAW.rights.filter(inR);
+    const ipo=RAW.ipo.filter(r=>inR(r)&&ipoDone(r)), rights=RAW.rights.filter(r=>inR(r)&&rightsDone(r));
     const amt=[...ipo,...rights].reduce((s,r)=>s+total(r),0);
     $("result-count").innerHTML=`IPO <strong>${ipo.length}</strong> · 유증 <strong>${rights.length}</strong> · 발행총액 ${fmtAmt(amt)}`;
     renderCharts(ipo,rights);

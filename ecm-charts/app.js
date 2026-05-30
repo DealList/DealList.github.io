@@ -34,11 +34,18 @@
   function allDates(){ const ds=[...RAW.ipo,...RAW.rights].map(r=>r.date).filter(Boolean); return {min:ds.reduce((a,b)=>(!a||b<a)?b:a,""),max:ds.reduce((a,b)=>b>a?b:a,"")}; }
   function initFilters() {
     const {min,max}=allDates();
-    applyPreset("all",max,min);
+    applyPreset("1y",max,min);
     ["f-date-start","f-date-end"].forEach(id=>$(id).addEventListener("change",clearPreset));
     document.querySelectorAll(".date-presets button[data-preset]").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,max,min)));
-    $("btn-search").addEventListener("click",runQuery);
-    $("btn-reset").addEventListener("click",()=>{ applyPreset("all",max,min); runQuery(); });
+    $("btn-search").addEventListener("click",()=>{  // 짧은 로딩 스피너 후 적용
+      const btn=$("btn-search");
+      if (btn.dataset.busy) return;
+      const orig=btn.innerHTML;
+      btn.dataset.busy="1"; btn.disabled=true;
+      btn.innerHTML='<span class="spinner"></span>조회 중';
+      setTimeout(()=>{ runQuery(); btn.disabled=false; btn.innerHTML=orig; delete btn.dataset.busy; },250);
+    });
+    $("btn-reset").addEventListener("click",()=>{ applyPreset("1y",max,min); runQuery(); });
   }
   function clearPreset(){ document.querySelectorAll(".date-presets button").forEach(b=>b.classList.remove("active")); }
   function applyPreset(p,max,min){

@@ -17,7 +17,7 @@
   let META = null;
   let issuerSet = new Map();  // 현재 탭 발행사 (lowercase → canonical), 정확일치 검증용
   const state = { tab:"ipo", sort:{key:"date",dir:"desc"}, page:1,
-    issuers:new Set(), leads:new Set(), dateStart:"", dateEnd:"", cat:"", totalMin:0, totalMax:0 };
+    issuers:new Set(), leads:new Set(), uws:new Set(), dateStart:"", dateEnd:"", cat:"", totalMin:0, totalMax:0 };
   const TOTAL_OPTS = [50,100,200,300,500,1000,2000,5000,10000,50000];  // 모집 총액(억원) 범위 브래킷
 
   const $ = (id) => document.getElementById(id);
@@ -89,8 +89,12 @@
         if (state.totalMax && t > state.totalMax) return false;
       }
       if (state.leads.size) {
-        const ks = new Set([...Object.keys(r.leads||{}), ...Object.keys(r.uw||{})]);
-        if (![...state.leads].some(b => ks.has(b))) return false;
+        const lk = Object.keys(r.leads||{});
+        if (![...state.leads].some(b => lk.includes(b))) return false;
+      }
+      if (state.uws.size) {
+        const uk = Object.keys(r.uw||{});
+        if (![...state.uws].some(b => uk.includes(b))) return false;
       }
       return true;
     });
@@ -170,10 +174,15 @@
     $("f-cat").innerHTML = `<option value="">전체</option>` + vals.map(v=>`<option>${esc(v)}</option>`).join("");
     state.cat = "";
   }
-  function populateLeads() {
+  function populateLeads() {  // 주관 증권사 옵션 (r.leads 만)
     const s = new Set();
-    (DATA[state.tab]||[]).forEach(r => { Object.keys(r.leads||{}).forEach(a=>s.add(a)); Object.keys(r.uw||{}).forEach(a=>s.add(a)); });
+    (DATA[state.tab]||[]).forEach(r => Object.keys(r.leads||{}).forEach(a=>s.add(a)));
     $("f-lead").innerHTML = `<option value="">추가…</option>` + [...s].sort().map(a=>`<option value="${esc(a)}">${esc(BROKER_FULL[a]||a)}</option>`).join("");
+  }
+  function populateUws() {  // 인수 증권사 옵션 (r.uw 만)
+    const s = new Set();
+    (DATA[state.tab]||[]).forEach(r => Object.keys(r.uw||{}).forEach(a=>s.add(a)));
+    $("f-uw").innerHTML = `<option value="">추가…</option>` + [...s].sort().map(a=>`<option value="${esc(a)}">${esc(BROKER_FULL[a]||a)}</option>`).join("");
   }
   function populateIssuers() {  // 발행사 datalist 자동완성 + 정확일치용 set (현재 탭)
     const names = [...new Set((DATA[state.tab]||[]).map(r=>r.issuer).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ko"));
@@ -212,12 +221,12 @@
   function switchTab(tab) {
     if (tab === state.tab) return;
     state.tab = tab; state.page = 1; state.sort = {key:"date",dir:"desc"};
-    state.leads.clear(); state.issuers.clear();
-    chipBox("f-lead-chips",state.leads); chipBox("f-issuer-chips",state.issuers);
+    state.leads.clear(); state.uws.clear(); state.issuers.clear();
+    chipBox("f-lead-chips",state.leads); chipBox("f-uw-chips",state.uws); chipBox("f-issuer-chips",state.issuers);
     const db=$("date-basis"); if(db) db.textContent = tab==="ipo" ? "상장일" : "신주배정기준일";
     const pf=$("total-filter"); if(pf) pf.style.display = tab==="ipo" ? "" : "none";
     $("f-total-min").value=""; $("f-total-max").value=""; state.totalMin=state.totalMax=0;
-    populateCat(); populateLeads(); populateIssuers(); applyDefaultRange(); render();
+    populateCat(); populateLeads(); populateUws(); populateIssuers(); applyDefaultRange(); render();
   }
 
   function download() {
@@ -316,7 +325,7 @@
       }
     } catch (e) { console.error(e); const nu=$("nav-updated"); if(nu) nu.textContent="데이터 로드 실패"; return; }
 
-    populateCat(); populateLeads(); populateIssuers(); populateTotals();
+    populateCat(); populateLeads(); populateUws(); populateIssuers(); populateTotals();
     document.querySelectorAll(".ecm-tab").forEach(t => t.addEventListener("click", ()=>switchTab(t.dataset.tab)));
     $("f-issuer").addEventListener("keydown", e => {
       if (e.key!=="Enter") return; e.preventDefault();
@@ -328,6 +337,9 @@
     });
     $("f-lead").addEventListener("change", e => {
       const v=e.target.value; if (v && state.leads.size<5){ state.leads.add(v); chipBox("f-lead-chips",state.leads); } e.target.value="";
+    });
+    $("f-uw").addEventListener("change", e => {
+      const v=e.target.value; if (v && state.uws.size<5){ state.uws.add(v); chipBox("f-uw-chips",state.uws); } e.target.value="";
     });
     document.querySelectorAll(".date-presets button").forEach(b =>
       b.addEventListener("click", ()=>{
@@ -358,8 +370,8 @@
       }, 250);
     });
     $("btn-reset").addEventListener("click", ()=>{
-      state.issuers.clear(); state.leads.clear();
-      chipBox("f-issuer-chips",state.issuers); chipBox("f-lead-chips",state.leads);
+      state.issuers.clear(); state.leads.clear(); state.uws.clear();
+      chipBox("f-issuer-chips",state.issuers); chipBox("f-lead-chips",state.leads); chipBox("f-uw-chips",state.uws);
       $("f-issuer").value=""; $("f-cat").value=""; state.cat="";
       $("f-total-min").value=""; $("f-total-max").value=""; state.totalMin=state.totalMax=0;
       applyDefaultRange(); render();

@@ -764,12 +764,13 @@
       btn.dataset.key = chartKey;
       btn.dataset.label = title;
       btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc));
+      const showPeriod = !canvas.id.includes("monthly");  // 1번(월별) 카드는 기간 미표기
+      btn.addEventListener("click", () => downloadChartAsJPG(chartKey, title, desc, showPeriod));
       card.appendChild(btn);
     });
   }
 
-  function downloadChartAsJPG(chartKey, title, desc) {
+  function downloadChartAsJPG(chartKey, title, desc, showPeriod) {
     const src = charts[chartKey];
     if (!src) return;
 
@@ -782,12 +783,21 @@
     const COLOR_TITLE = isDark ? "#f1f5f9" : "#0f172a";
     const COLOR_DESC  = isDark ? "#94a3b8" : "#64748b";
 
+    // 설명 줄: (조회 기간) + (원래 설명). 기간은 원래 설명 윗줄(제목과 설명 사이).
+    const descLines = [];
+    if (showPeriod) {
+      const ds = $("f-date-start").value || "처음", de = $("f-date-end").value || "끝";
+      descLines.push(`조회 기간: ${ds} ~ ${de}`);
+    }
+    if (desc) descLines.push(desc);
+
     // 레이아웃 (px)
     const W = 1920, H = 1080;
     const PAD_X      = 72;
     const TITLE_TOP  = 92;            // 제목 baseline Y
-    const DESC_TOP   = 152;           // 설명 baseline Y
-    const CHART_Y    = desc ? 200 : 170;  // 차트 영역 시작 (설명 없으면 살짝 위로)
+    const DESC_TOP   = 152;           // 첫 설명 줄 baseline Y
+    const DESC_LH    = 40;            // 설명 줄 간격
+    const CHART_Y    = descLines.length ? (DESC_TOP + (descLines.length - 1) * DESC_LH + 48) : 170;
     const CHART_PAD_B = 40;           // 차트 영역 하단 패딩
     const CHART_W    = W;
     const CHART_H    = H - CHART_Y - CHART_PAD_B;
@@ -806,12 +816,10 @@
     mctx.font = `700 48px ${fontFamily}`;
     mctx.textBaseline = "alphabetic";
     mctx.fillText(fullTitle, PAD_X, TITLE_TOP);
-    // 설명
-    if (desc) {
-      mctx.fillStyle = COLOR_DESC;
-      mctx.font = `400 28px ${fontFamily}`;
-      mctx.fillText(desc, PAD_X, DESC_TOP);
-    }
+    // 설명 줄들 (조회 기간 + 원래 설명) — 동일 폰트/크기
+    mctx.fillStyle = COLOR_DESC;
+    mctx.font = `400 28px ${fontFamily}`;
+    descLines.forEach((line, i) => mctx.fillText(line, PAD_X, DESC_TOP + i * DESC_LH));
 
     // 차트 전용 offscreen 캔버스 (이후 mainCanvas 에 drawImage 합성)
     const chartCanvas = document.createElement("canvas");

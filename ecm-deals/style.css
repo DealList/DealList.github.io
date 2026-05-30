@@ -112,8 +112,7 @@
   overflow: hidden;
   overflow-x: auto;
 }
-/* 조회 로딩 — 짧은 스피너 + 테이블 디밍 */
-.table-wrap.loading { opacity: 0.5; pointer-events: none; transition: opacity 0.12s; }
+/* 조회 로딩 — 짧은 스피너 */
 .spinner {
   display: inline-block; width: 12px; height: 12px;
   border: 2px solid currentColor; border-top-color: transparent;

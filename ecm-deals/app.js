@@ -346,17 +346,15 @@
         $("f-date-start").value=s.toISOString().slice(0,10);
       }));
     ["f-date-start","f-date-end"].forEach(id => $(id).addEventListener("change", ()=>setActivePreset(null)));
-    $("btn-search").addEventListener("click", () => {  // 짧은 로딩 표시 후 적용 (DCM 동일)
-      const btn = $("btn-search"), wrap = document.querySelector(".table-wrap");
+    $("btn-search").addEventListener("click", () => {  // 짧은 로딩 스피너 후 적용
+      const btn = $("btn-search");
       if (btn.dataset.busy) return;
       const orig = btn.innerHTML;
       btn.dataset.busy = "1"; btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>조회 중';
-      if (wrap) wrap.classList.add("loading");
       setTimeout(() => {
         applyFilters();
         btn.disabled = false; btn.innerHTML = orig; delete btn.dataset.busy;
-        if (wrap) wrap.classList.remove("loading");
       }, 250);
     });
     $("btn-reset").addEventListener("click", ()=>{

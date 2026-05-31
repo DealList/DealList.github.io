@@ -140,18 +140,21 @@
     const doughnutLabelOpts = { color:"#ffffff", font:{size:19,weight:"800"}, anchor:"center", align:"center", textStrokeColor:"rgba(0,0,0,0.55)", textStrokeWidth:4 };
     const doughnutLegend = { position:"right", labels:{ font:{size:14,weight:"600"}, padding:12, boxWidth:18 } };
 
-    // 월별 추이 (최근 13개월 고정, 막대=건수 + 선=발행총액) — DCM ① 스타일
+    // 월별 추이 (기간 필터 범위 내 모든 월, 막대=건수 + 선=발행총액) — DCM ① 스타일
+    // 데이터의 첫 월 ~ 마지막 월까지 연속 축. 기간 필터를 바꾸면 자동으로 윈도우가 따라감.
     const monthly = (id, arr, barColor, barLabel) => {
       const m=new Map();
       arr.forEach(r=>{ const ym=(r.date||"").slice(0,7); if(!ym)return; const v=m.get(ym)||{c:0,a:0}; v.c++; v.a+=total(r); m.set(ym,v); });
-      const keys=[...m.keys()].sort(), end=keys.length?keys[keys.length-1]:null;
+      const keys=[...m.keys()].sort();
       let labels=[],counts=[],amts=[];
-      if (end){
-        let [y,mo]=end.split("-").map(Number); const seq=[];
-        for(let i=0;i<13;i++){ seq.push(`${y}-${String(mo).padStart(2,"0")}`); if(--mo===0){mo=12;y--;} }
-        seq.reverse(); labels=seq;
-        counts=seq.map(k=>(m.get(k)||{c:0}).c);
-        amts=seq.map(k=>Math.round((m.get(k)||{a:0}).a));
+      if (keys.length){
+        const [sy,sm]=keys[0].split("-").map(Number), [ey,em]=keys[keys.length-1].split("-").map(Number);
+        let y=sy, mo=sm;
+        while (y<ey || (y===ey && mo<=em)) {
+          const k=`${y}-${String(mo).padStart(2,"0")}`;
+          labels.push(k); const v=m.get(k)||{c:0,a:0}; counts.push(v.c); amts.push(Math.round(v.a));
+          if (++mo>12) { mo=1; y++; }
+        }
       }
       return new Chart($(id), {
         type:"bar",
@@ -209,7 +212,7 @@
     // 도넛 금액 차트 tooltip (전체 금액 표기)
     const amtTip = { tooltip:{ callbacks:{ label:c=>` ${c.label}: ${fmtAmt(c.raw)}` } } };
     if (tab === "ipo") {
-      charts.iy = monthly("ch-ipo-monthly", RAW.ipo.filter(ipoDone), IPO_C, "IPO 건수");  // 최근 13개월 고정(기간필터 무관)
+      charts.iy = monthly("ch-ipo-monthly", ipo, IPO_C, "IPO 건수");  // 기간 필터 적용
       // IPO 시장별 (건수) + (금액) — 두 도넛 동일 라벨 순서
       const mktC={}, mktA={};
       ipo.forEach(r=>{ const m=r.market||"기타"; mktC[m]=(mktC[m]||0)+1; mktA[m]=(mktA[m]||0)+total(r); });
@@ -233,7 +236,7 @@
       charts.ti = topIssuers("ch-ipo-issuers", ipo);
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {
-      charts.ry = monthly("ch-rt-monthly", RAW.rights.filter(rightsDone), RIGHTS_C, "유상증자 건수");  // 최근 13개월 고정(기간필터 무관)
+      charts.ry = monthly("ch-rt-monthly", rights, RIGHTS_C, "유상증자 건수");  // 기간 필터 적용
       // 유상증자 구분별 (건수) + (금액) — 같은 구분 순서(건수 내림차순)
       const tC={}, tA={};
       rights.forEach(r=>{ const t=r.type||"기타"; tC[t]=(tC[t]||0)+1; tA[t]=(tA[t]||0)+total(r); });

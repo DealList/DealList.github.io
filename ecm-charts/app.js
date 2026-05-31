@@ -43,7 +43,7 @@
         fetch("../ecm_meta.json",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
       ]);
       RAW = d; META = m;
-      const nu=$("nav-updated"); if(nu) nu.textContent=`최종 업데이트 ${META.updated||"-"} · IPO ${META.ipo_count||RAW.ipo.length} · 유증 ${META.rights_count||RAW.rights.length}`;
+      const nu=$("nav-updated"); if(nu) nu.textContent=`최종 업데이트 ${META.updated||"-"}`;
       initFilters(); runQuery();
     } catch(e){ console.error(e); const nu=$("nav-updated"); if(nu) nu.textContent="데이터 로드 실패"; }
   }
@@ -85,7 +85,8 @@
 
   function runQuery() {
     const ds=$("f-date-start").value||"", de=$("f-date-end").value||"";
-    $("period-range").textContent=`조회 기간: ${ds||"처음"} ~ ${de||"끝"}`;
+    // 기간 표기 제거 (사용자 요청, 2026-05-31)
+    const _pr=$("period-range"); if(_pr) _pr.textContent="";
     const inR=(r)=> r.date && (!ds||r.date>=ds) && (!de||r.date<=de);
     const ipo=RAW.ipo.filter(r=>inR(r)&&ipoDone(r)), rights=RAW.rights.filter(r=>inR(r)&&rightsDone(r));
     const list = tab==="ipo"?ipo:rights, tl = tab==="ipo"?"IPO":"유상증자";

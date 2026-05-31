@@ -186,8 +186,8 @@ async function fillFromData() {
   const _todayDt = new Date();
   const today = `${_todayDt.getFullYear()}-${String(_todayDt.getMonth() + 1).padStart(2, '0')}-${String(_todayDt.getDate()).padStart(2, '0')}`;
 
-  /* ─── 2행: 최근 발행 공모채(딜 완료=finalAmt>0, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
-  renderRecentDeals(series.filter(s => (s.finalAmt || 0) > 0).slice(0, 10));
+  /* ─── 2행: 최근 발행 공모채(청약일 <= 오늘, 완료 딜, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
+  renderRecentDeals(series.filter(s => s.date && s.date <= today && (s.finalAmt || 0) > 0).slice(0, 10));
   renderUpcoming(series.filter(s => (s.finalAmt || 0) === 0).slice(0, 10));
 
   /* ─── 1행: 주관 / 인수 리그 TOP 10 (올해) ─── */
@@ -254,20 +254,17 @@ let _trendData = null;
 
 function renderRecentDeals(list) {
   const root = document.getElementById('recent-deals');
+  const container = root.closest('.v1-deals'); if (container) container.classList.add('no-leads');
   if (!list.length) {
     root.innerHTML = `<div style="padding: 40px 18px; text-align: center; color: var(--muted); font-size: 13px;">최근 발행 데이터가 없습니다.</div>`;
     return;
   }
   root.innerHTML = list.map(s => {
-    // 수요예측 전 (= finalAmt 미정) 인 건들은 금액·주관사 자리에 placeholder 대신
-    // "수요예측 예정" 한 줄 표시 — finalAmt > 0 이어야 priced 로 인정.
+    // 수요예측 전 (= finalAmt 미정) 인 건들은 금액 자리에 "수요예측 예정" 표시
     const isPriced = (s.finalAmt || 0) > 0;
     const amtHtml = isPriced
       ? `<div class="amt">${s.finalAmt.toLocaleString()}<small>억</small></div>`
       : `<div class="amt pending">수요예측 예정</div>`;
-    const leadsHtml = isPriced
-      ? `<div class="leads">${[...s.leads].slice(0, 3).join(' · ')}</div>`
-      : `<div class="leads"></div>`;
     return `
     <a class="v1-deal-row" href="dcm-deals/" data-type="${s.type || ''}">
       <div class="date">
@@ -280,7 +277,6 @@ function renderRecentDeals(list) {
       </div>
       <div><span class="tag ${tagClassFor(s.rating)}">${s.rating || '—'}</span></div>
       ${amtHtml}
-      ${leadsHtml}
     </a>`;
   }).join('');
 

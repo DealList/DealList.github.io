@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../deallist.css?v=20260526104243" />
-  <link rel="stylesheet" href="style.css?v=20260526104243" />
+  <link rel="stylesheet" href="style.css?v=20260531" />
 </head>
 <body>
 
@@ -23,8 +23,16 @@
     </div>
   </header>
 
+  <!-- DCM / ECM 탭 -->
+  <div class="ecm-tabs about-tabs">
+    <button class="ecm-tab active" data-tab="dcm">DCM · 채권시장</button>
+    <button class="ecm-tab" data-tab="ecm">ECM · 주식시장</button>
+  </div>
+
   <main class="container">
 
+    <!-- DCM 패널 -->
+    <div class="about-panel" data-panel="dcm">
     <div class="toc">
       <div class="toc-title">목차 · DCM 자주 묻는 질문</div>
       <div class="toc-list">
@@ -130,6 +138,142 @@
         <div class="a">제보는 운영자에게 직접 알려주세요.</div>
       </div>
     </section>
+    </div><!-- /dcm panel -->
+
+    <!-- ECM 패널 -->
+    <div class="about-panel" data-panel="ecm" hidden>
+    <div class="toc">
+      <div class="toc-title">목차 · ECM 자주 묻는 질문</div>
+      <div class="toc-list">
+        <a href="#e1"><span class="num">1</span> 데이터는 어디서 수집되나요?</a>
+        <a href="#e2"><span class="num">2</span> 데이터 갱신 주기는?</a>
+        <a href="#e3"><span class="num">3</span> 어떤 IPO·유상증자가 포함되나요?</a>
+        <a href="#e4"><span class="num">4</span> "완료 딜" 기준이 뭔가요?</a>
+        <a href="#e5"><span class="num">5</span> 유상증자 가액 단계(최초/1차/2차/최종)는?</a>
+        <a href="#e6"><span class="num">6</span> 주관·인수 실적은 어떻게 계산?</a>
+        <a href="#e7"><span class="num">7</span> 다가오는 상장(IPO)·다가오는 유상증자는?</a>
+        <a href="#e8"><span class="num">8</span> 조회 기간의 의미는?</a>
+        <a href="#e9"><span class="num">9</span> 발행사 클릭 시 어느 공시로 가나요?</a>
+        <a href="#e10"><span class="num">10</span> 데이터 오류 제보</a>
+      </div>
+    </div>
+
+    <section class="about-section">
+      <h2>자주 묻는 질문 — ECM</h2>
+      <div class="section-meta">IPO·유상증자 발행 정보 · 주관·인수 실적 관련</div>
+
+      <div class="qa" id="e1">
+        <h3>데이터는 어디서 수집되나요?</h3>
+        <div class="a">
+          금융감독원 DART의 <strong>지분증권 공시</strong>를 <strong>단계적으로</strong> 수집·반영합니다.
+          <ol>
+            <li>
+              <strong>증권신고서(지분증권)</strong> — 발행 예정 단계의 최초 공시
+              <small>→ IPO: 상장 예정일·시장(코스피/코스닥)·최초 희망 발행수량·가액·총액·주관/인수단(예상)<br/>
+                     유증: 신주배정기준일·납입일·구분(주주배정/제3자배정 등)·증자비율·최초 희망 가액</small>
+            </li>
+            <li>
+              <strong>[발행조건확정] 정정신고서</strong> — 발행조건 확정
+              <small>→ IPO: 1회(최종 확정 발행가액·수량·총액, 청약 현황: 기관·일반 경쟁률·우리사주 청약률)<br/>
+                     유증: 1차·2차 두 번에 걸쳐 발행가액 확정 (1차 가액 → 최종 가액)</small>
+            </li>
+            <li>
+              <strong>증권발행실적보고서</strong> — 청약 마무리 후 (참고)
+              <small>→ 실 청약·배정 결과 확인용 (사이트의 청약 현황 컬럼과 별개의 묶음 공시)</small>
+            </li>
+          </ol>
+          각 단계 공시를 거치며 한 딜의 데이터가 점진적으로 완성됩니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e2">
+        <h3>데이터 갱신 주기는?</h3>
+        <div class="a">
+          매일 오전 5시 53분경 자동으로 업데이트됩니다(DCM과 별도 워크플로). 필요에 따라 운영자가 수시로 업데이트 할 수도 있습니다. <strong>최종 업데이트</strong> 시점은 각 페이지 상단에서 확인할 수 있습니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e3">
+        <h3>어떤 IPO·유상증자가 포함되나요?</h3>
+        <div class="a">
+          <strong>지분증권(코스피·코스닥)</strong>의 공모로 진행된 IPO와 유상증자가 포함됩니다.
+          IPO는 일반기업과 SPAC(기업인수목적회사)를 모두 포함하고, 유상증자는 <strong>주주배정·주주배정후 실권주 일반공모·일반공모·제3자배정</strong>이 포함됩니다.
+          사모 발행은 제외됩니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e4">
+        <h3>"완료 딜" 기준이 뭔가요?</h3>
+        <div class="a">
+          위젯·인포그래픽·주관/인수 실적 집계는 <strong>완료된 딜만</strong> 대상으로 합니다.
+          <ul>
+            <li><strong>IPO</strong>: 청약 데이터(<em>기관·일반 경쟁률</em>)까지 입력된 건 — 즉 발행 절차가 사실상 마무리된 건.</li>
+            <li><strong>유상증자</strong>: <em>최소 1차 발행가액 또는 최종 발행가액이 확정된 건</em>. 최초 희망 가액까지만 있는 진행 초기 딜은 제외.</li>
+          </ul>
+          단, 발행정보 페이지의 <strong>표 목록</strong>은 진행 중인 딜도 포함해 전체를 보여줍니다(위젯·실적 집계만 완료 딜 기준).
+        </div>
+      </div>
+
+      <div class="qa" id="e5">
+        <h3>유상증자 가액 단계(최초/1차/2차/최종)는 무슨 뜻인가요?</h3>
+        <div class="a">
+          유상증자는 발행가액이 시간이 지나며 단계적으로 확정됩니다.
+          <ol>
+            <li><strong>최초 희망 가액</strong> — 증권신고서 최초 제출 시점의 예상 가액</li>
+            <li><strong>1차 발행가액</strong> — 1차 [발행조건확정] 정정 시점</li>
+            <li><strong>2차 발행가액</strong> — 2차 [발행조건확정] 정정 시점(보통 더 가까운 기준일 종가 반영)</li>
+            <li><strong>최종 발행가액</strong> — 청약 직전 확정된 최종값</li>
+          </ol>
+          모집 총액 칸은 <strong>최종 → 1차 → 최초</strong> 순으로 가장 최신 값을 표시합니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e6">
+        <h3>주관·인수 실적은 어떻게 계산되나요?</h3>
+        <div class="a">
+          각 딜마다 주관사·인수단의 실 배정 금액(억원)이 별도 컬럼으로 수집됩니다.
+          <strong>해당 증권사가 받은 배정 금액의 합</strong>이 실적이며, 점유율은
+          <span class="formula">점유율 = 해당 증권사 실적 / 조회 범위 전체 실적 × 100</span>
+          으로 계산됩니다. ECM 통합 리그는 IPO + 유상증자 실적을 합산해 산출합니다.
+          DCM과 달리 공시 단계에서 이미 증권사별 배정액이 명시되므로 잔여분 균등 분배 방식은 사용하지 않습니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e7">
+        <h3>다가오는 상장(IPO)·다가오는 유상증자는 어떤 건들인가요?</h3>
+        <div class="a">
+          데이터에 등록되어 있지만 아직 <strong>완료 단계에 도달하지 않은 딜</strong>입니다.
+          <ul>
+            <li>IPO: 상장 예정이거나 청약 데이터(기관·일반 경쟁률)가 아직 입력되지 않은 건.</li>
+            <li>유상증자: 최초 희망 가액까지만 기록되고 1차·최종 발행가액이 확정되기 전 단계 건.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="qa" id="e8">
+        <h3>조회 기간의 의미는?</h3>
+        <div class="a">
+          IPO는 <strong>상장일</strong>, 유상증자는 <strong>신주배정기준일</strong> 기준입니다.
+          "최근 1년" 등 프리셋도 데이터의 가장 최근 일자에서 역산합니다.
+        </div>
+      </div>
+
+      <div class="qa" id="e9">
+        <h3>발행사명을 클릭하면 어느 공시로 가나요?</h3>
+        <div class="a">
+          해당 딜의 <strong>증권신고서+정정신고서 묶음</strong> 중 <strong>가장 최신</strong> 공시 페이지로 이동합니다.
+          예: IPO는 [발행조건확정] 정정이 있으면 그 정정이, 유상증자는 2차 [발행조건확정]이 있으면 그 공시가 먼저 열립니다.
+          (실적보고서는 별개의 묶음이라 이 링크에 포함되지 않습니다.)
+          브라우저가 팝업을 차단했다면 주소창 우측의 차단 아이콘에서 본 사이트 팝업을 허용해 주세요.
+        </div>
+      </div>
+
+      <div class="qa" id="e10">
+        <h3>데이터에 오류가 있어요.</h3>
+        <div class="a">제보는 운영자에게 직접 알려주세요.</div>
+      </div>
+    </section>
+    </div><!-- /ecm panel -->
 
     <div class="disclaimer">
       <h3>
@@ -148,6 +292,21 @@
   <footer class="v1-foot">
     <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
   </footer>
+
+  <script>
+    // DCM/ECM 탭 전환 + 진입 시 ?tab=ecm 지원
+    (function(){
+      const tabs = document.querySelectorAll('.about-tabs .ecm-tab');
+      const panels = document.querySelectorAll('.about-panel');
+      const apply = (t) => {
+        tabs.forEach(x => x.classList.toggle('active', x.dataset.tab===t));
+        panels.forEach(p => { p.hidden = p.dataset.panel!==t; });
+      };
+      const init = new URLSearchParams(location.search).get('tab');
+      if (init==='ecm'||init==='dcm') apply(init);
+      tabs.forEach(t => t.addEventListener('click', ()=>apply(t.dataset.tab)));
+    })();
+  </script>
 
 </body>
 </html>

@@ -7,6 +7,26 @@
   padding: 40px 40px 60px;
 }
 
+/* DCM/ECM 탭 (발행정보 페이지와 동일 폴더탭 스타일) */
+.about-tabs {
+  display:flex; gap:6px; padding:14px 40px 0;
+  background:var(--surface); border-bottom:1px solid var(--border);
+}
+.about-tabs .ecm-tab {
+  font:inherit; font-size:14px; font-weight:600;
+  padding:9px 22px; cursor:pointer;
+  background:transparent; color:var(--muted);
+  border:1px solid transparent; border-bottom:none;
+  border-radius:8px 8px 0 0; margin-bottom:-1px;
+}
+.about-tabs .ecm-tab:hover { color:var(--text); }
+.about-tabs .ecm-tab.active {
+  background:var(--bg); color:var(--accent);
+  border-color:var(--border); border-bottom:1px solid var(--bg);
+}
+.about-panel[hidden] { display:none; }
+@media (max-width:720px){ .about-tabs{ padding:14px 16px 0; } }
+
 /* TOC */
 .toc {
   background: var(--surface-2);

@@ -204,6 +204,9 @@ async function fillFromData() {
   };
   renderDcmLeagueRows('league-rows', mkDcmLeague('leadAmts'));
   renderDcmLeagueRows('league-uw-rows', mkDcmLeague('uwAmts'));
+  const _setDcm = (id, t) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+  _setDcm('dcm-league-lead-title', `${year} 공모채 주관 리그테이블`);
+  _setDcm('dcm-league-uw-title', `${year} 공모채 인수 리그테이블`);
 
   /* ─── Monthly trend (current month + 12 prior = 13 months) ─── */
   // 1) 오늘 기준 13개월 range (좌: 전년 동월, 우: 현재월)

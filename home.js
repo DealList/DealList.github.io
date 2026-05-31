@@ -556,26 +556,27 @@ async function loadEcm() {
 function renderEcmDeals(rootId, list, kind, opts) {
   const root = $$(rootId);
   if (!root) return;
+  const hideLeads = !!(opts && opts.hideLeads);
+  const container = root.closest('.v1-deals'); if (container) container.classList.toggle('no-leads', hideLeads);
   if (!list.length) {
     root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`;
     return;
   }
-  const hideLeads = opts && opts.hideLeads;
   root.innerHTML = list.map(s => {
     const total = ecmTotal(s);
     const amtHtml = total > 0
       ? `<div class="amt">${fmtAmt(total)}</div>`
       : `<div class="amt pending">미확정</div>`;
-    const leads = hideLeads ? '' : leadTop(s.leads);
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '신규상장' : ecmTypeShort(s.type);
+    const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
     return `
     <a class="v1-deal-row" href="ecm-deals/">
       <div class="date"><span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span></div>
       <div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>
       <div><span class="tag">${tag}</span></div>
       ${amtHtml}
-      <div class="leads">${leads}</div>
+      ${leadsHtml}
     </a>`;
   }).join('');
 }
@@ -621,16 +622,17 @@ function renderEcmUpcoming(list) {
 // 다가오는(미완료) 딜 렌더 — 날짜 미정(상장예정)도 표기
 function renderEcmUpcomingDeals(rootId, list, kind, opts) {
   const root = $$(rootId); if (!root) return;
+  const hideLeads = !!(opts && opts.hideLeads);
+  const container = root.closest('.v1-deals'); if (container) container.classList.toggle('no-leads', hideLeads);
   if (!list.length) { root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">해당 건이 없습니다.</div>`; return; }
-  const hideLeads = opts && opts.hideLeads;
   root.innerHTML = list.map(s => {
     const total = ecmTotal(s);
     const amtHtml = total > 0 ? `<div class="amt">${fmtAmt(total)}</div>` : `<div class="amt pending">미확정</div>`;
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '상장 예정' : ecmTypeShort(s.type);
     const dt = s.date ? `<span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span>` : `<span class="d" style="font-size:12px;">예정</span>`;
-    const leads = hideLeads ? '' : leadTop(s.leads);
-    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}<div class="leads">${leads}</div></a>`;
+    const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
+    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}${leadsHtml}</a>`;
   }).join('');
 }
 

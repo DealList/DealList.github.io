@@ -544,7 +544,7 @@ async function loadEcm() {
   const dDesc = (a, b) => (b.date || '').localeCompare(a.date || '');
   const dDescNull1st = (a, b) => (b.date || '9999-99-99').localeCompare(a.date || '9999-99-99');
   renderEcmDeals('ecm-recent-ipo', ipo.filter(r => ipoDone(r) && r.date).sort(dDesc).slice(0, 10), 'ipo', {hideLeads:true});
-  renderEcmUpcomingDeals('ecm-upcoming-ipo', ipo.filter(r => !ipoDone(r)).sort(dDescNull1st).slice(0, 10), 'ipo');
+  renderEcmUpcomingDeals('ecm-upcoming-ipo', ipo.filter(r => !ipoDone(r)).sort(dDescNull1st).slice(0, 10), 'ipo', {hideLeads:true});
   // 3행: 최근 유상증자 (1차·최종 확정) / 다가오는 유상증자 (최초희망만)
   renderEcmDeals('ecm-recent-rights', rights.filter(r => rightsDone(r) && r.date).sort(dDesc).slice(0, 10), 'rights');
   renderEcmUpcomingDeals('ecm-upcoming-rights', rights.filter(r => !rightsDone(r)).sort(dDescNull1st).slice(0, 10), 'rights');
@@ -619,16 +619,18 @@ function renderEcmUpcoming(list) {
 }
 
 // 다가오는(미완료) 딜 렌더 — 날짜 미정(상장예정)도 표기
-function renderEcmUpcomingDeals(rootId, list, kind) {
+function renderEcmUpcomingDeals(rootId, list, kind, opts) {
   const root = $$(rootId); if (!root) return;
   if (!list.length) { root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">해당 건이 없습니다.</div>`; return; }
+  const hideLeads = opts && opts.hideLeads;
   root.innerHTML = list.map(s => {
     const total = ecmTotal(s);
     const amtHtml = total > 0 ? `<div class="amt">${fmtAmt(total)}</div>` : `<div class="amt pending">미확정</div>`;
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '상장 예정' : ecmTypeShort(s.type);
     const dt = s.date ? `<span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span>` : `<span class="d" style="font-size:12px;">예정</span>`;
-    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}<div class="leads">${leadTop(s.leads)}</div></a>`;
+    const leads = hideLeads ? '' : leadTop(s.leads);
+    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}<div class="leads">${leads}</div></a>`;
   }).join('');
 }
 

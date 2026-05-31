@@ -543,7 +543,7 @@ async function loadEcm() {
   // 2행: 최근 IPO (완료 딜) / 다가오는 IPO (미완료)
   const dDesc = (a, b) => (b.date || '').localeCompare(a.date || '');
   const dDescNull1st = (a, b) => (b.date || '9999-99-99').localeCompare(a.date || '9999-99-99');
-  renderEcmDeals('ecm-recent-ipo', ipo.filter(r => ipoDone(r) && r.date).sort(dDesc).slice(0, 10), 'ipo');
+  renderEcmDeals('ecm-recent-ipo', ipo.filter(r => ipoDone(r) && r.date).sort(dDesc).slice(0, 10), 'ipo', {hideLeads:true});
   renderEcmUpcomingDeals('ecm-upcoming-ipo', ipo.filter(r => !ipoDone(r)).sort(dDescNull1st).slice(0, 10), 'ipo');
   // 3행: 최근 유상증자 (1차·최종 확정) / 다가오는 유상증자 (최초희망만)
   renderEcmDeals('ecm-recent-rights', rights.filter(r => rightsDone(r) && r.date).sort(dDesc).slice(0, 10), 'rights');
@@ -553,19 +553,20 @@ async function loadEcm() {
   setupEcmTrend('ecm-rights-trend', monthly13(rights, rightsDone));
 }
 
-function renderEcmDeals(rootId, list, kind) {
+function renderEcmDeals(rootId, list, kind, opts) {
   const root = $$(rootId);
   if (!root) return;
   if (!list.length) {
     root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`;
     return;
   }
+  const hideLeads = opts && opts.hideLeads;
   root.innerHTML = list.map(s => {
     const total = ecmTotal(s);
     const amtHtml = total > 0
       ? `<div class="amt">${fmtAmt(total)}</div>`
       : `<div class="amt pending">미확정</div>`;
-    const leads = leadTop(s.leads);
+    const leads = hideLeads ? '' : leadTop(s.leads);
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '신규상장' : ecmTypeShort(s.type);
     return `

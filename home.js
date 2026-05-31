@@ -88,7 +88,7 @@ async function fillKPI() {
       <div class="v1-kpi">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          ${monthLabel} 발행건수
+          ${monthLabel} 공모채 발행건수
         </div>
         <div class="value">${prev.count}<small>건</small></div>
         <div class="sub">
@@ -99,7 +99,7 @@ async function fillKPI() {
       <div class="v1-kpi">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          ${monthLabel} 발행총액
+          ${monthLabel} 공모채 발행총액
         </div>
         <div class="value">${fmtAmt(prev.amount)}</div>
         <div class="sub">
@@ -110,7 +110,7 @@ async function fillKPI() {
       <div class="v1-kpi">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg>
-          올해 주관 1위
+          올해 공모채 주관 1위
         </div>
         <div class="value compact">${BROKER_FULL[s.this_year_top_broker] || s.this_year_top_broker}</div>
         <div class="sub">
@@ -121,7 +121,7 @@ async function fillKPI() {
       <div class="v1-kpi">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-          올해 최대 단일 발행
+          올해 공모채 최대 단일 발행
         </div>
         <div class="value compact">${s.this_year_biggest_issuer} <span style="color: var(--muted); font-size: 14px;">${s.this_year_biggest_series}회차</span></div>
         <div class="sub">

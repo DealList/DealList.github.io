@@ -188,8 +188,8 @@ async function fillFromData() {
 
   /* ─── 2행: 최근 발행 공모채(청약일 <= 오늘, 완료 딜, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
   renderRecentDeals(series.filter(s => s.date && s.date <= today && (s.finalAmt || 0) > 0).slice(0, 10));
-  // 다가오는 청약: 청약일이 오늘부터(포함) 이후 + 수요예측 전 (미완료). 임박순(date asc).
-  renderUpcoming(series.filter(s => s.date && s.date >= today && (s.finalAmt || 0) === 0).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10));
+  // 다가오는 청약: 청약일이 오늘부터(포함) 이후인 모든 건 (수요예측 완료 여부 무관). 임박순(date asc) 최신 10건.
+  renderUpcoming(series.filter(s => s.date && s.date >= today).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 10));
 
   /* ─── 1행: 주관 / 인수 리그 TOP 10 (올해) ─── */
   // 매년 1월 한 달은 직전 해 유지 (2월 1일부터 새 해 전환). 사용자 룰 (2026-05-26).

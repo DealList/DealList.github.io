@@ -293,7 +293,8 @@
   gap: 8px; margin-bottom: 4px; flex-shrink: 0;
 }
 .v1-chart .head h3 {
-  margin: 0; font-size: 14px; font-weight: 700;
+  margin: 0; font-size: 18px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--text);
 }
 .v1-chart .head-right {
   display: inline-flex; align-items: center; gap: 10px;

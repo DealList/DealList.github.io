@@ -53,7 +53,7 @@
   const COLS = {
     ipo: [
       {id:"date",label:"상장일",cell:r=>esc(r.date||"상장 예정"),val:r=>r.date,xls:r=>r.date||"상장 예정"},
-      {id:"issuer",label:"회사명",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
+      {id:"issuer",label:"발행사",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"market",label:"시장",cell:r=>esc(r.market),val:r=>r.market,xls:r=>r.market},
       {id:"qty",label:"발행 수량(만주)",num:1,cell:r=>fmtManN(r.final_qty??r.init_qty),val:r=>r.final_qty??r.init_qty,xls:r=>r.final_qty??r.init_qty??""},
       {id:"price",label:"1주당 모집 가액(원)",num:1,cell:r=>fmtN(r.final_price??r.init_price),val:r=>r.final_price??r.init_price,xls:r=>r.final_price??r.init_price??""},
@@ -67,7 +67,7 @@
     ],
     rights: [
       {id:"date",label:"신주배정기준일",cell:r=>esc(fmtDate(r.date)),val:r=>r.date,xls:r=>fmtDate(r.date)},
-      {id:"issuer",label:"회사명",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
+      {id:"issuer",label:"발행사",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"type",label:"유형",cell:r=>esc(r.type),val:r=>r.type,xls:r=>r.type},
       {id:"payment",label:"납입일",cell:r=>esc(r.payment||"-"),val:r=>r.payment,xls:r=>r.payment||""},
       {id:"new_qty",label:"발행 수량(만주)",num:1,cell:r=>fmtManN(r.new_qty),val:r=>r.new_qty,xls:r=>r.new_qty??""},

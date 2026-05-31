@@ -530,17 +530,17 @@
     // V1 디자인: .kpi-cell .l/.v/.s 구조 (deallist.css 의 .kpi-strip 가 4분할 가로 레이아웃)
     grid.innerHTML = `
       <div class="kpi-cell">
-        <div class="l">조회 기간 발행건수</div>
+        <div class="l">조회 기간 발행 건수</div>
         <div class="v">${totalCount.toLocaleString()}<small>건</small></div>
         <div class="s">회차 기준</div>
       </div>
       <div class="kpi-cell">
-        <div class="l">조회 기간 발행총액</div>
+        <div class="l">조회 기간 발행 총액</div>
         <div class="v">${fmtAmountBig(totalAmt)}</div>
         <div class="s">트랜치 합산</div>
       </div>
       <div class="kpi-cell">
-        <div class="l">조회 기간 평균 발행규모</div>
+        <div class="l">조회 기간 평균 발행 규모</div>
         <div class="v">${fmtAmountBig(avg)}</div>
         <div class="s">회차당 평균</div>
       </div>

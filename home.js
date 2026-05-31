@@ -546,8 +546,8 @@ async function loadEcm() {
   renderEcmDeals('ecm-recent-ipo', ipo.filter(r => ipoDone(r) && r.date).sort(dDesc).slice(0, 10), 'ipo', {hideLeads:true});
   renderEcmUpcomingDeals('ecm-upcoming-ipo', ipo.filter(r => !ipoDone(r)).sort(dDescNull1st).slice(0, 10), 'ipo', {hideLeads:true});
   // 3행: 최근 유상증자 (1차·최종 확정) / 다가오는 유상증자 (최초희망만)
-  renderEcmDeals('ecm-recent-rights', rights.filter(r => rightsDone(r) && r.date).sort(dDesc).slice(0, 10), 'rights');
-  renderEcmUpcomingDeals('ecm-upcoming-rights', rights.filter(r => !rightsDone(r)).sort(dDescNull1st).slice(0, 10), 'rights');
+  renderEcmDeals('ecm-recent-rights', rights.filter(r => rightsDone(r) && r.date).sort(dDesc).slice(0, 10), 'rights', {hideLeads:true, hideTag:true});
+  renderEcmUpcomingDeals('ecm-upcoming-rights', rights.filter(r => !rightsDone(r)).sort(dDescNull1st).slice(0, 10), 'rights', {hideLeads:true, hideTag:true});
   // 4·5행: 월별 추이 (완료 딜, 최근 13개월) — 건수/금액 토글
   setupEcmTrend('ecm-ipo-trend', monthly13(ipo, ipoDone));
   setupEcmTrend('ecm-rights-trend', monthly13(rights, rightsDone));
@@ -557,7 +557,9 @@ function renderEcmDeals(rootId, list, kind, opts) {
   const root = $$(rootId);
   if (!root) return;
   const hideLeads = !!(opts && opts.hideLeads);
-  const container = root.closest('.v1-deals'); if (container) container.classList.toggle('no-leads', hideLeads);
+  const hideTag = !!(opts && opts.hideTag);
+  const container = root.closest('.v1-deals');
+  if (container) { container.classList.toggle('no-leads', hideLeads); container.classList.toggle('no-tag', hideTag); }
   if (!list.length) {
     root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`;
     return;
@@ -569,12 +571,13 @@ function renderEcmDeals(rootId, list, kind, opts) {
       : `<div class="amt pending">미확정</div>`;
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '신규상장' : ecmTypeShort(s.type);
+    const tagHtml = hideTag ? '' : `<div><span class="tag">${tag}</span></div>`;
     const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
     return `
     <a class="v1-deal-row" href="ecm-deals/">
       <div class="date"><span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span></div>
       <div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>
-      <div><span class="tag">${tag}</span></div>
+      ${tagHtml}
       ${amtHtml}
       ${leadsHtml}
     </a>`;
@@ -623,7 +626,9 @@ function renderEcmUpcoming(list) {
 function renderEcmUpcomingDeals(rootId, list, kind, opts) {
   const root = $$(rootId); if (!root) return;
   const hideLeads = !!(opts && opts.hideLeads);
-  const container = root.closest('.v1-deals'); if (container) container.classList.toggle('no-leads', hideLeads);
+  const hideTag = !!(opts && opts.hideTag);
+  const container = root.closest('.v1-deals');
+  if (container) { container.classList.toggle('no-leads', hideLeads); container.classList.toggle('no-tag', hideTag); }
   if (!list.length) { root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">해당 건이 없습니다.</div>`; return; }
   root.innerHTML = list.map(s => {
     const total = ecmTotal(s);
@@ -631,8 +636,9 @@ function renderEcmUpcomingDeals(rootId, list, kind, opts) {
     const tag = kind === 'ipo' ? (s.market || 'IPO') : '유증';
     const sub = kind === 'ipo' ? '상장 예정' : ecmTypeShort(s.type);
     const dt = s.date ? `<span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span>` : `<span class="d" style="font-size:12px;">예정</span>`;
+    const tagHtml = hideTag ? '' : `<div><span class="tag">${tag}</span></div>`;
     const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
-    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div><div><span class="tag">${tag}</span></div>${amtHtml}${leadsHtml}</a>`;
+    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>${tagHtml}${amtHtml}${leadsHtml}</a>`;
   }).join('');
 }
 

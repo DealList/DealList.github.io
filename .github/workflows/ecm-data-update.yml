@@ -14,8 +14,9 @@ on:
         required: false
         default: ''
   schedule:
-    # 매일 한국시간 06:27 (DCM 06:17 직후, 10분 간격) = UTC 21:27. 빈 날짜 → 어제(KST) 1일치.
-    - cron: '27 21 * * *'
+    # 매일 한국시간 05:53 = UTC 20:53. DCM(06:17 KST)보다 24분 이르고, UTC 21시대 글로벌
+    # 혼잡 윈도우를 피해 cron 미스파이어 확률을 낮춤. 빈 날짜 → 어제(KST) 1일치.
+    - cron: '53 20 * * *'
 
 jobs:
   update-ecm:

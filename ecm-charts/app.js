@@ -15,6 +15,8 @@
   const IPO_C = "#3b82f6", RIGHTS_C = "#14b8a6";
 
   let RAW = { ipo:[], rights:[] }, META = {}, charts = {}, tab = "ipo";
+  // URL ?tab=ipo|rights 로 초기 탭 지정
+  try { const _t = new URLSearchParams(location.search).get("tab"); if (_t==="ipo"||_t==="rights") tab=_t; } catch(_){}
   const $ = (id) => document.getElementById(id);
   const dn = (a) => BROKER_FULL[a] || a;
   const total = (r) => (r.final_total!=null?r.final_total:(r.init_total!=null?r.init_total:0))||0;
@@ -64,6 +66,9 @@
     });
     $("btn-reset").addEventListener("click",()=>{ applyPreset("1y",max,min); runQuery(); });
     // 탭 전환 (IPO / 유상증자)
+    // URL 로 바뀐 초기 tab 을 active 클래스·panel hidden 에도 반영
+    document.querySelectorAll(".ecm-tab").forEach(x=>x.classList.toggle("active", x.dataset.tab===tab));
+    document.querySelectorAll(".charts-grid").forEach(g=>{ g.hidden = g.dataset.panel!==tab; });
     document.querySelectorAll(".ecm-tab").forEach(t=>t.addEventListener("click",()=>{
       if (t.dataset.tab===tab) return;
       document.querySelectorAll(".ecm-tab").forEach(x=>x.classList.remove("active"));

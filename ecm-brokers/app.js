@@ -17,6 +17,12 @@
   let META = {};
   let scope = "all";        // all | ipo | rights
   let activeTab = "lead";   // lead | uw
+  // URL ?scope= / ?subtab= 으로 초기 상태 지정 (메인 KPI 리그 카드에서 진입)
+  try {
+    const _p = new URLSearchParams(location.search);
+    const _s = _p.get("scope"); if (_s==="all"||_s==="ipo"||_s==="rights") scope=_s;
+    const _t = _p.get("subtab"); if (_t==="lead"||_t==="uw") activeTab=_t;
+  } catch(_){}
   let brokerKeywords = [];
   let aggregated = [];
   let sortKey = "amount", sortDir = "desc";
@@ -68,6 +74,14 @@
     const {min,max} = allDates();
     applyPreset("ytd", max, min);
 
+    // URL 로 바뀐 초기 scope / activeTab 을 active 클래스에도 반영
+    document.querySelectorAll(".ecm-scope-tab").forEach(x=>x.classList.toggle("active", x.dataset.scope===scope));
+    document.querySelectorAll(".result-tabs .tab").forEach(x=>x.classList.toggle("active", x.dataset.tab===activeTab));
+    if (activeTab==="uw") {
+      $("th-amount-label").textContent="인수 실적";
+      $("th-name-label").textContent="인수사";
+      $("th-issuers-label").textContent="주요 인수 딜(억원)";
+    }
     ["f-date-start","f-date-end"].forEach(id=>$(id).addEventListener("change",clearPreset));
     document.querySelectorAll(".date-presets button[data-preset]").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,max,min)));
     sel.addEventListener("change",()=>{ const v=sel.value; if(!v)return; if(brokerKeywords.length>=MAX_CHIPS||brokerKeywords.includes(v)){sel.value="";return;} brokerKeywords.push(v); sel.value=""; renderChips(); });

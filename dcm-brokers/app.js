@@ -25,6 +25,8 @@
   let brokerKeywords = [];
   let aggregated = [];    // [{ alias, name, count, amount, share, issuers }]
   let activeTab = "lead"; // "lead" or "uw"
+  // URL ?tab=lead|uw 로 초기 탭 지정 (메인 KPI 인수 리그 카드에서 진입)
+  try { const _t = new URLSearchParams(location.search).get("tab"); if (_t==="lead"||_t==="uw") activeTab=_t; } catch(_){}
   let sortKey = "amount";
   let sortDir = "desc";
 
@@ -101,6 +103,14 @@
       syncBrokerDisable();
     });
 
+    // URL 로 바뀐 초기 activeTab 을 active 클래스·라벨에도 반영
+    document.querySelectorAll(".result-tabs .tab").forEach(x=>x.classList.toggle("active", x.dataset.tab===activeTab));
+    if (activeTab==="uw") {
+      $("th-amount-label").textContent="인수 실적";
+      $("th-name-label").textContent="인수사";
+      $("th-issuers-label").textContent="주요 인수 딜(억원)";
+      const fn=$("formula-note"); if(fn) fn.style.display="none";
+    }
     // 탭
     document.querySelectorAll(".result-tabs .tab").forEach((tab) => {
       tab.addEventListener("click", () => {

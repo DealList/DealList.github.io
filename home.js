@@ -347,13 +347,15 @@ function renderLeague(rows, year) {
   }).join('');
 }
 
-// 공모채 주관/인수 리그 rows 렌더 (지정 컨테이너)
+// 공모채 주관/인수 리그 rows 렌더 (지정 컨테이너) — rootId에 따라 dcm-brokers ?tab= 자동 부여
 function renderDcmLeagueRows(rootId, rows) {
   const root = document.getElementById(rootId); if (!root) return;
   if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
+  const tab = rootId === 'league-uw-rows' ? 'uw' : 'lead';
+  const href = `dcm-brokers/?tab=${tab}`;
   root.innerHTML = rows.map((r, i) => {
     const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';
-    return `<a class="v1-league-row ${topClass}" href="dcm-brokers/"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
+    return `<a class="v1-league-row ${topClass}" href="${href}"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
   }).join('');
 }
 
@@ -576,8 +578,9 @@ function renderEcmDeals(rootId, list, kind, opts) {
     const sub = kind === 'ipo' ? '신규상장' : ecmTypeShort(s.type);
     const tagHtml = hideTag ? '' : `<div><span class="tag">${tag}</span></div>`;
     const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
+    const href = `ecm-deals/?tab=${kind==='rights'?'rights':'ipo'}`;
     return `
-    <a class="v1-deal-row" href="ecm-deals/">
+    <a class="v1-deal-row" href="${href}">
       <div class="date"><span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span></div>
       <div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>
       ${tagHtml}
@@ -599,13 +602,15 @@ function renderEcmLeague(rows, yr) {
   }).join('');
 }
 
-// 주관 리그 rows 렌더 (지정 컨테이너) — 통합/IPO/유증 공용
+// 주관 리그 rows 렌더 (지정 컨테이너) — 통합/IPO/유증 공용. rootId에 따라 ecm-brokers ?scope= 자동 부여.
 function renderLeagueRows(rootId, rows) {
   const root = $$(rootId); if (!root) return;
   if (!rows.length) { root.innerHTML = `<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:13px;">데이터가 없습니다.</div>`; return; }
+  const scope = rootId.includes('-ipo-') ? 'ipo' : rootId.includes('-rights-') ? 'rights' : 'all';
+  const href = `ecm-brokers/?scope=${scope}`;
   root.innerHTML = rows.map((r, i) => {
     const rank = i + 1, topClass = rank <= 3 ? `top${rank}` : '';
-    return `<a class="v1-league-row ${topClass}" href="ecm-brokers/"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
+    return `<a class="v1-league-row ${topClass}" href="${href}"><div class="rank">${rank}</div><div class="name">${r.name}</div><div class="amt">${fmtAmt(Math.round(r.amount))}</div><div class="share">${r.share.toFixed(1)}%</div></a>`;
   }).join('');
 }
 
@@ -641,7 +646,8 @@ function renderEcmUpcomingDeals(rootId, list, kind, opts) {
     const dt = s.date ? `<span class="d">${shortDay(s.date)}</span><span>${shortMonth(s.date)}</span>` : `<span class="d" style="font-size:12px;">예정</span>`;
     const tagHtml = hideTag ? '' : `<div><span class="tag">${tag}</span></div>`;
     const leadsHtml = hideLeads ? '' : `<div class="leads">${leadTop(s.leads)}</div>`;
-    return `<a class="v1-deal-row" href="ecm-deals/"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>${tagHtml}${amtHtml}${leadsHtml}</a>`;
+    const href = `ecm-deals/?tab=${kind==='rights'?'rights':'ipo'}`;
+    return `<a class="v1-deal-row" href="${href}"><div class="date">${dt}</div><div class="issuer"><div class="name">${s.issuer}</div><div class="series">${sub}</div></div>${tagHtml}${amtHtml}${leadsHtml}</a>`;
   }).join('');
 }
 
@@ -663,7 +669,8 @@ function drawEcmTrend(svg, months, mode) {
   const innerW = W - padL - padR, innerH = H - padT - padB;
   const step = innerW / months.length, barW = step * 0.55;
   const gid = 'g-' + svg.id;
-  let html = `<a href="ecm-charts/" target="_self">`;
+  const trendTab = svg.id.includes('-rt-') || svg.id.includes('-rights-') ? 'rights' : 'ipo';
+  let html = `<a href="ecm-charts/?tab=${trendTab}" target="_self">`;
   for (let i = 0; i <= 4; i++) { const y = padT + innerH * i / 4; html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eef2f7" stroke-width="1"/>`; }
   if (mode === 'count') {
     const maxC = Math.max(...months.map(m => m.count), 1);

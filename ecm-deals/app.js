@@ -18,6 +18,8 @@
   let issuerSet = new Map();  // 현재 탭 발행사 (lowercase → canonical), 정확일치 검증용
   const state = { tab:"ipo", sort:{key:"date",dir:"desc"}, page:1,
     issuers:new Set(), leads:new Set(), uws:new Set(), dateStart:"", dateEnd:"", cat:"", totalMin:0, totalMax:0 };
+  // URL ?tab=rights|ipo 로 초기 탭 지정 (메인 KPI 카드에서 진입 시)
+  try { const _t = new URLSearchParams(location.search).get("tab"); if (_t==="rights"||_t==="ipo") state.tab=_t; } catch(_){}
   const TOTAL_OPTS = [50,100,200,300,500,1000,2000,5000,10000,50000];  // 모집 총액(억원) 범위 브래킷
 
   const $ = (id) => document.getElementById(id);

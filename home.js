@@ -85,7 +85,7 @@ async function fillKPI() {
       `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
 
     document.getElementById('kpi-grid').innerHTML = `
-      <div class="v1-kpi">
+      <a class="v1-kpi" href="dcm-deals/">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
           ${monthLabel} 공모채 발행건수
@@ -95,8 +95,8 @@ async function fillKPI() {
           ${fmtPct(countChange)}
           <span class="sub-text">전월 대비</span>
         </div>
-      </div>
-      <div class="v1-kpi">
+      </a>
+      <a class="v1-kpi" href="dcm-deals/">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           ${monthLabel} 공모채 발행총액
@@ -106,8 +106,8 @@ async function fillKPI() {
           ${fmtPct(amountChange)}
           <span class="sub-text">전월 대비</span>
         </div>
-      </div>
-      <div class="v1-kpi">
+      </a>
+      <a class="v1-kpi" href="dcm-brokers/">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg>
           올해 공모채 주관 1위
@@ -117,8 +117,8 @@ async function fillKPI() {
           <span style="font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums;">${fmtAmt(s.this_year_top_amount)}</span>
           <span class="sub-text">· 점유율 ${s.this_year_top_share}%</span>
         </div>
-      </div>
-      <div class="v1-kpi">
+      </a>
+      <a class="v1-kpi" href="dcm-deals/">
         <div class="label">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
           올해 공모채 최대 단일 발행
@@ -128,7 +128,7 @@ async function fillKPI() {
           <span style="font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums;">${fmtAmt(s.this_year_biggest_amount)}</span>
           <span class="sub-text">· ${s.this_year_biggest_date}</span>
         </div>
-      </div>
+      </a>
     `;
   } catch (e) { console.error('KPI load failed', e); }
 }
@@ -505,31 +505,31 @@ async function loadEcm() {
 
   // KPI 5칸: 지난달 IPO / 지난달 유상증자 / 올해 주관1위 / 올해 최대 IPO / 올해 최대 유상증자
   $$('ecm-kpi-grid').innerHTML = `
-    <div class="v1-kpi">
+    <a class="v1-kpi" href="ecm-deals/?tab=ipo">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} IPO</div>
       <div class="value">${fmtAmt(ipoPrev)}</div>
       <div class="sub">${fmtPct(pct(ipoPrev, ipoPrev2))} <span class="sub-text">전월 대비</span></div>
-    </div>
-    <div class="v1-kpi">
+    </a>
+    <a class="v1-kpi" href="ecm-deals/?tab=rights">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} 유상증자</div>
       <div class="value">${fmtAmt(rtPrev)}</div>
       <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전월 대비</span></div>
-    </div>
-    <div class="v1-kpi">
+    </a>
+    <a class="v1-kpi" href="ecm-brokers/">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} ECM 통합 주관 1위</div>
       <div class="value compact">${topB ? topB.name : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${topB ? fmtAmt(topB.amount) : ''}</span> <span class="sub-text">${topB ? '· 점유율 ' + topB.share.toFixed(1) + '%' : ''}</span></div>
-    </div>
-    <div class="v1-kpi">
+    </a>
+    <a class="v1-kpi" href="ecm-deals/?tab=ipo">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${yr} 최대 IPO</div>
       <div class="value compact">${bigIpo ? bigIpo.issuer : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${bigIpo ? fmtAmt(bigIpo.amount) : ''}</span></div>
-    </div>
-    <div class="v1-kpi">
+    </a>
+    <a class="v1-kpi" href="ecm-deals/?tab=rights">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${yr} 최대 유상증자</div>
       <div class="value compact">${bigRt ? bigRt.issuer : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${bigRt ? fmtAmt(bigRt.amount) : ''}</span></div>
-    </div>`;
+    </a>`;
 
   const ic = $$('ecm-ipo-count'); if (ic) ic.textContent = `${yr}년 ${summary.this_year_ipo ?? 0}건`;
   const rc = $$('ecm-rights-count'); if (rc) rc.textContent = `${yr}년 ${summary.this_year_rights ?? 0}건`;

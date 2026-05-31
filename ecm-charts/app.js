@@ -140,20 +140,30 @@
     const doughnutLabelOpts = { color:"#ffffff", font:{size:19,weight:"800"}, anchor:"center", align:"center", textStrokeColor:"rgba(0,0,0,0.55)", textStrokeWidth:4 };
     const doughnutLegend = { position:"right", labels:{ font:{size:14,weight:"600"}, padding:12, boxWidth:18 } };
 
-    // 월별 추이 (기간 필터 범위 내 모든 월, 막대=건수 + 선=발행총액) — DCM ① 스타일
-    // 데이터의 첫 월 ~ 마지막 월까지 연속 축. 기간 필터를 바꾸면 자동으로 윈도우가 따라감.
+    // 월별 추이 — 1년 프리셋(디폴트) 활성 시: 데이터 마지막 월 기준 최근 13개월 고정 윈도우 (빈 월도 0으로 표시).
+    //                       그 외(올해/3년/전체/임의 기간): 데이터의 첫 월 ~ 마지막 월 연속 축 (기간 필터 따라감).
+    const is1y = !!document.querySelector('.date-presets button[data-preset="1y"].active');
     const monthly = (id, arr, barColor, barLabel) => {
       const m=new Map();
       arr.forEach(r=>{ const ym=(r.date||"").slice(0,7); if(!ym)return; const v=m.get(ym)||{c:0,a:0}; v.c++; v.a+=total(r); m.set(ym,v); });
       const keys=[...m.keys()].sort();
       let labels=[],counts=[],amts=[];
       if (keys.length){
-        const [sy,sm]=keys[0].split("-").map(Number), [ey,em]=keys[keys.length-1].split("-").map(Number);
-        let y=sy, mo=sm;
-        while (y<ey || (y===ey && mo<=em)) {
-          const k=`${y}-${String(mo).padStart(2,"0")}`;
-          labels.push(k); const v=m.get(k)||{c:0,a:0}; counts.push(v.c); amts.push(Math.round(v.a));
-          if (++mo>12) { mo=1; y++; }
+        if (is1y) {
+          // 최근 13개월 고정 (빈 월 0)
+          let [y,mo]=keys[keys.length-1].split("-").map(Number); const seq=[];
+          for(let i=0;i<13;i++){ seq.push(`${y}-${String(mo).padStart(2,"0")}`); if(--mo===0){mo=12;y--;} }
+          seq.reverse(); labels=seq;
+          counts=seq.map(k=>(m.get(k)||{c:0}).c);
+          amts=seq.map(k=>Math.round((m.get(k)||{a:0}).a));
+        } else {
+          const [sy,sm]=keys[0].split("-").map(Number), [ey,em]=keys[keys.length-1].split("-").map(Number);
+          let y=sy, mo=sm;
+          while (y<ey || (y===ey && mo<=em)) {
+            const k=`${y}-${String(mo).padStart(2,"0")}`;
+            labels.push(k); const v=m.get(k)||{c:0,a:0}; counts.push(v.c); amts.push(Math.round(v.a));
+            if (++mo>12) { mo=1; y++; }
+          }
         }
       }
       return new Chart($(id), {

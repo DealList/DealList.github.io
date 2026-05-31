@@ -46,7 +46,7 @@
       if (navUpdated) {
         const total = META.count || DATA.length;
         navUpdated.textContent =
-          `최종 업데이트 ${META.updated || "-"} · 전체 ${total.toLocaleString()}건`;
+          `최종 업데이트 ${META.updated || "-"}`;
       }
       runQuery();
     } catch (e) {
@@ -234,8 +234,8 @@
   function runQuery() {
     const dateStart = $("f-date-start").value || "";
     const dateEnd = $("f-date-end").value || "";
-    $("period-range").textContent =
-      `조회 기간: ${dateStart || "처음"} ~ ${dateEnd || "끝"}`;
+    // 기간 표기 제거 (사용자 요청, 2026-05-31)
+    const _pr = $("period-range"); if (_pr) _pr.textContent = "";
 
     // 기간 안 records (final_amount 가 있는 발행 — 1단계 신고서 제외)
     const filtered = DATA.filter((r) => {

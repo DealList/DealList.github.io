@@ -60,7 +60,7 @@
       if (navUpdated) {
         const total = META.count || DATA.length;
         navUpdated.textContent =
-          `최종 업데이트 ${META.updated || "-"} · 전체 ${total.toLocaleString()}건`;
+          `최종 업데이트 ${META.updated || "-"}`;
       }
       initFilters();
       runQuery();
@@ -254,8 +254,8 @@
     const maxRank = ratingMax ? RATING_RANK[ratingMax] : null;
     const leadSet = new Set(leadKeywords.map((k) => k.toLowerCase()));
 
-    $("period-range").textContent =
-      `조회 기간: ${dateStart || "처음"} ~ ${dateEnd || "끝"}`;
+    // 기간 표기 제거 (사용자 요청, 2026-05-31)
+    const _pr = $("period-range"); if (_pr) _pr.textContent = "";
 
     // record (트랜치) 단위 필터
     const filtered = DATA.filter((r) => {

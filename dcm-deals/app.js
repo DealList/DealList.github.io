@@ -118,7 +118,7 @@
       const navUpdated = document.getElementById("nav-updated");
       if (navUpdated) {
         navUpdated.textContent =
-          `최종 업데이트 ${META.updated || "-"} · 전체 ${(META.count || DATA.length).toLocaleString()}건`;
+          `최종 업데이트 ${META.updated || "-"}`;
       }
       // 발행사명 클릭 → DART 공시 팝업 창 (tbody 이벤트 위임)
       $("rows").addEventListener("click", (e) => {

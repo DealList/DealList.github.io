@@ -300,22 +300,25 @@ function renderUpcoming(list) {
     root.innerHTML = `<div style="padding: 24px 0; text-align: center; color: var(--muted); font-size: 12px;">예정된 청약이 없습니다.</div>`;
     return;
   }
-  const monthAbbr = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   root.innerHTML = list.map(s => {
-    // 금액: series_total 이 있으면 그대로,
-    //       아직 없으면 (회차합산 미확정) 모든 트랜치 최초모집액 합 (initAmt)
-    const amt = (s.seriesTotal != null && s.seriesTotal > 0) ? s.seriesTotal : (s.initAmt || 0);
+    // 금액: series_total 이 있으면 그대로, 아직 없으면(미확정) 모든 트랜치 최초모집액 합 (initAmt)
+    const isPriced = (s.finalAmt || 0) > 0;
+    const amt = isPriced ? s.finalAmt : ((s.seriesTotal != null && s.seriesTotal > 0) ? s.seriesTotal : (s.initAmt || 0));
+    const amtHtml = amt > 0
+      ? `<div class="amt">${amt.toLocaleString()}<small>억</small></div>`
+      : `<div class="amt pending">수요예측 예정</div>`;
     return `
-    <a class="v1-up-row" href="dcm-deals/">
-      <div class="when">
-        <span class="day">${shortDay(s.date)}</span>
-        <span class="month">${monthAbbr[parseInt(s.date.slice(5,7))-1]}</span>
+    <a class="v1-deal-row" href="dcm-deals/" data-type="${s.type || ''}">
+      <div class="date">
+        <span class="d">${shortDay(s.date)}</span>
+        <span>${shortMonth(s.date)}</span>
       </div>
-      <div class="info">
+      <div class="issuer">
         <div class="name">${s.issuer}</div>
-        <div class="meta-2">${s.series}회차 · ${s.rating || '—'} · ${s.type}</div>
+        <div class="series">${s.series}회차 · ${s.type}${s.tranches > 1 ? ` · ${s.tranches}트랜치` : ''}</div>
       </div>
-      <div class="amt">${amt.toLocaleString()}억</div>
+      <div><span class="tag ${tagClassFor(s.rating)}">${s.rating || '—'}</span></div>
+      ${amtHtml}
     </a>`;
   }).join('');
 }

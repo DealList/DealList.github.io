@@ -516,7 +516,7 @@ async function loadEcm() {
       <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전월 대비</span></div>
     </div>
     <div class="v1-kpi">
-      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} IPO+유상증자 주관 1위</div>
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} ECM 통합 주관 1위</div>
       <div class="value compact">${topB ? topB.name : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${topB ? fmtAmt(topB.amount) : ''}</span> <span class="sub-text">${topB ? '· 점유율 ' + topB.share.toFixed(1) + '%' : ''}</span></div>
     </div>

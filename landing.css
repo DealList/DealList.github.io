@@ -326,7 +326,7 @@ a.v1-kpi:hover { border-color: var(--accent); background: var(--surface-2); }
 /* 차트 클릭/hover — SVG 내부 <a> 감싸기 (home.js renderTrend) */
 .v1-chart svg a { cursor: pointer; }
 .v1-chart svg rect { transition: fill 0.15s; }
-.v1-chart svg a:hover rect { fill: #475569; }
+.v1-chart svg a:hover rect { fill: #9c7a17; }
 .v1-chart svg circle { transition: stroke-width 0.15s; }
 .v1-chart svg a:hover circle { stroke-width: 3; }
 .v1-chart svg a:hover polyline { stroke-width: 2.5; }

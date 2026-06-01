@@ -386,7 +386,7 @@ function renderTrend(months, mode) {
       if (!m.count) return;
       const h = (m.count / maxCount) * innerH;
       const x = padL + i * step + (step - barW) / 2;
-      html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#94a3b8" rx="2"/>`;
+      html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#c9a24a" rx="2"/>`;
     });
   } else {
     // 금액 모드 — 선 + area gradient 만
@@ -398,18 +398,18 @@ function renderTrend(months, mode) {
     }).join(" ");
     html = `<defs>
       <linearGradient id="trendG" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.18"/>
-        <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/>
+        <stop offset="0%" stop-color="#c9a24a" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#c9a24a" stop-opacity="0"/>
       </linearGradient>
     </defs>` + html;
     const first = `${padL + step / 2},${padT + innerH}`;
     const last = `${padL + (months.length - 1) * step + step / 2},${padT + innerH}`;
     html += `<path d="M ${first} L ${points} L ${last} Z" fill="url(#trendG)"/>`;
-    html += `<polyline points="${points}" fill="none" stroke="#1d4ed8" stroke-width="2"/>`;
+    html += `<polyline points="${points}" fill="none" stroke="#c9a24a" stroke-width="2"/>`;
     months.forEach((m, i) => {
       const x = padL + i * step + step / 2;
       const y = padT + innerH - (m.amount / maxAmt) * innerH;
-      html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#1d4ed8" stroke-width="2"/>`;
+      html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#c9a24a" stroke-width="2"/>`;
     });
   }
 
@@ -674,15 +674,15 @@ function drawEcmTrend(svg, months, mode) {
   for (let i = 0; i <= 4; i++) { const y = padT + innerH * i / 4; html += `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="#eef2f7" stroke-width="1"/>`; }
   if (mode === 'count') {
     const maxC = Math.max(...months.map(m => m.count), 1);
-    months.forEach((m, i) => { if (!m.count) return; const h = (m.count / maxC) * innerH; const x = padL + i * step + (step - barW) / 2; html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#94a3b8" rx="2"/>`; });
+    months.forEach((m, i) => { if (!m.count) return; const h = (m.count / maxC) * innerH; const x = padL + i * step + (step - barW) / 2; html += `<rect x="${x}" y="${padT + innerH - h}" width="${barW}" height="${h}" fill="#c9a24a" rx="2"/>`; });
   } else {
     const maxA = Math.max(...months.map(m => m.amount), 1);
     const pts = months.map((m, i) => { const x = padL + i * step + step / 2; const y = padT + innerH - (m.amount / maxA) * innerH; return `${x},${y}`; }).join(' ');
-    html = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1d4ed8" stop-opacity="0.18"/><stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/></linearGradient></defs>` + html;
+    html = `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c9a24a" stop-opacity="0.18"/><stop offset="100%" stop-color="#c9a24a" stop-opacity="0"/></linearGradient></defs>` + html;
     const first = `${padL + step / 2},${padT + innerH}`, last = `${padL + (months.length - 1) * step + step / 2},${padT + innerH}`;
     html += `<path d="M ${first} L ${pts} L ${last} Z" fill="url(#${gid})"/>`;
-    html += `<polyline points="${pts}" fill="none" stroke="#1d4ed8" stroke-width="2"/>`;
-    months.forEach((m, i) => { const x = padL + i * step + step / 2; const y = padT + innerH - (m.amount / maxA) * innerH; html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#1d4ed8" stroke-width="2"/>`; });
+    html += `<polyline points="${pts}" fill="none" stroke="#c9a24a" stroke-width="2"/>`;
+    months.forEach((m, i) => { const x = padL + i * step + step / 2; const y = padT + innerH - (m.amount / maxA) * innerH; html += `<circle cx="${x}" cy="${y}" r="3" fill="white" stroke="#c9a24a" stroke-width="2"/>`; });
   }
   months.forEach((m, i) => { const x = padL + i * step + step / 2; const lbl = m.label.slice(2).replace('-', '/'); html += `<text x="${x}" y="${H - 10}" text-anchor="middle" font-size="9" fill="#94a3b8">${lbl}</text>`; });
   html += `</a>`; svg.innerHTML = html;

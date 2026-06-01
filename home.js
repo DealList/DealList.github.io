@@ -186,8 +186,8 @@ async function fillFromData() {
   const _todayDt = new Date();
   const today = `${_todayDt.getFullYear()}-${String(_todayDt.getMonth() + 1).padStart(2, '0')}-${String(_todayDt.getDate()).padStart(2, '0')}`;
 
-  /* ─── 2행: 최근 발행 공모채(청약일 <= 오늘, 완료 딜, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
-  renderRecentDeals(series.filter(s => s.date && s.date <= today && (s.finalAmt || 0) > 0).slice(0, 10));
+  /* ─── 2행: 최근 발행 공모채(청약일 < 오늘=당일 제외, 완료 딜, 최근 10) / 다가오는 청약(미완료=finalAmt==0, 최신 10) ─── */
+  renderRecentDeals(series.filter(s => s.date && s.date < today && (s.finalAmt || 0) > 0).slice(0, 10));
   // 다가오는 청약: 청약일이 오늘부터(포함) 이후인 모든 건 (수요예측 완료 여부 무관). 먼 미래 먼저(date desc) 10건.
   renderUpcoming(series.filter(s => s.date && s.date >= today).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10));
 

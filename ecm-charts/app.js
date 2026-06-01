@@ -11,8 +11,8 @@
     "코리아에셋":"코리아에셋투자증권","키움":"키움증권","하나":"하나증권","한양":"한양증권","한투":"한국투자증권",
     "한화":"한화투자증권","현차":"현대차증권","흥국":"흥국증권","골드만삭스증권서울지점":"골드만삭스","씨티그룹글로벌마켓":"씨티그룹"
   };
-  const PALETTE = ["#3b82f6","#14b8a6","#f59e0b","#a855f7","#ef4444","#10b981","#6366f1","#ec4899","#eab308","#06b6d4"];
-  const IPO_C = "#3b82f6", RIGHTS_C = "#14b8a6";
+  const PALETTE = ["#c9a24a","#34466e","#a07d2c","#5a6f9c","#7d6a3a","#8595b0","#c4973a","#2c3e63","#9a8550","#b0bdd4"];
+  const IPO_C = "#c9a24a", RIGHTS_C = "#3f5b8a";
 
   let RAW = { ipo:[], rights:[] }, META = {}, charts = {}, tab = "ipo";
   // URL ?tab=ipo|rights 로 초기 탭 지정
@@ -101,7 +101,7 @@
   }
 
   function isDark(){ return document.documentElement.getAttribute("data-theme")==="dark"; }
-  function C(){ const d=isDark(); return { label:d?"#e2e8f0":"#0f172a", lineLabel:d?"#93c5fd":"#1e40af", axis:d?"#94a3b8":"#475569", grid:d?"#1e293b":"#eef2f7" }; }
+  function C(){ const d=isDark(); return { label:d?"#e2e8f0":"#0f172a", lineLabel:d?"#e7ddc6":"#1f2d4d", axis:d?"#94a3b8":"#475569", grid:d?"#1e293b":"#eef2f7", gold:"#c9a24a", bronze:d?"#c4973a":"#a07d2c", navy:d?"#4a5d85":"#1f2d4d", slate:d?"#6b7fa8":"#34466e" }; }
 
   function renderCharts(ipo, rights) {
     Chart.defaults.font.family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif";
@@ -125,7 +125,7 @@
             const meta=chart.getDatasetMeta(dsIdx);
             cctx.save();
             cctx.font=ds._labelFont || '700 12px Pretendard, -apple-system, sans-serif';
-            cctx.fillStyle=ds._labelColor || "#1e40af";
+            cctx.fillStyle=ds._labelColor || "#1f2d4d";
             cctx.textAlign="center"; cctx.textBaseline="bottom";
             const topY=chart.chartArea.top-4;
             // 문자열 플래그라 JSON 복제(다운로드)에도 살아남음 → 웹·이미지 모두 "0.X조"
@@ -149,7 +149,7 @@
     // 월별 추이 — 1년 프리셋(디폴트) 활성 시: 데이터 마지막 월 기준 최근 13개월 고정 윈도우 (빈 월도 0으로 표시).
     //                       그 외(올해/3년/전체/임의 기간): 데이터의 첫 월 ~ 마지막 월 연속 축 (기간 필터 따라감).
     const is1y = !!document.querySelector('.date-presets button[data-preset="1y"].active');
-    const monthly = (id, arr, barColor, barLabel) => {
+    const monthly = (id, arr, barColor, barLabel, lineColor, insideColor) => {
       const m=new Map();
       arr.forEach(r=>{ const ym=(r.date||"").slice(0,7); if(!ym)return; const v=m.get(ym)||{c:0,a:0}; v.c++; v.a+=total(r); m.set(ym,v); });
       const keys=[...m.keys()].sort();
@@ -180,11 +180,11 @@
               anchor:"end",
               align:(ctx)=>{ const s=ctx.chart.scales.y; if(!s)return"start"; const val=ctx.dataset.data[ctx.dataIndex]; const barH=s.bottom-s.getPixelForValue(val); return barH<25?"end":"start"; },
               offset:6,
-              color:(ctx)=>{ const s=ctx.chart.scales.y; if(!s)return"#fff"; const val=ctx.dataset.data[ctx.dataIndex]; const barH=s.bottom-s.getPixelForValue(val); return barH<25?col.label:"#ffffff"; },
+              color:(ctx)=>{ const s=ctx.chart.scales.y; if(!s)return"#fff"; const val=ctx.dataset.data[ctx.dataIndex]; const barH=s.bottom-s.getPixelForValue(val); return barH<25?col.label:insideColor; },
               font:{size:15,weight:"700"},
             },
           },
-          { type:"line", label:"발행총액(억)", data:amts, borderColor:"#f59e0b", backgroundColor:"#f59e0b",
+          { type:"line", label:"발행총액(억)", data:amts, borderColor:lineColor, backgroundColor:lineColor,
             yAxisID:"y2", tension:0.3, _isAmount:true,
             _labelAtTop:true, _labelColor:col.lineLabel,
             _labelFont:'700 15px Pretendard, -apple-system, "Malgun Gothic", sans-serif',
@@ -212,7 +212,7 @@
       const ti=Object.entries(iss).sort((a,b)=>b[1]-a[1]).slice(0,10);
       const d=ti.map(x=>Math.round(x[1]));
       return new Chart($(id), { type:"bar",
-        data:{ labels:ti.map(x=>x[0]), datasets:[{ label:"발행총액(억)", data:d, backgroundColor:"#f97316", _isAmount:true }] },
+        data:{ labels:ti.map(x=>x[0]), datasets:[{ label:"발행총액(억)", data:d, backgroundColor:col.gold, _isAmount:true }] },
         options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(d,true) } } } });
     };
     // 주관사 Top 10 (주관 실적, 가로막대)
@@ -221,14 +221,14 @@
       const t=Object.entries(ld).sort((a,b)=>b[1]-a[1]).slice(0,10);
       const d=t.map(x=>Math.round(x[1]));
       return new Chart($(id), { type:"bar",
-        data:{ labels:t.map(x=>dn(x[0])), datasets:[{ label:"주관 실적(억)", data:d, backgroundColor:"#22c55e", _isAmount:true }] },
+        data:{ labels:t.map(x=>dn(x[0])), datasets:[{ label:"주관 실적(억)", data:d, backgroundColor:col.bronze, _isAmount:true }] },
         options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(d,true) } } } });
     };
 
     // 도넛 금액 차트 tooltip (전체 금액 표기)
     const amtTip = { tooltip:{ callbacks:{ label:c=>` ${c.label}: ${fmtAmt(c.raw)}` } } };
     if (tab === "ipo") {
-      charts.iy = monthly("ch-ipo-monthly", ipo, IPO_C, "IPO 건수");  // 기간 필터 적용
+      charts.iy = monthly("ch-ipo-monthly", ipo, IPO_C, "IPO 건수", RIGHTS_C, "#1a1408");  // 골드 막대 + 슬레이트 라인
       // IPO 시장별 (건수) + (금액) — 두 도넛 동일 라벨 순서
       const mktC={}, mktA={};
       ipo.forEach(r=>{ const m=r.market||"기타"; mktC[m]=(mktC[m]||0)+1; mktA[m]=(mktA[m]||0)+total(r); });
@@ -240,7 +240,7 @@
         data:{ labels:mkOrder, datasets:[{ data:mkOrder.map(m=>Math.round(mktA[m])), backgroundColor:PALETTE, _isAmount:true }] },
         options:{ maintainAspectRatio:false, plugins:{ legend:doughnutLegend, datalabels:doughnutLabelOpts, ...amtTip } } });
       // IPO 신주/구주 구성 (건수) + (금액)
-      const nsLabels=["100% 신주","신주+구주 혼합","100% 구주매출"], nsColors=["#3b82f6","#a855f7","#f59e0b"];
+      const nsLabels=["100% 신주","신주+구주 혼합","100% 구주매출"], nsColors=[col.gold, col.navy, col.bronze];
       const nsC=[0,0,0], nsA=[0,0,0];
       ipo.forEach(r=>{ const n=r.new_ratio; if(n==null)return; const i = n>=0.999?0 : (n<=0.001?2 : 1); nsC[i]++; nsA[i]+=total(r); });
       charts.ns = new Chart($("ch-ipo-newshare"), { type:"doughnut",
@@ -252,7 +252,7 @@
       charts.ti = topIssuers("ch-ipo-issuers", ipo);
       charts.tl = topLeads("ch-ipo-leads", ipo);
     } else {
-      charts.ry = monthly("ch-rt-monthly", rights, RIGHTS_C, "유상증자 건수");  // 기간 필터 적용
+      charts.ry = monthly("ch-rt-monthly", rights, RIGHTS_C, "유상증자 건수", IPO_C, "#ffffff");  // 슬레이트 막대 + 골드 라인
       // 유상증자 구분별 (건수) + (금액) — 같은 구분 순서(건수 내림차순)
       const tC={}, tA={};
       rights.forEach(r=>{ const t=r.type||"기타"; tC[t]=(tC[t]||0)+1; tA[t]=(tA[t]||0)+total(r); });
@@ -262,7 +262,7 @@
         data:{ labels:tOrder, datasets:[{ label:"건수", data:tpCnt, backgroundColor:RIGHTS_C }] },
         options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ x:{ max:hbarMax(tpCnt,false) } } } });
       charts.tpa = new Chart($("ch-rt-type-amt"), { type:"bar",
-        data:{ labels:tOrder, datasets:[{ label:"발행총액(억)", data:tpAmt, backgroundColor:"#0e7490", _isAmount:true }] },
+        data:{ labels:tOrder, datasets:[{ label:"발행총액(억)", data:tpAmt, backgroundColor:col.navy, _isAmount:true }] },
         options:{ indexAxis:"y", maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>` ${fmtAmt(c.raw)}`}} }, scales:{ x:{ max:hbarMax(tpAmt,true) } } } });
       charts.ti = topIssuers("ch-rt-issuers", rights);
       charts.tl = topLeads("ch-rt-leads", rights);

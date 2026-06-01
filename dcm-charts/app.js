@@ -366,9 +366,14 @@
     const dark = isDarkMode();
     return {
       label:     dark ? "#e2e8f0" : "#0f172a",  // 일반 datalabel
-      lineLabel: dark ? "#93c5fd" : "#1e40af",  // monthly line 위 금액
+      lineLabel: dark ? "#e7ddc6" : "#1f2d4d",  // monthly line 위 금액 (크림/네이비)
       axis:      dark ? "#94a3b8" : "#475569",  // 축 tick label
       grid:      dark ? "#1e293b" : "#eef2f7",  // grid line
+      // ===== 로고 팔레트 (네이비·골드·브론즈·슬레이트) — 다크모드 가독성 위해 톤 보정 =====
+      gold:   "#c9a24a",                        // 로고 골드 점
+      bronze: dark ? "#c4973a" : "#a07d2c",     // 딥 골드/브론즈
+      navy:   dark ? "#4a5d85" : "#1f2d4d",     // 로고 네이비 (다크모드선 밝게)
+      slate:  dark ? "#6b7fa8" : "#34466e",     // 슬레이트 블루
     };
   }
 
@@ -434,7 +439,7 @@
             const meta = chart.getDatasetMeta(dsIdx);
             cctx.save();
             cctx.font = ds._labelFont || '700 12px Pretendard, -apple-system, sans-serif';
-            cctx.fillStyle = ds._labelColor || "#1e40af";
+            cctx.fillStyle = ds._labelColor || "#1f2d4d";
             cctx.textAlign = "center";
             cctx.textBaseline = "bottom";
             const topY = chart.chartArea.top - 4; // 차트 영역 바로 위 (padding 영역 안)
@@ -484,7 +489,7 @@
         datasets: [
           { type: "bar", label: "발행건수",
             data: ymSorted.map(([_,v]) => v.count),
-            backgroundColor: "#93c5fd", yAxisID: "y",
+            backgroundColor: C.gold, yAxisID: "y",
             datalabels: {
               anchor: "end",
               // 막대 높이가 라벨 들어갈 만큼 충분하면 막대 안쪽(start), 작으면
@@ -498,23 +503,23 @@
                 return barH < 25 ? "end" : "start";
               },
               offset: 6,
-              // 막대 안에 있으면 막대 색(#93c5fd) 위에서 잘 보이는 진한 파랑,
-              // 막대 위로 빠진 경우엔 다크모드에서 어두운 배경에 묻히므로 밝은 파랑.
+              // 막대(골드) 안: 어두운 글씨로 대비. 막대 위로 빠지면
+              // 라이트=네이비 / 다크=크림 으로 배경에 안 묻히게.
               color: (ctx) => {
                 const scale = ctx.chart.scales.y;
-                if (!scale) return "#1e3a8a";
+                if (!scale) return "#1a1408";
                 const val = ctx.dataset.data[ctx.dataIndex];
                 const barH = scale.bottom - scale.getPixelForValue(val);
                 const outside = barH < 25;
                 const dark = document.documentElement.getAttribute("data-theme") === "dark";
-                return outside && dark ? "#93c5fd" : "#1e3a8a";
+                return outside ? (dark ? "#e7ddc6" : "#1f2d4d") : "#1a1408";
               },
               font: { size: 15, weight: "700" },
             },
           },
           { type: "line", label: "발행총액(억)",
             data: ymSorted.map(([_,v]) => Math.round(v.amount)),
-            borderColor: "#1e40af", backgroundColor: "#1e40af",
+            borderColor: C.slate, backgroundColor: C.slate,
             yAxisID: "y2", tension: 0.2,
             _isAmount: true,
             // 라인 라벨은 차트 상단 고정 (lineLabelsAtTop 플러그인이 그림)
@@ -558,7 +563,7 @@
       const ib = TYPE_ORDER_CHART.indexOf(b);
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
-    const typeColors = ["#2563eb","#10b981","#f59e0b","#ef4444","#8b5cf6"];
+    const typeColors = [C.gold, C.navy, C.bronze, C.slate, "#9a8550"];
     // doughnut 공통 옵션: 슬라이스 안 흰 글씨 + 그림자
     const doughnutLabelOpts = {
       color: "#ffffff",
@@ -621,7 +626,7 @@
         labels: RATING_OPTIONS_CHART,
         datasets: [{ label: "건수",
                      data: RATING_OPTIONS_CHART.map((r) => ratingCount.get(r)),
-                     backgroundColor: "#06b6d4" }],
+                     backgroundColor: C.slate }],
       },
       options: {
         maintainAspectRatio: false,
@@ -635,7 +640,7 @@
         labels: RATING_OPTIONS_CHART,
         datasets: [{ label: "발행총액(억)",
                      data: RATING_OPTIONS_CHART.map((r) => Math.round(ratingAmt.get(r))),
-                     backgroundColor: "#0e7490",
+                     backgroundColor: C.navy,
                      _isAmount: true }],
       },
       options: {
@@ -654,7 +659,7 @@
       data: {
         labels: topI.map(([k]) => k),
         datasets: [{ label: "발행총액(억)", data: topI.map(([_,v]) => Math.round(v)),
-                     backgroundColor: "#f97316",
+                     backgroundColor: C.gold,
                      _isAmount: true }],
       },
       options: { indexAxis: "y", maintainAspectRatio: false,
@@ -675,7 +680,7 @@
       data: {
         labels: topL.map(([k]) => displayName(k)),
         datasets: [{ label: "주관 실적(억)", data: topL.map(([_,v]) => Math.round(v)),
-                     backgroundColor: "#22c55e",
+                     backgroundColor: C.bronze,
                      _isAmount: true }],
       },
       options: { indexAxis: "y", maintainAspectRatio: false,
@@ -703,7 +708,7 @@
       data: {
         labels: Object.keys(matBuckets),
         datasets: [{ label: "건수", data: Object.values(matBuckets),
-                     backgroundColor: "#a855f7" }],
+                     backgroundColor: C.slate }],
       },
       options: {
         maintainAspectRatio: false,
@@ -728,7 +733,7 @@
       data: {
         labels: Object.keys(sizeBuckets),
         datasets: [{ label: "건수", data: Object.values(sizeBuckets),
-                     backgroundColor: "#ec4899" }],
+                     backgroundColor: C.gold }],
       },
       options: {
         maintainAspectRatio: false,

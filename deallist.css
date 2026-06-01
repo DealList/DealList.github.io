@@ -77,9 +77,9 @@ a { color: var(--accent); }
   font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
   color: var(--text); text-decoration: none;
 }
-/* Numbers 로고 이미지 — nav 높이에 맞춰 (대략 22px) */
+/* Numbers Pool 로고 이미지 — nav 높이에 맞춰 (32px) */
 .v1-logo .v1-logo-img {
-  height: 22px; width: auto; display: block;
+  height: 32px; width: auto; display: block;
 }
 /* 라이트/다크 모드별 별도 PNG 사용 — light-only 는 기본 표시,
    dark-only 는 [data-theme="dark"] 일 때만 표시 (반대도 동일). */

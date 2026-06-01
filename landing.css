@@ -28,7 +28,7 @@
 }
 /* Numbers 로고 이미지 — h1 폰트 사이즈 비례 (em 단위, 자동 스케일) */
 .v1-hero h1 .hero-logo-img {
-  height: 0.85em; width: auto; display: block;
+  height: 1.5em; width: auto; max-width: 100%; display: block;
 }
 /* 라이트/다크 모드별 별도 PNG */
 .v1-hero h1 .dark-only { display: none; }

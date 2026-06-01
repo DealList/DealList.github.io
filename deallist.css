@@ -52,6 +52,8 @@
 :root[data-theme="dark"] .btn.primary,
 :root[data-theme="dark"] .v1-btn.primary,
 :root[data-theme="dark"] .v1-section-tab.active,
+:root[data-theme="dark"] .v1-deals .pill.active,
+:root[data-theme="dark"] .v1-chart .toggle span.active,
 :root[data-theme="dark"] .v1-league-row.top1 .rank,
 :root[data-theme="dark"] .rank-num.r1 {
   color: #1a1408;

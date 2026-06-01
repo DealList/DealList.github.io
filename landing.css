@@ -179,7 +179,7 @@ a.v1-kpi:hover { border-color: var(--accent); background: var(--surface-2); }
   background: var(--surface);
 }
 .v1-deals .pill.active {
-  background: var(--text); color: var(--surface); border-color: var(--text);
+  background: var(--accent); color: white; border-color: var(--accent);
 }
 
 .v1-deal-row {
@@ -315,7 +315,7 @@ a.v1-kpi:hover { border-color: var(--accent); background: var(--surface-2); }
 .v1-chart .toggle span {
   padding: 3px 10px; font-size: 11px; color: var(--muted); cursor: pointer;
 }
-.v1-chart .toggle span.active { background: var(--text); color: var(--surface); }
+.v1-chart .toggle span.active { background: var(--accent); color: white; }
 .v1-chart .meta {
   font-size: 11px; color: var(--muted); margin-bottom: 14px;
   flex-shrink: 0;

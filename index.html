@@ -50,11 +50,11 @@
     <!-- 1행: 공모채 주관 / 인수 TOP 10 -->
     <div class="v1-two-col">
       <div>
-        <div class="v1-sec-title"><h2 id="dcm-league-lead-title">2026 공모채 주관 리그테이블</h2><a href="dcm-brokers/">전체보기 →</a></div>
+        <div class="v1-sec-title"><h2 id="dcm-league-lead-title">2026 공모채 주관 리그테이블</h2><a href="dcm-brokers/?tab=lead">전체보기 →</a></div>
         <div class="v1-league"><h3>올해 공모 회사채 주관 TOP 10</h3><div id="league-rows"></div></div>
       </div>
       <div>
-        <div class="v1-sec-title"><h2 id="dcm-league-uw-title">2026 공모채 인수 리그테이블</h2><a href="dcm-brokers/">전체보기 →</a></div>
+        <div class="v1-sec-title"><h2 id="dcm-league-uw-title">2026 공모채 인수 리그테이블</h2><a href="dcm-brokers/?tab=uw">전체보기 →</a></div>
         <div class="v1-league"><h3>올해 공모 회사채 인수 TOP 10</h3><div id="league-uw-rows"></div></div>
       </div>
     </div>
@@ -155,15 +155,15 @@
     <!-- 1행: 주관 TOP 10 (통합 / IPO / 유상증자) -->
     <div class="v1-three-col">
       <div>
-        <div class="v1-sec-title"><h2 id="ecm-league-all-title">2026 ECM 통합 리그테이블</h2><a href="ecm-brokers/">전체보기 →</a></div>
+        <div class="v1-sec-title"><h2 id="ecm-league-all-title">2026 ECM 통합 리그테이블</h2><a href="ecm-brokers/?scope=all">전체보기 →</a></div>
         <div class="v1-league"><h3>올해 IPO+유상증자 주관 TOP 10</h3><div id="ecm-league-all-rows"></div></div>
       </div>
       <div>
-        <div class="v1-sec-title"><h2 id="ecm-league-ipo-title">2026 IPO 리그테이블</h2><a href="ecm-brokers/">전체보기 →</a></div>
+        <div class="v1-sec-title"><h2 id="ecm-league-ipo-title">2026 IPO 리그테이블</h2><a href="ecm-brokers/?scope=ipo">전체보기 →</a></div>
         <div class="v1-league"><h3>올해 IPO 주관 TOP 10</h3><div id="ecm-league-ipo-rows"></div></div>
       </div>
       <div>
-        <div class="v1-sec-title"><h2 id="ecm-league-rt-title">2026 유상증자 리그테이블</h2><a href="ecm-brokers/">전체보기 →</a></div>
+        <div class="v1-sec-title"><h2 id="ecm-league-rt-title">2026 유상증자 리그테이블</h2><a href="ecm-brokers/?scope=rights">전체보기 →</a></div>
         <div class="v1-league"><h3>올해 유상증자 주관 TOP 10</h3><div id="ecm-league-rights-rows"></div></div>
       </div>
     </div>
@@ -173,7 +173,7 @@
       <div>
         <div class="v1-sec-title">
           <h2>최근 상장 <span class="count" id="ecm-ipo-count"></span></h2>
-          <a href="ecm-deals/">전체보기 →</a>
+          <a href="ecm-deals/?tab=ipo">전체보기 →</a>
         </div>
         <div class="v1-deals">
           <div class="head"><h3>완료 IPO 기준</h3></div>
@@ -183,7 +183,7 @@
       <div>
         <div class="v1-sec-title">
           <h2>다가오는 상장</h2>
-          <a href="ecm-deals/">전체보기 →</a>
+          <a href="ecm-deals/?tab=ipo">전체보기 →</a>
         </div>
         <div class="v1-deals">
           <div class="head"><h3>IPO 진행 중</h3></div>
@@ -197,7 +197,7 @@
       <div>
         <div class="v1-sec-title">
           <h2>최근 유상증자 <span class="count" id="ecm-rights-count"></span></h2>
-          <a href="ecm-deals/">전체보기 →</a>
+          <a href="ecm-deals/?tab=rights">전체보기 →</a>
         </div>
         <div class="v1-deals">
           <div class="head"><h3>최소 1차 발행가액 확정 기준</h3></div>
@@ -207,7 +207,7 @@
       <div>
         <div class="v1-sec-title">
           <h2>다가오는 유상증자</h2>
-          <a href="ecm-deals/">전체보기 →</a>
+          <a href="ecm-deals/?tab=rights">전체보기 →</a>
         </div>
         <div class="v1-deals">
           <div class="head"><h3>최종 발행가액 확정 전</h3></div>
@@ -222,7 +222,7 @@
         <h3>월별 IPO 추이</h3>
         <div class="head-right">
           <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
-          <a href="ecm-charts/" class="head-link">전체보기 →</a>
+          <a href="ecm-charts/?tab=ipo" class="head-link">전체보기 →</a>
         </div>
       </div>
       <div class="meta">완료 IPO 기준 · 최근 1년 · 단위: 건 / 억원</div>
@@ -236,7 +236,7 @@
         <h3>월별 유상증자 추이</h3>
         <div class="head-right">
           <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
-          <a href="ecm-charts/" class="head-link">전체보기 →</a>
+          <a href="ecm-charts/?tab=rights" class="head-link">전체보기 →</a>
         </div>
       </div>
       <div class="meta">최소 1차 발행가액 확정 기준 · 최근 1년 · 단위: 건 / 억원</div>

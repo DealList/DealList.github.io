@@ -14,9 +14,9 @@
   --text: #0b1220;
   --text-2: #344256;
   --muted: #6b7689;
-  --accent: #1d4ed8;
-  --accent-2: #1e3a8a;
-  --accent-soft: #eef2ff;
+  --accent: #9c7a17;
+  --accent-2: #7a5f12;
+  --accent-soft: #f6edd4;
   --green: #047857;
   --green-bg: #d1fae5;
   --red: #b91c1c;
@@ -35,9 +35,9 @@
   --text: #e6edf6;
   --text-2: #b6c1d3;
   --muted: #6b7c97;
-  --accent: #60a5fa;
-  --accent-2: #93c5fd;
-  --accent-soft: #1c2842;
+  --accent: #cba23f;
+  --accent-2: #e0c06a;
+  --accent-soft: #2a2410;
   --green: #34d399;
   --green-bg: #064e3b;
   --red: #fca5a5;
@@ -45,6 +45,16 @@
   --amber: #fbbf24;
   --amber-bg: #3a2e0c;
   --row-hover: #1f2a3f;
+}
+
+/* 골드 액센트 배경 위 텍스트 — 다크모드(밝은 골드)에선 어두운 글자로 가독성 확보.
+   :root[data-theme="dark"] 선택자가 per-page .btn.primary 등(흰 글자)보다 특정도 우위라 자동 적용. */
+:root[data-theme="dark"] .btn.primary,
+:root[data-theme="dark"] .v1-btn.primary,
+:root[data-theme="dark"] .v1-section-tab.active,
+:root[data-theme="dark"] .v1-league-row.top1 .rank,
+:root[data-theme="dark"] .rank-num.r1 {
+  color: #1a1408;
 }
 
 * { box-sizing: border-box; }
@@ -315,11 +325,11 @@ select.v1-select {
   display: inline-block; padding: 1px 6px; border-radius: 3px;
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.01em;
 }
-.tag.aaa { background: var(--accent-soft); color: #4338ca; }
+.tag.aaa { background: var(--accent-soft); color: var(--accent-2); }
 .tag.aa { background: var(--green-bg); color: var(--green); }
 .tag.a { background: #fefce8; color: #a16207; }
 .tag.bbb { background: var(--amber-bg); color: var(--amber); }
-:root[data-theme="dark"] .tag.aaa { background: #1c2842; color: #a5b4fc; }
+:root[data-theme="dark"] .tag.aaa { background: var(--accent-soft); color: var(--accent-2); }
 :root[data-theme="dark"] .tag.a { background: #3a2e0c; color: #fde047; }
 
 /* Footer */

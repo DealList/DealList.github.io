@@ -7,11 +7,25 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../deallist.css?v=20260601f" />
-  <link rel="stylesheet" href="../auth.css?v=20260602b" />
+  <link rel="stylesheet" href="../auth.css?v=20260602c" />
 </head>
 <body>
 
-  <main class="auth-wrap">
+  <!-- 이미 로그인된 상태 카드 (자동 리디렉트 대신 명시적 선택) -->
+  <main class="auth-wrap" id="already-card" hidden>
+    <h1>이미 로그인되어 있습니다</h1>
+    <div class="sub">아래 계정으로 로그인된 상태입니다.</div>
+    <div class="info-box">
+      <div class="lbl">로그인 계정</div>
+      <div class="val" id="already-email">—</div>
+    </div>
+    <button class="btn-primary" id="btn-continue" type="button">계속 사용</button>
+    <button class="btn-google" id="btn-switch" type="button" style="margin-top: 10px;">
+      로그아웃하고 다른 계정으로
+    </button>
+  </main>
+
+  <main class="auth-wrap" id="login-card">
     <h1>로그인</h1>
     <div class="sub">Numbers Pool 회원 계정으로 로그인하세요.</div>
 
@@ -56,8 +70,8 @@
   <a href="../" class="home-link">← Numbers Pool 홈으로</a>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../supabase-client.js?v=20260602b"></script>
-  <script src="../auth-helper.js?v=20260602b"></script>
-  <script src="app.js?v=20260602b"></script>
+  <script src="../supabase-client.js?v=20260602c"></script>
+  <script src="../auth-helper.js?v=20260602c"></script>
+  <script src="app.js?v=20260602c"></script>
 </body>
 </html>

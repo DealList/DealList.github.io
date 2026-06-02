@@ -16,6 +16,18 @@
     return;
   }
 
+  // 상단 바: 본인 이메일 + 로그아웃
+  const meEl = document.getElementById('me-email');
+  if (meEl) meEl.textContent = profile.email || '';
+  const logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+      if (!confirm('로그아웃하시겠습니까?')) return;
+      await NP.signOut();
+      location.href = '/';
+    });
+  }
+
   const tbody    = document.getElementById('rows');
   const grid     = document.getElementById('grid');
   const empty    = document.getElementById('empty');

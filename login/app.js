@@ -6,21 +6,30 @@
     msgEl.textContent = text;
   };
 
-  // 이미 로그인된 사용자는 상태 따라 라우팅
+  // 이미 로그인된 사용자: 상태별 처리
+  //   pending/rejected/revoked → /pending/ 로 자동 이동 (다른 작업 불가)
+  //   approved → "이미 로그인됨" 카드 표시 (사용자가 직접 [계속] / [다른 계정] 선택)
   try {
     const profile = await NP.getProfile();
     if (profile) {
-      if (profile.status === 'approved') {
-        const next = new URL(location.href).searchParams.get('next') || '/';
-        location.href = next;
-        return;
-      }
-      if (profile.status === 'pending') {
-        location.href = '/pending/';
-        return;
-      }
+      if (profile.status === 'pending') { location.href = '/pending/'; return; }
       if (profile.status === 'rejected' || profile.status === 'revoked') {
-        location.href = '/pending/?denied=' + profile.status;
+        location.href = '/pending/?denied=' + profile.status; return;
+      }
+      if (profile.status === 'approved') {
+        document.getElementById('login-card').hidden = true;
+        const card = document.getElementById('already-card');
+        card.hidden = false;
+        document.getElementById('already-email').textContent = profile.email || '—';
+        document.getElementById('btn-continue').addEventListener('click', () => {
+          const next = new URL(location.href).searchParams.get('next') || '/';
+          location.href = next;
+        });
+        document.getElementById('btn-switch').addEventListener('click', async () => {
+          await NP.signOut();
+          // 로그아웃 후 재진입 — 폼이 깨끗하게 보이도록 강제 리로드
+          location.replace('/login/');
+        });
         return;
       }
     }

@@ -6,11 +6,28 @@
     msgEl.textContent = text;
   };
 
-  // 이미 로그인된 사용자는 라우팅
+  // 이미 로그인된 사용자: 상태별 처리
+  //   pending/rejected/revoked → /pending/ 로 자동 이동
+  //   approved → "이미 로그인됨" 카드 표시 (직접 선택)
   try {
     const profile = await NP.getProfile();
     if (profile) {
-      location.href = NP.targetByStatus(profile, '/');
+      if (profile.status !== 'approved') {
+        location.href = NP.targetByStatus(profile, '/');
+        return;
+      }
+      // approved
+      document.getElementById('signup-card').hidden = true;
+      const card = document.getElementById('already-card');
+      card.hidden = false;
+      document.getElementById('already-email').textContent = profile.email || '—';
+      document.getElementById('btn-continue').addEventListener('click', () => {
+        location.href = '/';
+      });
+      document.getElementById('btn-switch').addEventListener('click', async () => {
+        await NP.signOut();
+        location.replace('/signup/');
+      });
       return;
     }
   } catch (e) {

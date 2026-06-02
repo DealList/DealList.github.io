@@ -57,7 +57,13 @@
 
   <header class="topbar">
     <h1>회원 관리 — Numbers Pool Admin</h1>
-    <a href="../../">← 홈으로</a>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <span id="me-email" style="color:var(--muted); font-size:12px;"></span>
+      <a href="../../">← 홈으로</a>
+      <button id="btn-logout" style="padding:6px 12px; border:1px solid var(--border); border-radius:5px; background:var(--surface); color:var(--text); cursor:pointer; font-size:12px;">
+        로그아웃
+      </button>
+    </div>
   </header>
 
   <main>
@@ -97,8 +103,8 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../../supabase-client.js?v=20260602b"></script>
-  <script src="../../auth-helper.js?v=20260602b"></script>
-  <script src="app.js?v=20260602b"></script>
+  <script src="../../supabase-client.js?v=20260602c"></script>
+  <script src="../../auth-helper.js?v=20260602c"></script>
+  <script src="app.js?v=20260602c"></script>
 </body>
 </html>

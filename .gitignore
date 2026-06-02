@@ -25,3 +25,12 @@ Thumbs.db
 # 임시 파일
 *.log
 *.tmp
+
+# Phase 2: 사이트 데이터 JSON 은 Supabase Storage(site-data 버킷)로 이전
+# (자동 파이프라인이 cp 로 만들지만 commit 하지 않음 — 재실행 위해 ignore)
+/data.json
+/meta.json
+/summary.json
+/ecm_data.json
+/ecm_meta.json
+/ecm_summary.json

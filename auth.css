@@ -21,14 +21,24 @@ body {
   padding: 56px 24px 24px;
 }
 
-/* ─── 상단 로고 (홈으로 클릭 가능) — 메인페이지 hero 와 동일 크기 ─── */
+/* ─── 상단 kicker + 로고 (홈으로 클릭 가능) — 메인페이지 hero 와 동일 구성 ─── */
 .auth-logo {
   display: inline-block;
   margin: 0 0 40px;
   text-decoration: none;
+  text-align: center;
   transition: opacity 0.15s;
 }
 .auth-logo:hover { opacity: 0.85; }
+.auth-logo .auth-kicker {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin: 0 0 18px;
+}
 .auth-logo img { height: 104px; width: auto; display: block; max-width: 100%; }
 @media (max-width: 760px) {
   .auth-logo img { height: 68px; }

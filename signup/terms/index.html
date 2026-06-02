@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>이용약관 동의 — Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../../auth.css?v=20260602j" />
+  <style>
+    /* 약관 페이지: 카드 폭 크게 + 텍스트 박스 스타일 */
+    .auth-wrap.terms-wrap { max-width: 720px; padding: 40px 40px 32px; }
+
+    .terms-all {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 16px; margin-top: 8px;
+      background: var(--accent-soft); border: 1px solid var(--border);
+      border-radius: 8px; cursor: pointer;
+      font-size: 14.5px; font-weight: 700; color: var(--accent-2);
+    }
+    .terms-all input { width: 18px; height: 18px; margin: 0; cursor: pointer; }
+    .terms-all-hint {
+      font-size: 12px; color: var(--muted); margin: 6px 0 0 28px; line-height: 1.55;
+    }
+    .terms-divider { height: 1px; background: var(--border); margin: 22px 0; border: 0; }
+
+    .terms-section { margin-bottom: 18px; }
+    .terms-section:last-of-type { margin-bottom: 0; }
+    .terms-checkbox {
+      display: flex; align-items: center; gap: 9px;
+      cursor: pointer; font-size: 14px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px;
+    }
+    .terms-checkbox input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+    .terms-checkbox em {
+      font-style: normal; font-weight: 600;
+      color: #dc2626; margin-left: 2px;
+    }
+    .terms-checkbox em.opt { color: var(--muted); }
+    :root[data-theme="dark"] .terms-checkbox em { color: #fca5a5; }
+
+    .terms-text-box {
+      max-height: 210px; overflow-y: auto;
+      padding: 16px 18px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 12px; line-height: 1.75; color: var(--text-2);
+      white-space: pre-line;
+    }
+    .terms-text-box h4 {
+      font-size: 12.5px; font-weight: 700; color: var(--text);
+      margin: 14px 0 6px;
+    }
+    .terms-text-box h4:first-child { margin-top: 0; }
+    .terms-text-box::-webkit-scrollbar { width: 6px; }
+    .terms-text-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .terms-hint-mkt {
+      font-size: 11.5px; color: var(--muted); margin: 0 0 0 25px; line-height: 1.55;
+    }
+
+    #btn-agree { margin-top: 26px; }
+    #btn-agree:disabled { background: var(--border); color: var(--muted); border-color: var(--border); cursor: not-allowed; }
+    :root[data-theme="dark"] #btn-agree:disabled { color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <div class="auth-page">
+
+    <a href="../../" class="auth-logo" aria-label="Numbers Pool 홈으로">
+      <span class="auth-kicker">Korea Capital Market</span>
+      <img src="../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+      <img src="../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+    </a>
+
+    <main class="auth-wrap terms-wrap">
+      <h1>이용약관 동의</h1>
+      <div class="sub">Numbers Pool 가입 전 아래 약관을 확인하고 동의해주세요.</div>
+
+      <!-- 모두 동의 -->
+      <label class="terms-all">
+        <input type="checkbox" id="chk-all" />
+        <span>모두 동의합니다</span>
+      </label>
+      <div class="terms-all-hint">이용약관·개인정보 수집·마케팅 알림 수신에 일괄 동의합니다.</div>
+
+      <hr class="terms-divider" />
+
+      <!-- 이용약관 (필수) -->
+      <div class="terms-section">
+        <label class="terms-checkbox">
+          <input type="checkbox" class="chk-required" id="chk-tos" />
+          <span>이용약관 동의 <em>(필수)</em></span>
+        </label>
+        <div class="terms-text-box">
+<h4>제 1 조 (목적)</h4>
+이 약관은 Numbers Pool(이하 "회사")이 제공하는 한국 자본시장 데이터 플랫폼 서비스(이하 "서비스")를 이용하는 회원과 회사 간의 권리·의무 및 기타 필요한 사항을 규정함을 목적으로 합니다.
+
+<h4>제 2 조 (약관의 효력 및 변경)</h4>
+① 본 약관은 회원이 가입 시 동의함으로써 효력이 발생합니다.
+② 회사는 관련 법령에 따라 본 약관을 변경할 수 있으며, 변경 시 시행일 7일 전(회원에게 불리한 변경은 30일 전)에 사이트 내 공지를 통해 고지합니다.
+③ 회원이 변경된 약관에 동의하지 않을 경우 회원 탈퇴를 요청할 수 있으며, 시행일 이후에도 서비스를 계속 이용하는 경우 변경 약관에 동의한 것으로 간주합니다.
+
+<h4>제 3 조 (회원가입 및 승인)</h4>
+① 가입 신청은 회사가 정한 절차에 따라 본 약관 및 개인정보 처리방침에 동의하고 정보를 입력함으로써 이루어집니다.
+② 회사는 회원의 신청을 검토한 후 승인 또는 거절할 수 있으며, 다음 각 호에 해당하는 경우 승인을 거절하거나 사후 해지할 수 있습니다.
+  1. 만 14세 미만인 경우 (본 서비스는 전문가용으로 미성년 가입을 받지 않습니다)
+  2. 가입 정보가 허위이거나 타인의 정보를 도용한 경우
+  3. 부정한 목적 또는 서비스 운영에 지장을 주는 사유가 있는 경우
+③ 사내 도메인 등 회사가 정한 화이트리스트에 해당하는 이메일은 자동 승인되며, 그 외는 관리자 승인 후 이용 가능합니다.
+
+<h4>제 4 조 (서비스의 제공)</h4>
+① 회사는 다음의 서비스를 제공합니다.
+  1. 한국 공모 회사채(DCM) 발행 정보 조회
+  2. 한국 IPO·유상증자(ECM) 정보 조회
+  3. 증권사별 주관·인수 실적 리그테이블
+  4. 시장 통계 인포그래픽 및 데이터 다운로드
+  5. 기타 회사가 정하는 부가 서비스
+② 회사는 서비스 내용을 운영상·기술상 사유로 추가·변경·중단할 수 있으며, 중요한 변경 사항은 사전 공지합니다.
+③ 회사는 정기점검, 천재지변, 비상사태, 데이터 출처 기관(금융감독원 DART 등)의 장애 발생 시 서비스를 일시 중단할 수 있습니다.
+
+<h4>제 5 조 (회원의 의무)</h4>
+① 회원은 본 약관, 관련 법령, 회사가 정한 운영정책 및 공지사항을 준수하여야 합니다.
+② 회원은 다음 행위를 하여서는 안 됩니다.
+  1. 타인의 정보 도용 및 부정 사용
+  2. 본인의 계정을 제3자에게 양도·대여·공유
+  3. 서비스 데이터의 무단 복제·배포·재판매 (상업적 이용)
+  4. 자동화 스크립트·크롤러 등으로 서비스에 과도한 부하를 주는 행위
+  5. 회사 및 데이터 출처 기관의 저작권·지식재산권을 침해하는 행위
+③ 회원의 계정 관리 책임은 회원 본인에게 있으며, 부정 사용이 의심될 경우 즉시 회사에 알려야 합니다.
+
+<h4>제 6 조 (회사의 의무)</h4>
+① 회사는 안정적인 서비스 제공을 위해 최선을 다하며, 회원 정보의 안전한 관리를 위해 기술적·관리적 보호 조치를 시행합니다.
+② 회사는 회원의 개인정보를 본 약관 및 개인정보 처리방침에 따라 처리합니다.
+
+<h4>제 7 조 (이용계약 해지)</h4>
+① 회원은 언제든 회사에 회원 탈퇴를 요청할 수 있으며, 회사는 즉시 처리합니다.
+② 회사는 회원이 본 약관 제5조의 의무를 위반하거나 부정 이용한 경우 사전 통지 없이 이용을 제한·정지·해지할 수 있습니다.
+
+<h4>제 8 조 (데이터의 출처 및 면책)</h4>
+① 본 서비스에서 제공하는 정보의 원자료는 금융감독원 전자공시시스템(DART) 및 한국거래소(KIND) 등 공개된 정보를 기반으로 합니다.
+② 회사는 데이터의 정확성과 적시성을 위해 노력하지만, 원천 데이터의 오류·지연·결락에 대해 책임을 지지 않습니다.
+③ 본 서비스의 모든 정보는 참고용이며 투자 판단의 근거가 될 수 없습니다. 회원의 투자 결과로 발생한 손실에 대해 회사는 책임지지 않습니다.
+
+<h4>제 9 조 (저작권 및 데이터 이용)</h4>
+① 본 서비스 화면·정렬·집계·인포그래픽 등 가공된 데이터의 저작권은 회사에 있습니다.
+② 회원은 비상업적·개인적 리서치 목적으로만 데이터를 이용할 수 있으며, 회사의 사전 서면 동의 없이 이를 복제·배포·재판매·API 제공할 수 없습니다.
+
+<h4>제 10 조 (분쟁 해결)</h4>
+① 본 약관과 관련한 분쟁에 대해서는 대한민국 법령을 적용하며, 관할 법원은 회사 소재지 관할 법원으로 합니다.
+
+<h4>제 11 조 (기타)</h4>
+본 약관에 명시되지 않은 사항은 「전자상거래 등에서의 소비자보호에 관한 법률」, 「약관의 규제에 관한 법률」, 「정보통신망 이용촉진 및 정보보호 등에 관한 법률」, 「개인정보 보호법」 등 관련 법령에 따릅니다.
+
+본 약관은 공정거래위원회 표준약관을 참조하여 작성되었습니다.
+
+【시행일자】 2026년 6월 2일
+        </div>
+      </div>
+
+      <!-- 개인정보 수집·이용 (필수) -->
+      <div class="terms-section">
+        <label class="terms-checkbox">
+          <input type="checkbox" class="chk-required" id="chk-privacy" />
+          <span>개인정보 수집·이용 안내 <em>(필수)</em></span>
+        </label>
+        <div class="terms-text-box">
+<h4>제 1 조 (수집 항목)</h4>
+회사는 다음의 개인정보를 수집합니다.
+
+▣ 필수 항목 (회원가입 시)
+  · 이메일 주소 (로그인 아이디로 사용)
+  · 비밀번호 (단방향 암호화되어 저장)
+  · 이름
+  · 소속 (회사·부서·직무)
+  · 가입 사유
+
+▣ Google 계정으로 가입 시
+  · 이메일 주소, 이름, 프로필 사진 (Google 제공 기본 정보)
+
+▣ 자동 수집
+  · 접속 IP, 브라우저 정보, 접속 일시 (로그)
+  · 쿠키 (로그인 세션 유지)
+
+<h4>제 2 조 (수집·이용 목적)</h4>
+  1. 회원 식별 및 가입 의사 확인
+  2. 관리자 승인 절차 진행
+  3. 회원제 서비스 제공 (데이터 조회·다운로드 권한 부여)
+  4. 부정 이용 방지 및 보안
+  5. 서비스 운영 관련 공지·안내
+  6. 회원 문의 응대
+
+<h4>제 3 조 (보유 및 이용 기간)</h4>
+① 회원이 서비스를 이용하는 동안 개인정보를 보유·이용합니다.
+② 회원 탈퇴 또는 이용 계약 해지 시 즉시 파기합니다. 다만, 관계 법령에 따라 보존이 필요한 경우 다음 기간 동안 분리 보관합니다.
+  · 부정 이용 기록: 1년 (재가입 방지·분쟁 대응 목적)
+  · 서비스 방문·접속 기록: 3개월 (통신비밀보호법)
+
+<h4>제 4 조 (제3자 제공)</h4>
+회사는 회원의 동의 없이 개인정보를 제3자에게 제공하지 않습니다. 다만, 다음의 경우는 예외로 합니다.
+  · 회원이 사전에 동의한 경우
+  · 법령에 따른 수사기관·관계기관의 적법한 요구가 있는 경우
+
+<h4>제 5 조 (처리 위탁)</h4>
+회사는 서비스 운영을 위해 다음의 업체에 개인정보 처리를 위탁하고 있으며, 위탁계약 시 개인정보가 안전하게 관리되도록 필요한 사항을 규정하고 있습니다.
+
+▣ 인증·데이터베이스 운영 위탁
+  · 수탁자: Supabase, Inc. (미국 — 개인정보 국외 이전)
+  · 위탁 항목: 가입 시 수집되는 모든 항목
+  · 위탁 기간: 회원 탈퇴 시 또는 위탁 계약 종료 시까지
+  · 이전 방법: HTTPS 암호화 전송, 미국 리전 데이터센터 저장
+
+회원은 위 국외 이전에 동의하지 않을 권리가 있으나, 본 서비스의 구조상 동의를 거부하시면 가입이 불가합니다.
+
+<h4>제 6 조 (회원의 권리)</h4>
+회원은 정보주체로서 다음의 권리를 행사할 수 있습니다.
+  1. 개인정보 열람·정정·삭제·처리 정지 요구
+  2. 회원 탈퇴 및 개인정보 삭제 요청
+  3. 마케팅 알림 수신 동의 철회
+  4. 자동화된 결정(있을 경우)에 대한 거부·설명 요구권 (개인정보 보호법 제37조의2)
+
+권리 행사는 회사 개인정보 보호책임자에게 서면, 전자우편으로 요청 가능하며, 회사는 지체 없이 조치합니다.
+
+<h4>제 7 조 (파기 절차 및 방법)</h4>
+① 보유 기간이 경과하거나 처리 목적이 달성된 개인정보는 지체 없이 파기합니다.
+② 전자적 파일은 복원이 불가능한 방법으로 영구 삭제하고, 출력물은 분쇄·소각합니다.
+
+<h4>제 8 조 (안전성 확보 조치)</h4>
+  · 비밀번호의 단방향 암호화 저장
+  · HTTPS·TLS를 통한 통신 전 구간 암호화
+  · 데이터베이스 접근 제어(RLS: Row Level Security) 및 권한 분리
+  · 정기적 보안 점검 및 접근 기록 모니터링
+
+<h4>제 9 조 (쿠키)</h4>
+① 회사는 로그인 세션 유지를 위해 쿠키 및 브라우저 저장소(localStorage·sessionStorage)를 사용합니다.
+② 회원은 브라우저 설정으로 쿠키 저장을 거부할 수 있으나, 이 경우 로그인이 필요한 서비스 이용이 제한됩니다.
+
+<h4>제 10 조 (개인정보 보호책임자)</h4>
+  · 책임자: Numbers Pool 운영팀
+  · 연락처: mrboo850731@gmail.com
+
+개인정보 침해에 대한 신고·상담은 아래 기관으로도 문의 가능합니다.
+  · 개인정보분쟁조정위원회 (kopico.go.kr / 1833-6972)
+  · 개인정보침해신고센터 (privacy.kisa.or.kr / 국번없이 118)
+  · 대검찰청 사이버수사과 (spo.go.kr / 1301)
+  · 경찰청 사이버수사국 (ecrm.police.go.kr / 182)
+
+<h4>제 11 조 (방침의 변경)</h4>
+본 처리방침은 법령·정책 변경에 따라 개정될 수 있으며, 변경 시 시행일 7일 전 사이트 내 공지를 통해 고지합니다.
+
+【시행일자】 2026년 6월 2일
+        </div>
+      </div>
+
+      <!-- 마케팅 알림 (선택) -->
+      <div class="terms-section">
+        <label class="terms-checkbox">
+          <input type="checkbox" id="chk-marketing" />
+          <span>마케팅 알림 메일 수신 <em class="opt">(선택)</em></span>
+        </label>
+        <div class="terms-hint-mkt">
+          서비스 업데이트·신규 기능·이벤트 안내 메일 수신에 동의합니다.<br/>
+          가입 후 언제든 설정에서 철회할 수 있습니다.
+        </div>
+      </div>
+
+      <button id="btn-agree" class="btn-primary" type="button" disabled>
+        동의하고 가입 진행
+      </button>
+
+      <div class="foot-link">
+        이미 가입하셨나요?<a href="../../login/">로그인</a>
+      </div>
+    </main>
+
+    <footer class="auth-footer">
+      © Numbers Pool · 한국 자본시장 데이터 플랫폼<br/>
+      출처: 금융감독원 DART
+    </footer>
+
+  </div>
+
+  <script src="app.js?v=20260602a"></script>
+</body>
+</html>

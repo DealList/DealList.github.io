@@ -1,14 +1,13 @@
 /* Numbers Pool — 가입 신청 페이지 */
 (async () => {
-  const msgEl = document.getElementById('msg');
+  const $ = (id) => document.getElementById(id);
+  const msgEl = $('msg');
   const showMsg = (text, kind) => {
     msgEl.className = 'msg ' + (kind || 'err');
     msgEl.textContent = text;
   };
 
-  // 이미 로그인된 사용자: 상태별 처리
-  //   pending/rejected/revoked → /pending/ 로 자동 이동
-  //   approved → "이미 로그인됨" 카드 표시 (직접 선택)
+  // ─── 이미 로그인된 사용자 처리 ───
   let alreadyLoggedIn = false;
   try {
     const profile = await NP.getProfile();
@@ -19,14 +18,12 @@
         return;
       }
       // approved
-      document.getElementById('signup-card').hidden = true;
-      const card = document.getElementById('already-card');
+      $('signup-card').hidden = true;
+      const card = $('already-card');
       card.hidden = false;
-      document.getElementById('already-email').textContent = profile.email || '—';
-      document.getElementById('btn-continue').addEventListener('click', () => {
-        location.href = '/main/';
-      });
-      document.getElementById('btn-switch').addEventListener('click', async () => {
+      $('already-email').textContent = profile.email || '—';
+      $('btn-continue').addEventListener('click', () => { location.href = '/main/'; });
+      $('btn-switch').addEventListener('click', async () => {
         await NP.signOut();
         location.replace('/signup/');
       });
@@ -36,32 +33,144 @@
     console.warn('[signup] profile pre-check failed', e);
   }
 
-  // 비로그인 + 약관 동의 안 한 경우 → 약관 페이지로 보냄
-  // (Google OAuth 콜백으로 들어왔다가 미동의 상태일 수도 있어, 로그인된 경우는 위에서 이미 분기 처리됨)
+  // 비로그인 + 약관 동의 안 한 경우 → 약관 페이지로
   if (!alreadyLoggedIn && sessionStorage.getItem('np-terms-agreed') !== '1') {
     location.replace('/signup/terms/');
     return;
   }
 
-  // 이메일 가입
-  document.getElementById('signup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim().toLowerCase();
-    const password = document.getElementById('password').value;
-    const name = document.getElementById('name').value.trim();
-    const affiliation = document.getElementById('affiliation').value.trim();
-    const reason = document.getElementById('reason').value.trim();
-    const btn = document.getElementById('btn-signup');
+  // ─── 비밀번호 검증 ───
+  // 정책: 8~32자 + 같은 문자/숫자 4자 이상 연속 불가 + 영문·숫자·특수문자 중 2종 이상
+  function validatePassword(pw) {
+    if (!pw || pw.length < 8 || pw.length > 32) return '비밀번호는 8~32자여야 합니다.';
+    if (/(.)\1{3,}/.test(pw)) return '같은 문자/숫자를 4자 이상 연속 사용할 수 없습니다.';
+    let types = 0;
+    if (/[a-zA-Z]/.test(pw)) types++;
+    if (/[0-9]/.test(pw)) types++;
+    if (/[^a-zA-Z0-9]/.test(pw)) types++;
+    if (types < 2) return '영문·숫자·특수문자 중 2가지 이상을 조합해야 합니다.';
+    return null;
+  }
 
+  // 실시간 비밀번호 힌트 색상 토글
+  const pwEl  = $('password');
+  const pw2El = $('password2');
+  const pwHint = $('pw-hint');
+  const pw2Hint = $('pw2-hint');
+
+  pwEl.addEventListener('input', () => {
+    const v = pwEl.value;
+    if (!v) {
+      pwHint.classList.remove('err');
+      pwHint.textContent = '반복 문자/숫자 4자 이상 불가하며 영문·숫자·특수문자 중 2가지 이상 조합하여 8~32자 내로 입력.';
+      return;
+    }
+    const err = validatePassword(v);
+    if (err) {
+      pwHint.classList.add('err');
+      pwHint.textContent = err;
+    } else {
+      pwHint.classList.remove('err');
+      pwHint.textContent = '✓ 사용 가능한 비밀번호';
+    }
+  });
+
+  pw2El.addEventListener('input', () => {
+    const v2 = pw2El.value;
+    if (!v2) { pw2Hint.hidden = true; return; }
+    pw2Hint.hidden = false;
+    if (v2 !== pwEl.value) {
+      pw2Hint.classList.add('err');
+      pw2Hint.textContent = '비밀번호가 일치하지 않습니다.';
+    } else {
+      pw2Hint.classList.remove('err');
+      pw2Hint.textContent = '✓ 비밀번호 일치';
+    }
+  });
+
+  // ─── 연락처 자동 포커스 이동 + 숫자만 ───
+  function setupPhoneField(curId, nextId, len) {
+    const el = $(curId);
+    if (!el) return;
+    el.addEventListener('input', () => {
+      el.value = el.value.replace(/[^0-9]/g, '').slice(0, len);
+      if (el.value.length >= len && nextId) {
+        const nxt = $(nextId);
+        if (nxt) nxt.focus();
+      }
+    });
+  }
+  setupPhoneField('phone1', 'phone2', 3);
+  setupPhoneField('phone2', 'phone3', 4);
+  setupPhoneField('phone3', null, 4);
+
+  // ─── 우편번호 검색 (다음/카카오 우편번호 API) ───
+  $('btn-zipcode').addEventListener('click', () => {
+    if (typeof daum === 'undefined' || !daum.Postcode) {
+      showMsg('우편번호 검색 스크립트 로드 실패. 잠시 후 다시 시도해주세요.', 'err');
+      return;
+    }
+    new daum.Postcode({
+      oncomplete: (data) => {
+        // 도로명 주소 우선, 없으면 지번
+        const addr = data.roadAddress || data.jibunAddress || '';
+        let extra = '';
+        if (data.bname) extra += data.bname;
+        if (data.buildingName) extra += (extra ? ', ' : '') + data.buildingName;
+        const fullAddr = extra ? `${addr} (${extra})` : addr;
+        $('zipcode').value = data.zonecode || '';
+        $('address').value = fullAddr;
+        $('address-detail').focus();
+      },
+    }).open();
+  });
+
+  // ─── 폼 제출 ───
+  $('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    msgEl.textContent = '';
+    msgEl.className = '';
+
+    // honeypot
+    if ($('hp-website').value) {
+      console.warn('[signup] honeypot triggered — silently aborting');
+      return;
+    }
+
+    const email = $('email').value.trim().toLowerCase();
+    const password = pwEl.value;
+    const password2 = pw2El.value;
+    const name = $('name').value.trim();
+    const affiliation = $('affiliation').value.trim();
+    const reason = $('reason').value.trim();
+    const p1 = $('phone1').value.trim();
+    const p2 = $('phone2').value.trim();
+    const p3 = $('phone3').value.trim();
+    const phone = (p1 && p2 && p3) ? `${p1}-${p2}-${p3}` : '';
+    const zipcode = $('zipcode').value.trim();
+    const address = $('address').value.trim();
+    const addressDetail = $('address-detail').value.trim();
+
+    // 비밀번호 검증
+    const pwErr = validatePassword(password);
+    if (pwErr) { showMsg(pwErr, 'err'); pwEl.focus(); return; }
+    if (password !== password2) { showMsg('비밀번호가 일치하지 않습니다.', 'err'); pw2El.focus(); return; }
+
+    // 연락처 부분입력 검증
+    if ((p1 || p2 || p3) && !(p1 && p2 && p3)) {
+      showMsg('연락처는 전체를 입력하거나 모두 비워두세요.', 'err');
+      return;
+    }
+
+    const btn = $('btn-signup');
     btn.disabled = true;
     btn.textContent = '신청 중...';
-    msgEl.textContent = '';
 
     try {
       const marketingConsent = sessionStorage.getItem('np-marketing-consent') === '1';
       const termsVersion = sessionStorage.getItem('np-terms-version') || '';
 
-      // raw_user_meta_data 에 추가 정보 전달 → 트리거가 profiles 에 함께 INSERT
+      // raw_user_meta_data 에 추가 정보 전달 → 트리거가 profiles 로 INSERT
       const { error } = await sb.auth.signUp({
         email,
         password,
@@ -69,9 +178,13 @@
           emailRedirectTo: location.origin + '/login/',
           data: {
             name,
-            full_name: name,           // 표준 키 호환
+            full_name: name,
             affiliation,
             signup_reason: reason,
+            phone,
+            zipcode,
+            address,
+            address_detail: addressDetail,
             terms_agreed_version: termsVersion,
             marketing_consent: marketingConsent,
           },
@@ -79,7 +192,7 @@
       });
       if (error) throw error;
 
-      // 가입 성공 → 약관 동의 sessionStorage 정리 (이미 supabase 에 기록됨)
+      // 가입 성공 → 약관 sessionStorage 정리
       try {
         sessionStorage.removeItem('np-terms-agreed');
         sessionStorage.removeItem('np-terms-version');
@@ -93,14 +206,14 @@
         'ok'
       );
       btn.textContent = '신청 완료';
-      // 폼 비활성화
       document.querySelectorAll('#signup-form input').forEach(i => i.disabled = true);
+      document.querySelectorAll('#signup-form button').forEach(b => b.disabled = true);
     } catch (err) {
       let m = err.message || String(err);
       if (/already registered/i.test(m) || /already in use/i.test(m) || /already exists/i.test(m)) {
         m = '이미 가입된 이메일입니다. 로그인 페이지로 이동해주세요.';
       } else if (/Password should be at least/i.test(m)) {
-        m = '비밀번호는 6자 이상이어야 합니다.';
+        m = '비밀번호 정책: 8~32자, 영문·숫자·특수문자 중 2가지 이상.';
       }
       showMsg(m, 'err');
       btn.disabled = false;
@@ -108,8 +221,8 @@
     }
   });
 
-  // Google OAuth (자동 가입)
-  document.getElementById('btn-google').addEventListener('click', async () => {
+  // ─── Google OAuth ───
+  $('btn-google').addEventListener('click', async () => {
     msgEl.textContent = '';
     try {
       const { error } = await sb.auth.signInWithOAuth({

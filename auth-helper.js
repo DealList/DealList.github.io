@@ -44,6 +44,8 @@ window.NP = (function () {
   async function signOut() {
     if (!sb()) return;
     try { await sb().auth.signOut(); } catch (e) { console.warn('[NP] signOut', e); }
+    // remember-me 플래그도 같이 정리 — 다음 로그인은 다시 OFF 가 기본
+    try { if (window.NP_clearRemember) window.NP_clearRemember(); } catch (e) {}
   }
 
   // status 로 가야 할 곳 결정

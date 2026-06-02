@@ -28,6 +28,9 @@
     console.warn('[login] profile pre-check failed', e);
   }
 
+  // remember-me 헬퍼
+  const getRemember = () => !!document.getElementById('chk-remember').checked;
+
   // 이메일/비번 로그인
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -38,6 +41,8 @@
     btn.textContent = '로그인 중...';
     msgEl.textContent = '';
     try {
+      // signIn 호출 전에 remember 플래그 설정 — 세션 저장 위치 결정
+      window.NP_setRemember(getRemember());
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
       const p = await NP.getProfile();
@@ -56,6 +61,8 @@
   document.getElementById('btn-google').addEventListener('click', async () => {
     msgEl.textContent = '';
     try {
+      // OAuth 리디렉트 전에 remember 플래그 — 돌아왔을 때 저장 위치 결정
+      window.NP_setRemember(getRemember());
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: location.origin + '/login/' },

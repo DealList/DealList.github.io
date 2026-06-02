@@ -97,19 +97,29 @@ jobs:
           # web/ 디렉터리는 commit 대상 아님 (.gitignore 처리 또는 단순 미커밋)
           ls -la data.json meta.json summary.json
 
-      - name: data.json/meta.json/summary.json 변경분 자동 commit + push
+      - name: Supabase Storage 업로드 (data + meta + summary → site-data 버킷)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json meta.json summary.json || true
-          if git diff --cached --quiet; then
-            echo "변경 없음 — commit 생략"
-          else
-            FETCHED="${{ steps.dates.outputs.start }}"
-            git commit -m "data: 자동 갱신 ${FETCHED} (KST) [skip ci]"
-            git push
-            echo "[ok] data.json/meta.json/summary.json push 완료"
-          fi
+          # Phase 2 게이팅: GitHub Pages 가 아닌 Supabase Storage 의 비공개 버킷에 업로드.
+          # site-data 버킷 RLS 가 status=approved 회원만 signed URL 발급 → 진짜 게이팅.
+          # service_role 키는 RLS 우회하므로 업로드는 무제한.
+          for f in data.json meta.json summary.json; do
+            echo "Uploading $f to site-data ..."
+            HTTP_CODE=$(curl --silent --show-error --output /tmp/upload-resp.txt --write-out "%{http_code}" \
+              -X POST "$SUPABASE_URL/storage/v1/object/site-data/$f" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -H "x-upsert: true" \
+              --data-binary "@$f")
+            if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+              echo "[FAIL] $f upload — HTTP $HTTP_CODE"
+              cat /tmp/upload-resp.txt
+              exit 1
+            fi
+            echo "[ok] $f uploaded (HTTP $HTTP_CODE)"
+          done
 
       - name: Artifact 보관 (디버깅용 xlsx + meta.json 백업)
         if: always()

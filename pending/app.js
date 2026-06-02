@@ -9,8 +9,8 @@
   }
 
   if (profile.status === 'approved') {
-    // 이미 승인됐으면 홈으로
-    location.href = '/';
+    // 이미 승인됐으면 대시보드로
+    location.href = '/main/';
     return;
   }
 

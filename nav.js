@@ -148,10 +148,12 @@
   // ═══════════════════════════════════════════════════════════
 
   // 공개 경로 (비로그인이어도 OK)
-  // /admin/* 은 자체 가드 있으니 nav 가 강제 리디렉트 안 함 (admin/members/app.js 에서 처리)
+  //   '/' = 미리보기 페이지 (사이트 소개 + 가입 CTA)
+  //   /admin/* 은 자체 가드 있으니 nav 가 강제 리디렉트 안 함 (admin/members/app.js 에서 처리)
   const path = location.pathname;
   const PUBLIC_PREFIXES = ['/login/', '/signup/', '/logout/', '/pending/', '/admin/'];
-  const isPublic = PUBLIC_PREFIXES.some(p => path === p || path.startsWith(p));
+  const isPublic = (path === '/' || path === '/index.html')
+                   || PUBLIC_PREFIXES.some(p => path === p || path.startsWith(p));
 
   loadSupabase().then(async (sb) => {
     if (!sb) {

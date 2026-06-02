@@ -22,7 +22,7 @@
         card.hidden = false;
         document.getElementById('already-email').textContent = profile.email || '—';
         document.getElementById('btn-continue').addEventListener('click', () => {
-          const next = new URL(location.href).searchParams.get('next') || '/';
+          const next = new URL(location.href).searchParams.get('next') || '/main/';
           location.href = next;
         });
         document.getElementById('btn-switch').addEventListener('click', async () => {
@@ -55,7 +55,11 @@
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
       const p = await NP.getProfile();
-      location.href = NP.targetByStatus(p, '/');
+      // next 파라미터가 있으면 그곳으로, 없으면 /main/ 대시보드로
+      const nextParam = new URL(location.href).searchParams.get('next');
+      location.href = (p && p.status === 'approved' && nextParam)
+        ? nextParam
+        : NP.targetByStatus(p, '/main/');
     } catch (err) {
       let m = err.message || String(err);
       if (/Invalid login credentials/i.test(m)) m = '이메일 또는 비밀번호가 올바르지 않습니다.';

@@ -22,7 +22,7 @@
       card.hidden = false;
       document.getElementById('already-email').textContent = profile.email || '—';
       document.getElementById('btn-continue').addEventListener('click', () => {
-        location.href = '/';
+        location.href = '/main/';
       });
       document.getElementById('btn-switch').addEventListener('click', async () => {
         await NP.signOut();

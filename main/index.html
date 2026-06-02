@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- /main/ 대시보드: 모든 상대경로를 사이트 루트(/) 기준으로 해석 → home.js·링크 수정 불필요 -->
+  <base href="/" />
+  <title>Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <script src="np-loading.js?v=20260602a"></script>
+  <link rel="stylesheet" href="deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="landing.css?v=20260601h" />
+  <!-- Supabase + auth (data-loader 가 NP_loadData 제공) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js?v=20260602g"></script>
+  <script src="auth-helper.js?v=20260602c"></script>
+  <script src="data-loader.js?v=20260602g"></script>
+</head>
+<body>
+
+  <!-- Nav (filled by nav.js) -->
+  <div id="nav-mount" data-active="home" data-root="."></div>
+  <script src="nav.js?v=20260602d"></script>
+
+  <!-- ════════ Hero ════════ -->
+  <header class="v1-hero">
+    <div class="kicker">Korea Capital Market</div>
+    <h1 class="v1-hero-title">
+      <img src="assets/numbers-pool-logo.png" alt="Numbers Pool" class="hero-logo-img light-only" />
+      <img src="assets/numbers-pool-logo-dark.png" alt="" class="hero-logo-img dark-only" />
+    </h1>
+    <p class="lead">
+      한국 자본시장의 핵심 자금조달 거래 흐름을 한눈에 봅니다.<br/>
+      AI가 수집하는 금융감독원 공시로 최신 정보를 정리합니다.
+    </p>
+  </header>
+
+  <!-- ════════ DCM/ECM context tabs ════════ -->
+  <div class="v1-section-tabs">
+    <div class="v1-section-tab active" data-section="dcm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      DCM · 채권시장
+    </div>
+    <div class="v1-section-tab" data-section="ecm">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+      ECM · 주식시장
+    </div>
+  </div>
+
+  <!-- ════════ Main (DCM) ════════ -->
+  <main class="v1-main" id="dcm-main">
+
+    <!-- KPI grid (filled by home.js from summary.json) -->
+    <div class="v1-kpis" id="kpi-grid"></div>
+
+    <!-- 1행: 공모채 주관 / 인수 TOP 10 -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title"><h2 id="dcm-league-lead-title">2026 공모채 주관 리그테이블</h2><a href="dcm-brokers/?tab=lead">전체보기 →</a></div>
+        <div class="v1-league"><h3>올해 공모 회사채 주관 TOP 10</h3><div id="league-rows"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2 id="dcm-league-uw-title">2026 공모채 인수 리그테이블</h2><a href="dcm-brokers/?tab=uw">전체보기 →</a></div>
+        <div class="v1-league"><h3>올해 공모 회사채 인수 TOP 10</h3><div id="league-uw-rows"></div></div>
+      </div>
+    </div>
+
+    <!-- 2행: 최근 발행 공모채 / 다가오는 공모채 청약 -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title">
+          <h2>최근 발행 공모채</h2>
+          <a href="dcm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head">
+            <h3>청약일 기준</h3>
+            <div class="head-actions">
+              <span class="pill active" data-filter="all">전체</span>
+              <span class="pill" data-filter="무보증">무보증</span>
+              <span class="pill" data-filter="신종자본">신종자본</span>
+              <span class="pill" data-filter="후순위채">후순위</span>
+            </div>
+          </div>
+          <div id="recent-deals"></div>
+        </div>
+      </div>
+      <div>
+        <div class="v1-sec-title">
+          <h2>다가오는 공모채 청약</h2>
+          <a href="dcm-deals/">전체보기 →</a>
+        </div>
+        <div class="v1-deals no-leads">
+          <div class="head"><h3>증권신고서 제출 · 수요예측 전</h3></div>
+          <div id="upcoming-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3행: 월별 공모채 발행 추이 (전체폭) -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 공모채 발행 추이</h3>
+        <div class="head-right">
+          <span class="toggle">
+            <span class="active" data-mode="count">건수</span>
+            <span data-mode="amount">금액</span>
+          </span>
+          <a href="dcm-charts/" class="head-link">전체보기 →</a>
+        </div>
+      </div>
+      <div class="meta">최근 1년 · 단위: 건 / 억원</div>
+      <svg id="trend-chart" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend">
+        <span><i style="background: #c9a24a;"></i>발행건수(막대)</span>
+        <span><i style="background: #c9a24a;"></i>발행총액(선)</span>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="v1-quick-grid">
+      <a class="v1-quick" href="dcm-deals/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">공모 회사채 발행 정보</div>
+          <div class="desc">개별 회차 단위 발행 내역 조회</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="dcm-brokers/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">주관·인수 실적</div>
+          <div class="desc">증권사별 리그테이블 · 시장점유율</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="dcm-charts/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">인포그래픽</div>
+          <div class="desc">월별·종류·등급·만기 9종 차트</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- ════════ Main (ECM) ════════ -->
+  <main class="v1-main" id="ecm-main" hidden>
+
+    <div class="v1-kpis" id="ecm-kpi-grid"></div>
+
+    <!-- 1행: 주관 TOP 10 (통합 / IPO / 유상증자) -->
+    <div class="v1-three-col">
+      <div>
+        <div class="v1-sec-title"><h2 id="ecm-league-all-title">2026 ECM 통합 리그테이블</h2><a href="ecm-brokers/?scope=all">전체보기 →</a></div>
+        <div class="v1-league"><h3>올해 IPO+유상증자 주관 TOP 10</h3><div id="ecm-league-all-rows"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2 id="ecm-league-ipo-title">2026 IPO 리그테이블</h2><a href="ecm-brokers/?scope=ipo">전체보기 →</a></div>
+        <div class="v1-league"><h3>올해 IPO 주관 TOP 10</h3><div id="ecm-league-ipo-rows"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2 id="ecm-league-rt-title">2026 유상증자 리그테이블</h2><a href="ecm-brokers/?scope=rights">전체보기 →</a></div>
+        <div class="v1-league"><h3>올해 유상증자 주관 TOP 10</h3><div id="ecm-league-rights-rows"></div></div>
+      </div>
+    </div>
+
+    <!-- 2행: 최근 IPO · 다가오는 IPO -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title">
+          <h2>최근 상장 <span class="count" id="ecm-ipo-count"></span></h2>
+          <a href="ecm-deals/?tab=ipo">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>완료 IPO 기준</h3></div>
+          <div id="ecm-recent-ipo"></div>
+        </div>
+      </div>
+      <div>
+        <div class="v1-sec-title">
+          <h2>다가오는 상장</h2>
+          <a href="ecm-deals/?tab=ipo">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>IPO 진행 중</h3></div>
+          <div id="ecm-upcoming-ipo"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3행: 최근 유상증자 · 다가오는 유상증자 -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title">
+          <h2>최근 유상증자 <span class="count" id="ecm-rights-count"></span></h2>
+          <a href="ecm-deals/?tab=rights">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>최소 1차 발행가액 확정 기준</h3></div>
+          <div id="ecm-recent-rights"></div>
+        </div>
+      </div>
+      <div>
+        <div class="v1-sec-title">
+          <h2>다가오는 유상증자</h2>
+          <a href="ecm-deals/?tab=rights">전체보기 →</a>
+        </div>
+        <div class="v1-deals">
+          <div class="head"><h3>최종 발행가액 확정 전</h3></div>
+          <div id="ecm-upcoming-rights"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4행: 월별 IPO 추이 -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 IPO 추이</h3>
+        <div class="head-right">
+          <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
+          <a href="ecm-charts/?tab=ipo" class="head-link">전체보기 →</a>
+        </div>
+      </div>
+      <div class="meta">완료 IPO 기준 · 최근 1년 · 단위: 건 / 억원</div>
+      <svg id="ecm-ipo-trend" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend"><span><i style="background:#c9a24a;"></i>IPO 건수(막대)</span><span><i style="background:#c9a24a;"></i>발행총액(선)</span></div>
+    </div>
+
+    <!-- 5행: 월별 유상증자 추이 -->
+    <div class="v1-chart">
+      <div class="head">
+        <h3>월별 유상증자 추이</h3>
+        <div class="head-right">
+          <span class="toggle"><span class="active" data-mode="count">건수</span><span data-mode="amount">금액</span></span>
+          <a href="ecm-charts/?tab=rights" class="head-link">전체보기 →</a>
+        </div>
+      </div>
+      <div class="meta">최소 1차 발행가액 확정 기준 · 최근 1년 · 단위: 건 / 억원</div>
+      <svg id="ecm-rights-trend" viewBox="0 0 600 200" preserveAspectRatio="none"></svg>
+      <div class="legend"><span><i style="background:#c9a24a;"></i>유상증자 건수(막대)</span><span><i style="background:#c9a24a;"></i>발행총액(선)</span></div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="v1-quick-grid">
+      <a class="v1-quick" href="ecm-deals/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">IPO · 유상증자 발행 정보</div>
+          <div class="desc">딜 단위 발행 내역 조회</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="ecm-brokers/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">주관·인수 실적</div>
+          <div class="desc">증권사별 리그테이블 · 시장점유율</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="ecm-charts/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">인포그래픽</div>
+          <div class="desc">연도·시장·구분 8종 차트</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+
+  </main>
+
+  <footer class="v1-foot">
+    <div>출처: 금융감독원 DART · 본 정보는 참고용으로 제공되며 투자 판단의 근거가 될 수 없습니다.</div>
+    <div><a href="about/">데이터 안내</a></div>
+  </footer>
+
+  <script src="home.js?v=20260602e"></script>
+</body>
+</html>

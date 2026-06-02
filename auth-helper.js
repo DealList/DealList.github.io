@@ -49,12 +49,13 @@ window.NP = (function () {
   }
 
   // status 로 가야 할 곳 결정
+  // 기본 목적지는 /main/ (대시보드). / 는 비로그인용 미리보기.
   function targetByStatus(profile, defaultPath) {
     if (!profile)                      return '/login/';
     if (profile.status === 'pending')  return '/pending/';
     if (profile.status === 'rejected') return '/pending/?denied=rejected';
     if (profile.status === 'revoked')  return '/pending/?denied=revoked';
-    return defaultPath || '/';
+    return defaultPath || '/main/';
   }
 
   return { getSession, getUser, getProfile, signOut, targetByStatus };

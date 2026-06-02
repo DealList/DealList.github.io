@@ -9,10 +9,10 @@
     location.href = '/login/?next=' + encodeURIComponent('/admin/members/');
     return;
   }
-  // 비-admin → 홈으로
+  // 비-admin → 대시보드로
   if (profile.role !== 'admin') {
     alert('관리자만 접근 가능한 페이지입니다.');
-    location.href = '/';
+    location.href = '/main/';
     return;
   }
 

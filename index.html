@@ -91,16 +91,45 @@
     .mock-league-row .amt { color: var(--text); font-variant-numeric: tabular-nums; font-size: 12.5px; }
     .mock-league-row .share { color: var(--muted); font-size: 11px; min-width: 40px; text-align: right; }
 
-    /* 미리보기 페이드아웃 — 각 mock-card 의 하단 절반을 자연스럽게 흐리게 (teaser 효과) */
+    /* 미리보기 페이드아웃 — 각 mock-card 의 하단을 강하게 흐리게 (teaser 효과) */
     .mock-section .mock-card::after {
       content: '';
       position: absolute;
       left: 0; right: 0; bottom: 0;
-      height: 50%;
-      background: linear-gradient(180deg, transparent 0%, var(--surface) 85%);
+      height: 70%;
+      background: linear-gradient(180deg, transparent 0%, var(--surface) 50%);
       pointer-events: none;
       z-index: 1;
     }
+
+    /* 차트가 들어간 카드는 좌→우 페이드 (막대그래프 가로 흐름이라 위→아래 부적합) */
+    .mock-section .mock-card:has(.mock-chart)::after {
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, transparent 0%, var(--surface) 50%);
+    }
+
+    /* 엑셀형 표 미리보기 (Deal List 섹션) */
+    .mock-table-card { overflow: hidden; padding: 22px; }
+    .mock-table-card .mock-table {
+      width: max-content; min-width: 100%;
+      border-collapse: collapse; font-size: 12px; margin-top: 14px;
+    }
+    .mock-table-card .mock-table th {
+      background: var(--bg); color: var(--muted); font-weight: 700;
+      padding: 8px 12px; text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .mock-table-card .mock-table td {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      white-space: nowrap; color: var(--text); font-size: 12px;
+    }
+    .mock-table-card .mock-table .num {
+      text-align: right; font-variant-numeric: tabular-nums;
+    }
+    .mock-table-card .mock-table tbody tr:last-child td { border-bottom: none; }
 
     /* (옛 .mock-blur — 위 일괄 페이드아웃이 대체. 호환을 위해 잔존) */
     .mock-blur { position: relative; }
@@ -534,6 +563,151 @@
             <div class="mock-bar" style="height: 65%;"></div>
           </div>
         </div>
+      </div>
+
+      <!-- ══════════ Deal List 미리보기 ══════════ -->
+      <div class="sec-divider">
+        <span class="badge">Deal List</span>
+        <span class="ttl">엑셀 형태의 회차·딜 단위 표</span>
+        <span class="line"></span>
+      </div>
+
+      <!-- DCM 발행 정보 표 -->
+      <div class="mock-card mock-table-card">
+        <h3 class="mock-ttl">공모 회사채 발행 정보</h3>
+        <p class="mock-sub">회차 단위 17개 컬럼 · 필터·검색·Excel 다운로드</p>
+        <table class="mock-table">
+          <thead>
+            <tr>
+              <th>청약일</th><th>발행사</th><th>회차</th><th>종류</th><th>등급</th>
+              <th>만기일</th><th class="num">최초 모집(억)</th><th class="num">발행 한도(억)</th>
+              <th class="num">수요 예측(억)</th><th class="num">최종 발행(억)</th>
+              <th class="num">회차 합산(억)</th><th class="num">경쟁률</th>
+              <th>희망 금리</th><th>수요 금리</th><th class="num">최종 금리(%)</th>
+              <th>주관사</th><th>인수사</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-05-28</td><td>한화에어로스페이스</td><td>147-1</td><td>무보증</td><td>AA-</td>
+              <td>2029-05-28</td><td class="num">1,500</td><td class="num">3,000</td>
+              <td class="num">12,400</td><td class="num">1,800</td>
+              <td class="num">3,000</td><td class="num">8.27</td>
+              <td>3.7~4.2</td><td>3.9~4.1</td><td class="num">3.95</td>
+              <td>KB증권, NH투자증권, 한국투자증권</td><td>키움증권, 삼성증권, 미래에셋증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-28</td><td>한화에어로스페이스</td><td>147-2</td><td>무보증</td><td>AA-</td>
+              <td>2031-05-28</td><td class="num">1,500</td><td class="num">-</td>
+              <td class="num">8,200</td><td class="num">1,200</td>
+              <td class="num">3,000</td><td class="num">5.47</td>
+              <td>3.9~4.4</td><td>4.1~4.3</td><td class="num">4.15</td>
+              <td>KB증권, NH투자증권, 한국투자증권</td><td>키움증권, 삼성증권, 미래에셋증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-27</td><td>SK하이닉스</td><td>42-1</td><td>무보증</td><td>AA</td>
+              <td>2028-05-27</td><td class="num">2,000</td><td class="num">5,000</td>
+              <td class="num">18,000</td><td class="num">2,500</td>
+              <td class="num">5,000</td><td class="num">9.00</td>
+              <td>3.5~4.0</td><td>3.7~3.9</td><td class="num">3.78</td>
+              <td>NH투자증권, 한국투자증권, KB증권</td><td>미래에셋증권, 신한투자증권, SK증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-27</td><td>SK하이닉스</td><td>42-2</td><td>무보증</td><td>AA</td>
+              <td>2031-05-27</td><td class="num">2,500</td><td class="num">-</td>
+              <td class="num">14,000</td><td class="num">2,500</td>
+              <td class="num">5,000</td><td class="num">5.60</td>
+              <td>3.7~4.2</td><td>3.9~4.1</td><td class="num">3.95</td>
+              <td>NH투자증권, 한국투자증권, KB증권</td><td>미래에셋증권, 신한투자증권, SK증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-23</td><td>포스코</td><td>98-1</td><td>무보증</td><td>AA+</td>
+              <td>2029-05-23</td><td class="num">1,800</td><td class="num">4,000</td>
+              <td class="num">11,800</td><td class="num">2,200</td>
+              <td class="num">4,000</td><td class="num">6.56</td>
+              <td>3.4~3.9</td><td>3.6~3.8</td><td class="num">3.68</td>
+              <td>한국투자증권, KB증권</td><td>NH투자증권, 삼성증권, 미래에셋증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-23</td><td>포스코</td><td>98-2</td><td>무보증</td><td>AA+</td>
+              <td>2033-05-23</td><td class="num">2,200</td><td class="num">-</td>
+              <td class="num">9,500</td><td class="num">1,800</td>
+              <td class="num">4,000</td><td class="num">4.32</td>
+              <td>3.8~4.3</td><td>4.0~4.2</td><td class="num">4.05</td>
+              <td>한국투자증권, KB증권</td><td>NH투자증권, 삼성증권, 미래에셋증권</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ECM 발행 정보 표 (IPO) -->
+      <div class="mock-card mock-table-card">
+        <h3 class="mock-ttl">IPO · 유상증자 발행 정보</h3>
+        <p class="mock-sub">발행 수량·가액·청약 현황 전체 컬럼 · IPO/유상증자 탭별 표시</p>
+        <table class="mock-table">
+          <thead>
+            <tr>
+              <th>상장일</th><th>발행사</th><th>시장</th>
+              <th class="num">최초 수량(만주)</th><th class="num">최초 가액(원)</th>
+              <th class="num">최종 수량(만주)</th><th class="num">최종 가액(원)</th>
+              <th class="num">신주(%)</th>
+              <th class="num">기관 최초</th><th class="num">기관 수요예측</th>
+              <th class="num">기관 최종</th>
+              <th class="num">일반 청약</th><th class="num">총 발행(억)</th>
+              <th>주관사</th><th>인수사</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-05-26</td><td>컴투스플랫폼</td><td>코스닥</td>
+              <td class="num">800</td><td class="num">22,000</td>
+              <td class="num">800</td><td class="num">23,000</td><td class="num">100</td>
+              <td class="num">560</td><td class="num">256.5</td><td class="num">560</td>
+              <td class="num">250</td><td class="num">1,840</td>
+              <td>미래에셋증권, NH투자증권</td><td>키움증권, 신한투자증권</td>
+            </tr>
+            <tr>
+              <td>2026-05-14</td><td>더본코리아</td><td>코스피</td>
+              <td class="num">1,100</td><td class="num">23,000</td>
+              <td class="num">1,100</td><td class="num">22,800</td><td class="num">80</td>
+              <td class="num">770</td><td class="num">425.7</td><td class="num">770</td>
+              <td class="num">220</td><td class="num">2,520</td>
+              <td>한국투자증권, 미래에셋증권</td><td>NH투자증권, 삼성증권, KB증권</td>
+            </tr>
+            <tr>
+              <td>2026-04-30</td><td>에이피알</td><td>코스피</td>
+              <td class="num">1,500</td><td class="num">21,500</td>
+              <td class="num">1,500</td><td class="num">21,300</td><td class="num">90</td>
+              <td class="num">1,050</td><td class="num">612.3</td><td class="num">1,050</td>
+              <td class="num">200</td><td class="num">3,200</td>
+              <td>미래에셋증권, 한국투자증권, NH투자증권</td><td>삼성증권, KB증권</td>
+            </tr>
+            <tr>
+              <td>2026-04-18</td><td>유라클</td><td>코스닥</td>
+              <td class="num">340</td><td class="num">20,000</td>
+              <td class="num">340</td><td class="num">20,000</td><td class="num">100</td>
+              <td class="num">238</td><td class="num">182.4</td><td class="num">238</td>
+              <td class="num">340</td><td class="num">680</td>
+              <td>NH투자증권</td><td>키움증권, 미래에셋증권</td>
+            </tr>
+            <tr>
+              <td>2026-04-07</td><td>에프앤가이드</td><td>코스닥</td>
+              <td class="num">450</td><td class="num">20,500</td>
+              <td class="num">450</td><td class="num">20,500</td><td class="num">100</td>
+              <td class="num">315</td><td class="num">198.5</td><td class="num">315</td>
+              <td class="num">280</td><td class="num">920</td>
+              <td>한국투자증권</td><td>NH투자증권, 신한투자증권</td>
+            </tr>
+            <tr>
+              <td>2026-03-19</td><td>아이언디바이스</td><td>코스닥</td>
+              <td class="num">220</td><td class="num">18,500</td>
+              <td class="num">220</td><td class="num">19,000</td><td class="num">100</td>
+              <td class="num">154</td><td class="num">142.8</td><td class="num">154</td>
+              <td class="num">180</td><td class="num">418</td>
+              <td>KB증권</td><td>NH투자증권, 한국투자증권</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
     </section>

@@ -1,5 +1,5 @@
-/* Numbers Pool — 인증 페이지 공용 스타일 (login/signup/pending)
- * 사이트 디자인 토큰(deallist.css) 위에 얹어 동일한 골드 톤 유지.
+/* Numbers Pool — 인증 페이지 공용 스타일 (login/signup/pending/logout)
+ * 사이트 디자인 토큰(deallist.css) 위에 얹어 골드 톤 + 로고 + 깔끔한 카드 레이아웃.
  */
 
 body {
@@ -8,80 +8,112 @@ body {
   margin: 0;
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
   color: var(--text);
+  display: flex;
+  flex-direction: column;
 }
 
+/* ─── 페이지 컨테이너: 상단 로고 + 카드 + 푸터를 세로 정렬 ─── */
+.auth-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 24px 24px;
+}
+
+/* ─── 상단 로고 (홈으로 클릭 가능) ─── */
+.auth-logo {
+  display: inline-block;
+  margin: 0 0 40px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+.auth-logo:hover { opacity: 0.85; }
+.auth-logo img { height: 56px; width: auto; display: block; }
+.auth-logo .dark-only { display: none; }
+:root[data-theme="dark"] .auth-logo .light-only { display: none; }
+:root[data-theme="dark"] .auth-logo .dark-only  { display: block; }
+
+/* ─── 카드 본체 ─── */
 .auth-wrap {
-  max-width: 420px;
-  margin: 60px auto 30px;
-  padding: 32px;
+  width: 100%;
+  max-width: 460px;
+  padding: 40px 40px 34px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-sizing: border-box;
 }
 
 .auth-wrap h1 {
-  font-size: 22px;
+  font-size: 24px;
+  font-weight: 700;
   margin: 0 0 8px;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .auth-wrap .sub {
   color: var(--muted);
-  font-size: 13px;
-  margin-bottom: 24px;
-  line-height: 1.5;
+  font-size: 13.5px;
+  margin-bottom: 26px;
+  line-height: 1.6;
 }
 
+/* ─── 폼 ─── */
 .auth-wrap label {
   display: block;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-2);
-  margin: 14px 0 6px;
+  margin: 16px 0 7px;
 }
 
 .auth-wrap input[type="email"],
 .auth-wrap input[type="password"],
 .auth-wrap input[type="text"] {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 7px;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 14.5px;
   box-sizing: border-box;
+  transition: border-color 0.15s;
 }
-
 .auth-wrap input:focus {
   outline: none;
   border-color: var(--accent);
 }
 
+/* ─── 버튼 ─── */
 .auth-wrap .btn-primary {
   width: 100%;
-  margin-top: 18px;
-  padding: 11px;
+  margin-top: 22px;
+  padding: 13px;
   background: var(--accent);
   color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  border: 1px solid var(--accent);
+  border-radius: 7px;
+  font-size: 14.5px;
+  font-weight: 700;
   cursor: pointer;
+  transition: background 0.15s;
 }
-.auth-wrap .btn-primary:hover { background: var(--accent-2); }
+.auth-wrap .btn-primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
 .auth-wrap .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+:root[data-theme="dark"] .auth-wrap .btn-primary { color: #1a1408; }
 
 .auth-wrap .btn-google {
   width: 100%;
-  padding: 11px;
+  padding: 13px;
   background: transparent;
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: 7px;
+  font-size: 14.5px;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -90,12 +122,13 @@ body {
 }
 .auth-wrap .btn-google:hover { background: var(--bg); }
 
+/* ─── 구분선 ─── */
 .auth-wrap .divider {
   display: flex;
   align-items: center;
-  margin: 18px 0;
+  margin: 22px 0 8px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 11.5px;
 }
 .auth-wrap .divider::before,
 .auth-wrap .divider::after {
@@ -104,32 +137,37 @@ body {
   height: 1px;
   background: var(--border);
 }
-.auth-wrap .divider span { padding: 0 12px; }
+.auth-wrap .divider span { padding: 0 14px; }
 
+/* ─── 하단 링크 (로그인 ↔ 가입) ─── */
 .auth-wrap .foot-link {
   text-align: center;
-  margin-top: 18px;
-  font-size: 13px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 13.5px;
   color: var(--muted);
 }
 .auth-wrap .foot-link a {
   color: var(--accent);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
+  margin-left: 4px;
 }
 .auth-wrap .foot-link a:hover { text-decoration: underline; }
 
+/* ─── 알림 메시지 ─── */
 .auth-wrap .msg {
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 11px 14px;
+  border-radius: 7px;
   font-size: 13px;
-  margin-top: 14px;
-  line-height: 1.5;
+  margin-top: 16px;
+  line-height: 1.55;
 }
 .auth-wrap .msg.err {
-  background: var(--amber-bg);
+  background: #fef2f2;
   color: #b91c1c;
-  border: 1px solid rgba(185, 28, 28, 0.2);
+  border: 1px solid #fecaca;
 }
 :root[data-theme="dark"] .auth-wrap .msg.err {
   background: #3a1414;
@@ -142,20 +180,73 @@ body {
   border: 1px solid var(--green-bg);
 }
 
+/* ─── 정보 박스 (pending / already-logged-in) ─── */
 .auth-wrap .info-box {
   margin-top: 18px;
-  padding: 12px;
+  padding: 14px 16px;
   background: var(--bg);
-  border-radius: 6px;
-  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13.5px;
 }
 .auth-wrap .info-box .lbl {
   color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
   margin-bottom: 4px;
-  font-size: 11px;
 }
-.auth-wrap .info-box .val { font-weight: 600; word-break: break-all; }
+.auth-wrap .info-box .val { font-weight: 700; word-break: break-all; color: var(--text); }
 
+/* ─── 안내 알약 (관리자 승인 안내 등) ─── */
+.auth-wrap .approval-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 18px;
+  padding: 8px 14px;
+  background: var(--accent-soft);
+  color: var(--accent-2);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.auth-wrap .approval-pill svg { flex-shrink: 0; }
+
+/* ─── "이 기기에 로그인 유지" 체크박스 라인 ─── */
+.auth-wrap .remember-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.auth-wrap .remember-line input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+.auth-wrap .remember-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: 4px 0 0 24px;
+  line-height: 1.55;
+}
+
+/* ─── 푸터 ─── */
+.auth-footer {
+  margin-top: 36px;
+  margin-bottom: 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.7;
+}
+.auth-footer a {
+  color: var(--muted);
+  text-decoration: none;
+}
+.auth-footer a:hover { color: var(--text); }
+
+/* 호환: 옛 .home-link 잔존 페이지용 */
 .home-link {
   display: block;
   text-align: center;

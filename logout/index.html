@@ -7,19 +7,32 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../deallist.css?v=20260601f" />
-  <link rel="stylesheet" href="../auth.css?v=20260602c" />
+  <link rel="stylesheet" href="../auth.css?v=20260602h" />
 </head>
 <body>
 
-  <main class="auth-wrap">
-    <h1 id="title">로그아웃 중...</h1>
-    <div class="sub" id="msg">잠시만 기다려주세요.</div>
+  <div class="auth-page">
 
-    <div id="after" hidden>
-      <a href="/" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:24px;">홈으로</a>
-      <a href="/login/" class="btn-google" style="display:block; text-align:center; text-decoration:none; margin-top:10px; line-height:24px;">다시 로그인</a>
-    </div>
-  </main>
+    <a href="../" class="auth-logo" aria-label="Numbers Pool 홈으로">
+      <img src="../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+      <img src="../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+    </a>
+
+    <main class="auth-wrap">
+      <h1 id="title">로그아웃 중...</h1>
+      <div class="sub" id="msg">잠시만 기다려주세요.</div>
+
+      <div id="after" hidden>
+        <a href="/" class="btn-primary" style="display:block; text-align:center; text-decoration:none; line-height:24px;">홈으로</a>
+        <a href="/login/" class="btn-google" style="display:block; text-align:center; text-decoration:none; margin-top:10px; line-height:24px;">다시 로그인</a>
+      </div>
+    </main>
+
+    <footer class="auth-footer">
+      © Numbers Pool · 한국 자본시장 데이터 플랫폼
+    </footer>
+
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js?v=20260602g"></script>
@@ -30,14 +43,13 @@
       const msg   = document.getElementById('msg');
       const after = document.getElementById('after');
 
-      // 강력 로그아웃 — Supabase + 양쪽 storage 전부 청소
       try {
         await NP.signOut();
       } catch (e) {
         console.warn('[logout] signOut error', e);
       }
 
-      // 혹시 남아있을 수 있는 잔여물도 정리 (옛 키 포맷 / 멀티 키 대비)
+      // 잔여물 정리 (옛 키 포맷 / 멀티 키 대비)
       try {
         const purge = (storage) => {
           for (let i = storage.length - 1; i >= 0; i--) {

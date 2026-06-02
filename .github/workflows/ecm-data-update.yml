@@ -41,17 +41,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r auto/requirements.txt
 
-      - name: 날짜 정규화 (빈 값 → 어제 KST)
+      - name: 날짜 정규화 (수동=3일전~오늘 / 자동=어제)
         id: dates
         run: |
           START="${{ github.event.inputs.start_date }}"
           END="${{ github.event.inputs.end_date }}"
+          EVENT="${{ github.event_name }}"
+          KST_TODAY=$(TZ=Asia/Seoul date +%Y-%m-%d)
           KST_YESTERDAY=$(TZ=Asia/Seoul date -d "yesterday" +%Y-%m-%d)
-          [ -z "$START" ] && START=$KST_YESTERDAY
-          [ -z "$END" ] && END=$KST_YESTERDAY
+          KST_3DAYS=$(TZ=Asia/Seoul date -d "3 days ago" +%Y-%m-%d)
+          # 빈 값 기본치: 자동(schedule)=어제 1일 / 수동(dispatch)=3일전~오늘 (당일 후속공시 포착)
+          if [ "$EVENT" = "schedule" ]; then
+            DEF_START=$KST_YESTERDAY; DEF_END=$KST_YESTERDAY
+          else
+            DEF_START=$KST_3DAYS; DEF_END=$KST_TODAY
+          fi
+          [ -z "$START" ] && START=$DEF_START
+          [ -z "$END" ] && END=$DEF_END
           echo "start=$START" >> $GITHUB_OUTPUT
           echo "end=$END" >> $GITHUB_OUTPUT
-          echo "ECM 조회 범위 (KST): $START ~ $END"
+          echo "ECM 트리거=$EVENT · 조회 범위 (KST): $START ~ $END"
 
       - name: DART → Supabase upsert (신규 딜)
         env:

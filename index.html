@@ -96,6 +96,66 @@
     .mock-bar { flex: 1; background: linear-gradient(180deg, var(--accent) 0%, var(--accent-2) 100%);
       border-radius: 2px; min-height: 8px; }
 
+    /* ─── 섹션 헤더 (DCM/ECM 미리보기) ─── */
+    .preview-section .sec-sub { text-align: center; color: var(--muted); font-size: 13px;
+      margin: -28px 0 32px; line-height: 1.6; }
+    .preview-section .sec-divider { display: flex; align-items: center; gap: 10px;
+      margin: 60px 0 28px; }
+    .preview-section .sec-divider .badge { padding: 3px 10px; border-radius: 12px;
+      background: var(--accent-soft); color: var(--accent-2);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em; }
+    .preview-section .sec-divider .ttl { font-size: 18px; font-weight: 700; color: var(--text); }
+    .preview-section .sec-divider .line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ─── KPI 그리드 (4·5 col) ─── */
+    .mock-kpi-grid, .mock-kpi-grid-5 { display: grid; gap: 12px; margin: 0 0 22px; }
+    .mock-kpi-grid   { grid-template-columns: repeat(4, 1fr); }
+    .mock-kpi-grid-5 { grid-template-columns: repeat(5, 1fr); }
+    @media (max-width: 980px) {
+      .mock-kpi-grid, .mock-kpi-grid-5 { grid-template-columns: repeat(2, 1fr); }
+    }
+    .mock-kpi { background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; }
+    .mock-kpi .lbl { font-size: 11px; color: var(--muted); font-weight: 600;
+      display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
+    .mock-kpi .lbl svg { width: 12px; height: 12px; }
+    .mock-kpi .val { font-size: 19px; font-weight: 800; color: var(--text);
+      font-variant-numeric: tabular-nums; line-height: 1.1; }
+    .mock-kpi .val small { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+    .mock-kpi .val.compact { font-size: 16px; }
+    .mock-kpi .sub { font-size: 11px; color: var(--muted); margin-top: 6px;
+      font-variant-numeric: tabular-nums; }
+    .mock-kpi .delta { font-weight: 700; }
+    .mock-kpi .delta.down { color: #dc2626; }
+    .mock-kpi .delta.up { color: var(--green); }
+
+    /* ─── 2/3 col 그리드 ─── */
+    .mock-2col, .mock-3col { display: grid; gap: 16px; margin-bottom: 16px; }
+    .mock-2col { grid-template-columns: 1fr 1fr; }
+    .mock-3col { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 980px) {
+      .mock-2col, .mock-3col { grid-template-columns: 1fr; }
+    }
+
+    /* ─── Deal row mock (최근/다가오는 발행) ─── */
+    .mock-deal-row { display: grid; grid-template-columns: 44px 1fr auto;
+      gap: 10px; align-items: center; padding: 9px 0; font-size: 13px;
+      border-bottom: 1px solid var(--border); }
+    .mock-deal-row:last-child { border-bottom: none; }
+    .mock-deal-row .date { font-size: 11px; color: var(--muted); font-weight: 600;
+      font-variant-numeric: tabular-nums; }
+    .mock-deal-row .issuer { color: var(--text); font-weight: 600; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mock-deal-row .issuer .series { color: var(--muted); font-size: 11px; font-weight: 500; }
+    .mock-deal-row .amt { color: var(--text); font-variant-numeric: tabular-nums;
+      font-size: 12.5px; font-weight: 600; }
+    .mock-deal-row .amt.pending { color: var(--muted); font-weight: 500; }
+
+    /* ─── 차트 (라인 추가) ─── */
+    .mock-chart-wrap { position: relative; }
+    .mock-chart-line { position: absolute; left: 0; right: 0; top: 14px; height: 100px;
+      pointer-events: none; }
+
     /* Bottom CTA */
     .bottom-cta { text-align: center; padding: 70px 24px; margin-top: 40px;
       background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
@@ -196,46 +256,272 @@
     <section class="preview-section mock-section">
       <div class="sec-title">Preview</div>
       <h2 class="sec-h2">이런 데이터를 보실 수 있습니다</h2>
-      <div class="mock-grid">
+      <p class="sec-sub">
+        아래는 데이터 형태를 보여드리는 <strong>예시</strong>입니다.<br/>
+        가입하시면 매일 자동 갱신되는 실시간 데이터를 그대로 이용하실 수 있습니다.
+      </p>
 
-        <!-- Mock: 주관 리그테이블 -->
-        <div class="mock-card">
-          <span class="mock-locked">🔒 회원 전용</span>
-          <h3 class="mock-ttl">2026 공모채 주관 리그테이블</h3>
-          <p class="mock-sub">예시 · 가입 후 실시간 데이터로 표시</p>
-          <div class="mock-blur">
-            <div class="mock-league-row r1"><div class="rank">1</div><div class="name">KB증권</div><div class="amt">6조 6,210억</div><div class="share">21.8%</div></div>
-            <div class="mock-league-row"><div class="rank">2</div><div class="name">NH투자증권</div><div class="amt">5조 7,867억</div><div class="share">19.1%</div></div>
-            <div class="mock-league-row"><div class="rank">3</div><div class="name">한국투자증권</div><div class="amt">3조 1,268억</div><div class="share">10.3%</div></div>
-            <div class="mock-league-row"><div class="rank">4</div><div class="name">키움증권</div><div class="amt">2조 8,742억</div><div class="share">9.5%</div></div>
-            <div class="mock-league-row"><div class="rank">5</div><div class="name">신한투자증권</div><div class="amt">2조 6,476억</div><div class="share">8.7%</div></div>
-            <div class="mock-league-row"><div class="rank">6</div><div class="name">SK증권</div><div class="amt">2조 304억</div><div class="share">6.7%</div></div>
+      <!-- ══════════ DCM 미리보기 ══════════ -->
+      <div class="sec-divider">
+        <span class="badge">DCM</span>
+        <span class="ttl">공모 회사채 발행 정보</span>
+        <span class="line"></span>
+      </div>
+
+      <!-- DCM KPI 4개 -->
+      <div class="mock-kpi-grid">
+        <div class="mock-kpi">
+          <div class="lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            2026년 5월 공모채 발행건수
           </div>
+          <div class="val">11<small>건</small></div>
+          <div class="sub"><span class="delta down">▼ 50.0%</span> 전월 대비</div>
         </div>
-
-        <!-- Mock: 월별 추이 -->
-        <div class="mock-card">
-          <span class="mock-locked">🔒 회원 전용</span>
-          <h3 class="mock-ttl">월별 공모채 발행 추이</h3>
-          <p class="mock-sub">예시 · 최근 13개월 / 회사채·IPO·유증 각각 제공</p>
-          <div class="mock-chart">
-            <div class="mock-bar" style="height: 35%;"></div>
-            <div class="mock-bar" style="height: 60%;"></div>
-            <div class="mock-bar" style="height: 45%;"></div>
-            <div class="mock-bar" style="height: 75%;"></div>
-            <div class="mock-bar" style="height: 50%;"></div>
-            <div class="mock-bar" style="height: 90%;"></div>
-            <div class="mock-bar" style="height: 65%;"></div>
-            <div class="mock-bar" style="height: 80%;"></div>
-            <div class="mock-bar" style="height: 55%;"></div>
-            <div class="mock-bar" style="height: 70%;"></div>
-            <div class="mock-bar" style="height: 95%;"></div>
-            <div class="mock-bar" style="height: 60%;"></div>
-            <div class="mock-bar" style="height: 85%;"></div>
+        <div class="mock-kpi">
+          <div class="lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            2026년 5월 공모채 발행총액
           </div>
-          <p style="font-size: 11px; color: var(--muted); text-align: center; margin: 12px 0 0;">건수 / 금액 토글 · 전체 보기 가능</p>
+          <div class="val">3조 530억</div>
+          <div class="sub"><span class="delta down">▼ 22.0%</span> 전월 대비</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16"/></svg>
+            올해 공모채 주관 1위
+          </div>
+          <div class="val">KB증권</div>
+          <div class="sub">6조 6,210억 · 점유율 21.83%</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/></svg>
+            올해 공모채 최대 단일 발행
+          </div>
+          <div class="val compact">LG에너지솔루션 <small>5회차</small></div>
+          <div class="sub">8,000억 · 2026-03-05</div>
         </div>
       </div>
+
+      <!-- DCM 주관 / 인수 리그 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">2026 공모채 주관 리그테이블</h3>
+          <p class="mock-sub">TOP 10 · 올해 누적</p>
+          <div class="mock-league-row r1"><div class="rank">1</div><div class="name">KB증권</div><div class="amt">6조 6,210억</div><div class="share">21.8%</div></div>
+          <div class="mock-league-row"><div class="rank">2</div><div class="name">NH투자증권</div><div class="amt">5조 7,867억</div><div class="share">19.1%</div></div>
+          <div class="mock-league-row"><div class="rank">3</div><div class="name">한국투자증권</div><div class="amt">3조 1,268억</div><div class="share">10.3%</div></div>
+          <div class="mock-league-row"><div class="rank">4</div><div class="name">키움증권</div><div class="amt">2조 8,742억</div><div class="share">9.5%</div></div>
+          <div class="mock-league-row"><div class="rank">5</div><div class="name">신한투자증권</div><div class="amt">2조 6,476억</div><div class="share">8.7%</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">2026 공모채 인수 리그테이블</h3>
+          <p class="mock-sub">TOP 10 · 올해 누적</p>
+          <div class="mock-league-row r1"><div class="rank">1</div><div class="name">KB증권</div><div class="amt">5조 2,312억</div><div class="share">17.2%</div></div>
+          <div class="mock-league-row"><div class="rank">2</div><div class="name">NH투자증권</div><div class="amt">4조 6,950억</div><div class="share">15.5%</div></div>
+          <div class="mock-league-row"><div class="rank">3</div><div class="name">한국투자증권</div><div class="amt">2조 7,455억</div><div class="share">9.1%</div></div>
+          <div class="mock-league-row"><div class="rank">4</div><div class="name">신한투자증권</div><div class="amt">2조 6,503억</div><div class="share">8.7%</div></div>
+          <div class="mock-league-row"><div class="rank">5</div><div class="name">키움증권</div><div class="amt">2조 5,399억</div><div class="share">8.4%</div></div>
+        </div>
+      </div>
+
+      <!-- DCM 최근 / 다가오는 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">최근 발행 공모채</h3>
+          <p class="mock-sub">청약일 기준 · 최근 10건</p>
+          <div class="mock-deal-row"><div class="date">05.28</div><div class="issuer">한화에어로스페이스 <span class="series">147회차</span></div><div class="amt">3,000억</div></div>
+          <div class="mock-deal-row"><div class="date">05.27</div><div class="issuer">SK하이닉스 <span class="series">42회차</span></div><div class="amt">5,000억</div></div>
+          <div class="mock-deal-row"><div class="date">05.23</div><div class="issuer">포스코 <span class="series">98회차</span></div><div class="amt">4,000억</div></div>
+          <div class="mock-deal-row"><div class="date">05.21</div><div class="issuer">현대모비스 <span class="series">61회차</span></div><div class="amt">2,500억</div></div>
+          <div class="mock-deal-row"><div class="date">05.19</div><div class="issuer">GS칼텍스 <span class="series">76회차</span></div><div class="amt">2,000억</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">다가오는 공모채 청약</h3>
+          <p class="mock-sub">증권신고서 제출 · 수요예측 전</p>
+          <div class="mock-deal-row"><div class="date">06.11</div><div class="issuer">한국전력공사 <span class="series">1003회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.10</div><div class="issuer">LG에너지솔루션 <span class="series">6회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.05</div><div class="issuer">삼성SDI <span class="series">28회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.04</div><div class="issuer">S-Oil <span class="series">53회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.03</div><div class="issuer">KT <span class="series">112회차</span></div><div class="amt pending">미확정</div></div>
+        </div>
+      </div>
+
+      <!-- DCM 월별 추이 -->
+      <div class="mock-card">
+        <h3 class="mock-ttl">월별 공모채 발행 추이</h3>
+        <p class="mock-sub">최근 1년 · 단위: 건 / 억원 · 건수/금액 토글</p>
+        <div class="mock-chart">
+          <div class="mock-bar" style="height: 35%;"></div>
+          <div class="mock-bar" style="height: 60%;"></div>
+          <div class="mock-bar" style="height: 45%;"></div>
+          <div class="mock-bar" style="height: 75%;"></div>
+          <div class="mock-bar" style="height: 50%;"></div>
+          <div class="mock-bar" style="height: 90%;"></div>
+          <div class="mock-bar" style="height: 65%;"></div>
+          <div class="mock-bar" style="height: 80%;"></div>
+          <div class="mock-bar" style="height: 55%;"></div>
+          <div class="mock-bar" style="height: 70%;"></div>
+          <div class="mock-bar" style="height: 95%;"></div>
+          <div class="mock-bar" style="height: 60%;"></div>
+          <div class="mock-bar" style="height: 85%;"></div>
+        </div>
+      </div>
+
+      <!-- ══════════ ECM 미리보기 ══════════ -->
+      <div class="sec-divider">
+        <span class="badge">ECM</span>
+        <span class="ttl">IPO · 유상증자 정보</span>
+        <span class="line"></span>
+      </div>
+
+      <!-- ECM KPI 5개 -->
+      <div class="mock-kpi-grid-5">
+        <div class="mock-kpi">
+          <div class="lbl">지난달 IPO</div>
+          <div class="val">4<small>건</small></div>
+          <div class="sub">7,820억</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">지난달 유상증자</div>
+          <div class="val">9<small>건</small></div>
+          <div class="sub">1조 4,300억</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026 ECM 통합 주관 1위</div>
+          <div class="val compact">미래에셋증권</div>
+          <div class="sub">2조 8,160억 · 18.4%</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">올해 최대 IPO</div>
+          <div class="val compact">에이피알</div>
+          <div class="sub">3,200억 · 2026-02-27</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">올해 최대 유상증자</div>
+          <div class="val compact">한화오션</div>
+          <div class="sub">2조 1,544억 · 2026-04-12</div>
+        </div>
+      </div>
+
+      <!-- ECM 리그 3-col -->
+      <div class="mock-3col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">2026 ECM 통합 리그테이블</h3>
+          <p class="mock-sub">IPO + 유상증자 합산 TOP 10</p>
+          <div class="mock-league-row r1"><div class="rank">1</div><div class="name">미래에셋증권</div><div class="amt">2조 8,160억</div><div class="share">18.4%</div></div>
+          <div class="mock-league-row"><div class="rank">2</div><div class="name">KB증권</div><div class="amt">2조 4,720억</div><div class="share">16.1%</div></div>
+          <div class="mock-league-row"><div class="rank">3</div><div class="name">한국투자증권</div><div class="amt">1조 9,840억</div><div class="share">13.0%</div></div>
+          <div class="mock-league-row"><div class="rank">4</div><div class="name">NH투자증권</div><div class="amt">1조 7,360억</div><div class="share">11.3%</div></div>
+          <div class="mock-league-row"><div class="rank">5</div><div class="name">삼성증권</div><div class="amt">1조 5,200억</div><div class="share">9.9%</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">2026 IPO 리그테이블</h3>
+          <p class="mock-sub">IPO 주관 TOP 10</p>
+          <div class="mock-league-row r1"><div class="rank">1</div><div class="name">미래에셋증권</div><div class="amt">1조 6,200억</div><div class="share">22.5%</div></div>
+          <div class="mock-league-row"><div class="rank">2</div><div class="name">한국투자증권</div><div class="amt">1조 3,440억</div><div class="share">18.7%</div></div>
+          <div class="mock-league-row"><div class="rank">3</div><div class="name">NH투자증권</div><div class="amt">9,860억</div><div class="share">13.7%</div></div>
+          <div class="mock-league-row"><div class="rank">4</div><div class="name">삼성증권</div><div class="amt">7,640억</div><div class="share">10.6%</div></div>
+          <div class="mock-league-row"><div class="rank">5</div><div class="name">KB증권</div><div class="amt">6,940억</div><div class="share">9.6%</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">2026 유상증자 리그테이블</h3>
+          <p class="mock-sub">유상증자 주관 TOP 10</p>
+          <div class="mock-league-row r1"><div class="rank">1</div><div class="name">KB증권</div><div class="amt">1조 7,780억</div><div class="share">21.4%</div></div>
+          <div class="mock-league-row"><div class="rank">2</div><div class="name">미래에셋증권</div><div class="amt">1조 1,960억</div><div class="share">14.4%</div></div>
+          <div class="mock-league-row"><div class="rank">3</div><div class="name">신한투자증권</div><div class="amt">9,540억</div><div class="share">11.5%</div></div>
+          <div class="mock-league-row"><div class="rank">4</div><div class="name">삼성증권</div><div class="amt">7,560억</div><div class="share">9.1%</div></div>
+          <div class="mock-league-row"><div class="rank">5</div><div class="name">하나증권</div><div class="amt">7,120억</div><div class="share">8.6%</div></div>
+        </div>
+      </div>
+
+      <!-- ECM 최근 / 다가오는 상장 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">최근 상장</h3>
+          <p class="mock-sub">완료 IPO 기준 · 최근 10건</p>
+          <div class="mock-deal-row"><div class="date">05.26</div><div class="issuer">컴투스플랫폼 <span class="series">코스닥</span></div><div class="amt">1,840억</div></div>
+          <div class="mock-deal-row"><div class="date">05.14</div><div class="issuer">더본코리아 <span class="series">코스피</span></div><div class="amt">2,520억</div></div>
+          <div class="mock-deal-row"><div class="date">04.30</div><div class="issuer">에이피알 <span class="series">코스피</span></div><div class="amt">3,200억</div></div>
+          <div class="mock-deal-row"><div class="date">04.18</div><div class="issuer">유라클 <span class="series">코스닥</span></div><div class="amt">680억</div></div>
+          <div class="mock-deal-row"><div class="date">04.07</div><div class="issuer">에프앤가이드 <span class="series">코스닥</span></div><div class="amt">920억</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">다가오는 상장</h3>
+          <p class="mock-sub">IPO 진행 중</p>
+          <div class="mock-deal-row"><div class="date">06.18</div><div class="issuer">케이뱅크 <span class="series">코스피</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.12</div><div class="issuer">엠앤씨솔루션 <span class="series">코스닥</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.05</div><div class="issuer">파인메딕스 <span class="series">코스닥</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">예정</div><div class="issuer">노머스 <span class="series">코스닥</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">예정</div><div class="issuer">셀비온 <span class="series">코스닥</span></div><div class="amt pending">미확정</div></div>
+        </div>
+      </div>
+
+      <!-- ECM 최근 / 다가오는 유상증자 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">최근 유상증자</h3>
+          <p class="mock-sub">최소 1차 발행가액 확정 기준 · 최근 10건</p>
+          <div class="mock-deal-row"><div class="date">05.22</div><div class="issuer">두산에너빌리티 <span class="series">주주배정후 일반공모</span></div><div class="amt">1조 4,200억</div></div>
+          <div class="mock-deal-row"><div class="date">05.15</div><div class="issuer">CJ대한통운 <span class="series">제3자배정</span></div><div class="amt">3,800억</div></div>
+          <div class="mock-deal-row"><div class="date">05.07</div><div class="issuer">SK텔레콤 <span class="series">주주배정</span></div><div class="amt">2,600억</div></div>
+          <div class="mock-deal-row"><div class="date">04.24</div><div class="issuer">롯데에너지머티리얼즈 <span class="series">주주배정</span></div><div class="amt">4,100억</div></div>
+          <div class="mock-deal-row"><div class="date">04.09</div><div class="issuer">한화오션 <span class="series">주주배정</span></div><div class="amt">2조 1,544억</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">다가오는 유상증자</h3>
+          <p class="mock-sub">최종 발행가액 확정 전</p>
+          <div class="mock-deal-row"><div class="date">06.20</div><div class="issuer">현대로템 <span class="series">주주배정</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.13</div><div class="issuer">LX인터내셔널 <span class="series">제3자배정</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.07</div><div class="issuer">HL만도 <span class="series">주주배정</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.04</div><div class="issuer">아모레퍼시픽 <span class="series">제3자배정</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.02</div><div class="issuer">CJ ENM <span class="series">주주배정</span></div><div class="amt pending">미확정</div></div>
+        </div>
+      </div>
+
+      <!-- ECM 월별 추이 2개 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">월별 IPO 추이</h3>
+          <p class="mock-sub">완료 IPO 기준 · 최근 1년</p>
+          <div class="mock-chart">
+            <div class="mock-bar" style="height: 25%;"></div>
+            <div class="mock-bar" style="height: 50%;"></div>
+            <div class="mock-bar" style="height: 30%;"></div>
+            <div class="mock-bar" style="height: 70%;"></div>
+            <div class="mock-bar" style="height: 45%;"></div>
+            <div class="mock-bar" style="height: 80%;"></div>
+            <div class="mock-bar" style="height: 55%;"></div>
+            <div class="mock-bar" style="height: 60%;"></div>
+            <div class="mock-bar" style="height: 40%;"></div>
+            <div class="mock-bar" style="height: 75%;"></div>
+            <div class="mock-bar" style="height: 90%;"></div>
+            <div class="mock-bar" style="height: 50%;"></div>
+            <div class="mock-bar" style="height: 65%;"></div>
+          </div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">월별 유상증자 추이</h3>
+          <p class="mock-sub">최소 1차 발행가액 확정 기준 · 최근 1년</p>
+          <div class="mock-chart">
+            <div class="mock-bar" style="height: 40%;"></div>
+            <div class="mock-bar" style="height: 65%;"></div>
+            <div class="mock-bar" style="height: 50%;"></div>
+            <div class="mock-bar" style="height: 85%;"></div>
+            <div class="mock-bar" style="height: 60%;"></div>
+            <div class="mock-bar" style="height: 75%;"></div>
+            <div class="mock-bar" style="height: 45%;"></div>
+            <div class="mock-bar" style="height: 90%;"></div>
+            <div class="mock-bar" style="height: 70%;"></div>
+            <div class="mock-bar" style="height: 55%;"></div>
+            <div class="mock-bar" style="height: 80%;"></div>
+            <div class="mock-bar" style="height: 95%;"></div>
+            <div class="mock-bar" style="height: 65%;"></div>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ════════ Bottom CTA ════════ -->

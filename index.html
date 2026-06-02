@@ -199,8 +199,11 @@
     .mock-chart-line { position: absolute; left: 0; right: 0; top: 14px; height: 100px;
       pointer-events: none; }
 
+    /* mock-section 마지막 표 카드 후 Bottom CTA 까지 공백 최소화 */
+    .preview-section.mock-section { padding-bottom: 20px; }
+
     /* Bottom CTA */
-    .bottom-cta { text-align: center; padding: 20px 24px 60px; margin-top: 6px;
+    .bottom-cta { text-align: center; padding: 40px 24px 60px; margin-top: 0;
       background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
     .bottom-cta h2 { font-size: 24px; font-weight: 700; margin: 0 0 14px; color: var(--text); }
     .bottom-cta p { color: var(--muted); font-size: 14px; margin: 0 0 28px; line-height: 1.6; }

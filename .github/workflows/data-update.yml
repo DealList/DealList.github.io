@@ -109,6 +109,7 @@ jobs:
             echo "Uploading $f to site-data ..."
             HTTP_CODE=$(curl --silent --show-error --output /tmp/upload-resp.txt --write-out "%{http_code}" \
               -X POST "$SUPABASE_URL/storage/v1/object/site-data/$f" \
+              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
               -H "Content-Type: application/json" \
               -H "x-upsert: true" \

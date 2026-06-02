@@ -17,15 +17,19 @@
     /* ===== Preview 페이지 전용 스타일 ===== */
     .preview-wrap { max-width: 1200px; margin: 0 auto; padding: 40px 32px 60px; }
 
-    /* Hero — 테마별 로고 토글 */
-    .preview-hero .dark-only { display: none; }
-    :root[data-theme="dark"] .preview-hero .light-only { display: none; }
-    :root[data-theme="dark"] .preview-hero .dark-only  { display: inline-block; }
+    /* Hero — 테마별 로고 토글 (!important 로 다른 .hero-logo-img 규칙보다 확정 우선) */
+    .preview-hero .dark-only { display: none !important; }
+    :root[data-theme="dark"] .preview-hero .light-only { display: none !important; }
+    :root[data-theme="dark"] .preview-hero .dark-only  { display: inline-block !important; }
 
     .preview-hero { text-align: center; padding: 50px 0 70px; border-bottom: 1px solid var(--border); }
     .preview-hero .kicker { font-size: 14px; font-weight: 600; letter-spacing: 0.28em;
       color: var(--muted); text-transform: uppercase; margin-bottom: 18px; }
-    .preview-hero .hero-logo-img { height: 80px; width: auto; display: inline-block; }
+    /* 로고 크기: 메인페이지 hero 와 동일 (메인은 h1 font-size 80px * 1.3em ≈ 104px) */
+    .preview-hero .hero-logo-img { height: 104px; width: auto; display: inline-block; }
+    @media (max-width: 760px) {
+      .preview-hero .hero-logo-img { height: 68px; }
+    }
     .preview-hero .lead { font-size: 17px; color: var(--text-2); line-height: 1.6; margin: 24px 0 36px; }
     .preview-hero .cta-group { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
     .preview-hero .cta-primary, .preview-hero .cta-secondary {

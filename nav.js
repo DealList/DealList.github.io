@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
- * Deal List — 공유 네비게이션 컴포넌트
+ * Numbers Pool — 공유 네비게이션 컴포넌트
  *
  * 사용법:
  *   <div id="nav-mount" data-active="dcm-deals" data-root=".."></div>
@@ -11,6 +11,11 @@
  *
  * data-root: 사이트 루트로의 상대 경로 (기본 ".")
  *   메인페이지: ""  /  하위 페이지: ".."
+ *
+ * 인증 기능 (자동):
+ *   - 보호 페이지 + 비로그인 → /login/ 으로 리디렉트
+ *   - 로그인됐지만 status ≠ approved → /pending/ 으로
+ *   - 로그인 + approved → 우측 상단에 "이름님 환영합니다 · 로그아웃"
  * ───────────────────────────────────────────────────────────── */
 
 (function () {
@@ -92,6 +97,7 @@
           <span class="pulse"></span>
           <span id="nav-updated">최종 업데이트 로딩 중…</span>
         </div>
+        <div class="nav-auth" id="nav-auth"></div>
         <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </button>
@@ -99,7 +105,28 @@
     </nav>
   `;
 
-  // Wire theme toggle — 기본값 dark. 사용자가 명시적으로 'light' 선택한 경우만 light.
+  // ─── nav-auth 영역 스타일 (한 번만 inject) ───
+  if (!document.getElementById('np-nav-auth-style')) {
+    const st = document.createElement('style');
+    st.id = 'np-nav-auth-style';
+    st.textContent = `
+      .nav-auth { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+      .nav-welcome { color: var(--text-2); white-space: nowrap; }
+      .nav-welcome .nav-status-badge {
+        margin-left: 6px; padding: 1px 6px; border-radius: 8px;
+        background: var(--amber-bg); color: var(--amber); font-size: 10px; font-weight: 700;
+      }
+      .nav-logout, .nav-login {
+        color: var(--accent); text-decoration: none; font-weight: 600;
+        padding: 5px 11px; border: 1px solid var(--border); border-radius: 5px;
+        white-space: nowrap;
+      }
+      .nav-logout:hover, .nav-login:hover { background: var(--accent); color: white; border-color: var(--accent); }
+    `;
+    document.head.appendChild(st);
+  }
+
+  // ─── Theme toggle wire (기존 그대로) ───
   const root_el = document.documentElement;
   const KEY = 'deallist-theme';
   if (localStorage.getItem(KEY) !== 'light') root_el.setAttribute('data-theme', 'dark');
@@ -114,5 +141,118 @@
         localStorage.setItem(KEY, 'dark');
       }
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 인증 가드 + 우측 상단 로그인 상태 표시
+  // ═══════════════════════════════════════════════════════════
+
+  // 공개 경로 (비로그인이어도 OK)
+  // /admin/* 은 자체 가드 있으니 nav 가 강제 리디렉트 안 함 (admin/members/app.js 에서 처리)
+  const path = location.pathname;
+  const PUBLIC_PREFIXES = ['/login/', '/signup/', '/logout/', '/pending/', '/admin/'];
+  const isPublic = PUBLIC_PREFIXES.some(p => path === p || path.startsWith(p));
+
+  loadSupabase().then(async (sb) => {
+    if (!sb) {
+      // SDK 로드 실패 — 보호 페이지여도 일단 통과 (사용자가 사이트 자체를 못 보면 더 답답)
+      renderAuthArea(null, null);
+      return;
+    }
+    let user = null, profile = null;
+    try {
+      const sres = await sb.auth.getSession();
+      user = (sres.data && sres.data.session) ? sres.data.session.user : null;
+      if (user) {
+        const pres = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        profile = pres.data || null;
+      }
+    } catch (e) {
+      console.warn('[nav] auth check failed', e);
+    }
+
+    // 보호 페이지 + 비로그인 → 로그인 페이지로
+    if (!isPublic && !user) {
+      location.replace('/login/?next=' + encodeURIComponent(path + location.search));
+      return;
+    }
+    // 보호 페이지 + 미승인 → 대기 페이지로
+    if (!isPublic && profile && profile.status !== 'approved') {
+      const dest = profile.status === 'pending'
+        ? '/pending/'
+        : '/pending/?denied=' + profile.status;
+      location.replace(dest);
+      return;
+    }
+
+    renderAuthArea(user, profile);
+  }).catch(e => {
+    console.warn('[nav] supabase load error', e);
+    renderAuthArea(null, null);
+  });
+
+  // ─── 보조 함수 ───
+  function loadSupabase() {
+    return new Promise(async (resolve) => {
+      if (window.sb) { resolve(window.sb); return; }
+      try {
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+        await loadScript(root + '/supabase-client.js?v=20260602c');
+        await loadScript(root + '/auth-helper.js?v=20260602c');
+        resolve(window.sb || null);
+      } catch (e) {
+        console.warn('[nav] script load failed', e);
+        resolve(null);
+      }
+    });
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      // 이미 로드된 스크립트면 스킵
+      const key = src.split('?')[0];
+      const exists = Array.from(document.scripts).some(s => s.src && s.src.includes(key));
+      if (exists) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('failed: ' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  function renderAuthArea(user, profile) {
+    const el = document.getElementById('nav-auth');
+    if (!el) return;
+
+    if (user) {
+      // 표시 이름: profile.name > user_metadata.full_name/name > 이메일 앞부분
+      const meta = (user.user_metadata || {});
+      const name =
+        (profile && profile.name) ||
+        meta.full_name || meta.name ||
+        (user.email ? user.email.split('@')[0] : '회원');
+
+      const status = profile ? profile.status : null;
+      const statusBadge =
+        status && status !== 'approved'
+          ? ` <span class="nav-status-badge">${statusLabel(status)}</span>`
+          : '';
+
+      el.innerHTML = `
+        <span class="nav-welcome">${esc(name)}님 환영합니다${statusBadge}</span>
+        <a href="${root}/logout/" class="nav-logout">로그아웃</a>
+      `;
+    } else {
+      // 비로그인 (공개 페이지에서만 도달 — 보호 페이지는 위에서 redirect 됨)
+      el.innerHTML = `<a href="${root}/login/" class="nav-login">로그인</a>`;
+    }
+  }
+
+  function statusLabel(s) {
+    return ({ pending: '승인 대기', rejected: '가입 거절', revoked: '권한 해제' })[s] || s;
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 })();

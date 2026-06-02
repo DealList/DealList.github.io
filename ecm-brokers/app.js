@@ -50,8 +50,8 @@
   async function loadAll() {
     try {
       const [d, m] = await Promise.all([
-        fetch("../ecm_data.json",{cache:"no-store"}).then(r=>r.json()),
-        fetch("../ecm_meta.json",{cache:"no-store"}).then(r=>r.json()).catch(()=>({})),
+        NP_loadData("ecm_data.json"),
+        NP_loadData("ecm_meta.json").catch(()=>({})),
       ]);
       RAW = d; META = m;
       const nu = $("nav-updated");

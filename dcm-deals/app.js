@@ -106,8 +106,8 @@
   async function loadAll() {
     try {
       const [d, m] = await Promise.all([
-        fetch("../data.json", { cache: "no-store" }).then((r) => r.json()),
-        fetch("../meta.json", { cache: "no-store" }).then((r) => r.json()),
+        NP_loadData("data.json"),
+        NP_loadData("meta.json"),
       ]);
       DATA = d;
       META = m;

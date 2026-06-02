@@ -44,8 +44,8 @@ const shortDay = (dateStr) => dateStr.slice(8, 10);
 async function fillKPI() {
   try {
     const [s, dataRaw] = await Promise.all([
-      fetch('summary.json', { cache: 'no-store' }).then(r => r.json()),
-      fetch('data.json', { cache: 'no-store' }).then(r => r.json()),
+      NP_loadData('summary.json'),
+      NP_loadData('data.json'),
     ]);
     document.getElementById('nav-updated').textContent =
       `최종 업데이트 ${s.updated || '—'}`;
@@ -136,7 +136,7 @@ async function fillKPI() {
 /* ─── (2) data.json — derive recent/league/trend/upcoming ─── */
 async function fillFromData() {
   let data;
-  try { data = await fetch('data.json', { cache: 'no-store' }).then(r => r.json()); }
+  try { data = await NP_loadData('data.json'); }
   catch (e) { console.error('data.json load failed', e); return; }
 
   // Aggregate to series-level (한 회차 = 1건). data.json은 트랜치 단위라 series 묶어야 함.
@@ -456,8 +456,8 @@ async function loadEcm() {
   let data, summary;
   try {
     [data, summary] = await Promise.all([
-      fetch('ecm_data.json', { cache: 'no-store' }).then(r => r.json()),
-      fetch('ecm_summary.json', { cache: 'no-store' }).then(r => r.json()),
+      NP_loadData('ecm_data.json'),
+      NP_loadData('ecm_summary.json'),
     ]);
   } catch (e) { console.error('ECM load failed', e); return; }
   _ecmLoaded = true;
@@ -718,7 +718,7 @@ function wireSectionTabs() {
   wireSectionTabs();
   // Load summary first for KPI + the max_date used by data filtering
   try {
-    const s = await fetch('summary.json', { cache: 'no-store' }).then(r => r.json());
+    const s = await NP_loadData('summary.json');
     window._summary = s;
   } catch (e) { console.error('summary load failed', e); }
 

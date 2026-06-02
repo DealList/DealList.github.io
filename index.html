@@ -8,6 +8,11 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="deallist.css?v=20260601f" />
   <link rel="stylesheet" href="landing.css?v=20260601h" />
+  <!-- Supabase + auth (data-loader 가 NP_loadData 제공) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js?v=20260602c"></script>
+  <script src="auth-helper.js?v=20260602c"></script>
+  <script src="data-loader.js?v=20260602e"></script>
 </head>
 <body>
 
@@ -284,6 +289,6 @@
     <div><a href="about/">데이터 안내</a></div>
   </footer>
 
-  <script src="home.js?v=20260601f"></script>
+  <script src="home.js?v=20260602e"></script>
 </body>
 </html>

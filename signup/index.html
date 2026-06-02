@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>가입 신청 — Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../auth.css?v=20260602a" />
+</head>
+<body>
+
+  <main class="auth-wrap">
+    <h1>가입 신청</h1>
+    <div class="sub">관리자 승인 후 이용 가능합니다.<br/>(사내 도메인 <code>@bloter.net</code> · <code>@numbers.co.kr</code> 은 자동 승인)</div>
+
+    <button id="btn-google" class="btn-google" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.5 12.27c0-.79-.07-1.54-.2-2.27H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.22-4.74 3.22-8.32z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.83z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.83C6.71 7.31 9.14 5.38 12 5.38z"/>
+      </svg>
+      Google로 가입
+    </button>
+
+    <div class="divider"><span>또는 이메일로</span></div>
+
+    <form id="signup-form">
+      <label for="email">이메일 (아이디로 사용)</label>
+      <input id="email" type="email" autocomplete="email" required />
+
+      <label for="password">비밀번호 (6자 이상)</label>
+      <input id="password" type="password" autocomplete="new-password" minlength="6" required />
+
+      <label for="name">이름</label>
+      <input id="name" type="text" required />
+
+      <label for="affiliation">소속 (회사 · 부서 · 직무)</label>
+      <input id="affiliation" type="text" placeholder="예: 블로터 / 산업부 / 기자" />
+
+      <label for="reason">가입 사유 (간단히)</label>
+      <input id="reason" type="text" placeholder="예: 발행 데이터 리서치 참고" />
+
+      <button type="submit" class="btn-primary" id="btn-signup">가입 신청</button>
+    </form>
+
+    <div id="msg"></div>
+
+    <div class="foot-link">
+      이미 가입하셨나요? <a href="../login/">로그인</a>
+    </div>
+  </main>
+
+  <a href="../" class="home-link">← Numbers Pool 홈으로</a>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-client.js?v=20260602a"></script>
+  <script src="../auth-helper.js?v=20260602a"></script>
+  <script src="app.js?v=20260602a"></script>
+</body>
+</html>

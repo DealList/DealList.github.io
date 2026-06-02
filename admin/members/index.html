@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원 관리 — Numbers Pool Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
+  <style>
+    body { background: var(--bg); margin: 0; color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; }
+    .topbar { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .topbar h1 { margin: 0; font-size: 18px; }
+    .topbar a { color: var(--muted); text-decoration: none; font-size: 13px; }
+    .topbar a:hover { color: var(--text); }
+    main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+    .filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .filter-row select, .filter-row input, .filter-row button {
+      padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px;
+      background: var(--surface); color: var(--text); font-size: 13px;
+    }
+    .filter-row input[type="search"] { min-width: 240px; }
+    .filter-row button { cursor: pointer; }
+    .filter-row button:hover { background: var(--bg); }
+    .filter-row .count { margin-left: auto; color: var(--muted); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    th { background: var(--bg); font-weight: 600; color: var(--text-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .status-pending  { background: var(--amber-bg); color: var(--amber); }
+    .status-approved { background: var(--green-bg); color: var(--green); }
+    .status-rejected { background: #fee2e2; color: #b91c1c; }
+    .status-revoked  { background: #e5e7eb; color: #6b7280; }
+    :root[data-theme="dark"] .status-rejected { background: #3a1414; color: #fca5a5; }
+    :root[data-theme="dark"] .status-revoked  { background: #1f2937; color: #9ca3af; }
+    .actions { white-space: nowrap; }
+    .actions button {
+      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
+      border: 1px solid var(--border); background: var(--surface); cursor: pointer;
+      margin-right: 4px;
+    }
+    .actions .btn-approve { background: var(--accent); color: white; border-color: var(--accent); }
+    .actions .btn-approve:hover { background: var(--accent-2); }
+    .actions .btn-reject, .actions .btn-revoke { color: #b91c1c; border-color: #fecaca; }
+    .actions .btn-reject:hover, .actions .btn-revoke:hover { background: #fee2e2; }
+    :root[data-theme="dark"] .actions .btn-reject, :root[data-theme="dark"] .actions .btn-revoke { color: #fca5a5; border-color: #5a2020; }
+    :root[data-theme="dark"] .actions .btn-reject:hover, :root[data-theme="dark"] .actions .btn-revoke:hover { background: #3a1414; }
+    .empty { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 14px; }
+    .method-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--bg); color: var(--muted); }
+    .role-admin { color: var(--accent); font-weight: 700; }
+    #loading { padding: 60px 20px; text-align: center; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <h1>회원 관리 — Numbers Pool Admin</h1>
+    <a href="../../">← 홈으로</a>
+  </header>
+
+  <main>
+    <div class="filter-row">
+      <label>상태
+        <select id="f-status">
+          <option value="">전체</option>
+          <option value="pending" selected>승인 대기</option>
+          <option value="approved">승인됨</option>
+          <option value="rejected">거절</option>
+          <option value="revoked">해제</option>
+        </select>
+      </label>
+      <input id="f-search" type="search" placeholder="이메일 / 이름 검색" />
+      <button id="btn-refresh">새로고침</button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div id="loading">불러오는 중...</div>
+    <table id="grid" hidden>
+      <thead>
+        <tr>
+          <th>가입일</th>
+          <th>이메일</th>
+          <th>이름</th>
+          <th>소속</th>
+          <th>가입 사유</th>
+          <th>방법</th>
+          <th>상태</th>
+          <th>역할</th>
+          <th>작업</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div id="empty" class="empty" hidden>표시할 회원이 없습니다.</div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../supabase-client.js?v=20260602a"></script>
+  <script src="../../auth-helper.js?v=20260602a"></script>
+  <script src="app.js?v=20260602a"></script>
+</body>
+</html>

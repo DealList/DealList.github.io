@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>승인 대기 — Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../auth.css?v=20260602a" />
+</head>
+<body>
+
+  <main class="auth-wrap">
+    <h1 id="title">승인 대기 중</h1>
+    <div class="sub" id="subtitle">
+      가입 신청이 접수되었습니다. 관리자 승인 후 이용 가능합니다.<br/>
+      승인되면 등록하신 이메일로 알려드립니다.
+    </div>
+
+    <div class="info-box">
+      <div class="lbl">로그인 계정</div>
+      <div class="val" id="email">—</div>
+      <div class="lbl" style="margin-top: 10px;">상태</div>
+      <div class="val" id="status">—</div>
+    </div>
+
+    <button id="btn-logout" class="btn-primary" type="button">로그아웃</button>
+  </main>
+
+  <a href="../" class="home-link">← Numbers Pool 홈으로</a>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-client.js?v=20260602a"></script>
+  <script src="../auth-helper.js?v=20260602a"></script>
+  <script src="app.js?v=20260602a"></script>
+</body>
+</html>

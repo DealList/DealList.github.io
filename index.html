@@ -212,14 +212,16 @@
     }
     .bottom-cta .cta-btn:hover { background: var(--accent-2); }
     :root[data-theme="dark"] .bottom-cta .cta-btn { color: #1a1408; }
-    .bottom-cta .hint {
+    /* 승인 안내 — Bottom CTA 카드 아래 별도 배치 (카드 밖) */
+    .approval-notice-wrap { text-align: center; margin-top: 28px; }
+    .approval-notice {
       display: inline-flex; align-items: center; gap: 7px;
-      margin-top: 22px; padding: 9px 16px;
+      padding: 11px 20px;
       background: var(--accent-soft); color: var(--accent-2);
-      border-radius: 999px; font-size: 13.5px; font-weight: 700;
+      border-radius: 999px; font-size: 14px; font-weight: 700;
     }
-    .bottom-cta .hint strong { font-weight: 800; }
-    .bottom-cta .hint svg { flex-shrink: 0; }
+    .approval-notice strong { font-weight: 800; }
+    .approval-notice svg { flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -730,11 +732,15 @@
         가입 신청
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
       </a>
-      <p class="hint">
+    </section>
+
+    <!-- 가입신청 카드 아래 — 별도 강조 안내 -->
+    <div class="approval-notice-wrap">
+      <p class="approval-notice">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         가입 후 <strong>관리자 승인</strong>을 거쳐야 이용 가능합니다
       </p>
-    </section>
+    </div>
 
   </main>
 

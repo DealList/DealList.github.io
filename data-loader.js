@@ -47,7 +47,27 @@
     return _sessionWarm;
   }
 
-  window.NP_loadData = async function (filename) {
+  // ── 로딩 오버레이 자동 해제 (np-loading.js 와 연동) ──
+  // 동시/연속 호출을 추적해, "마지막 로드"가 끝난 직후 오버레이를 닫는다.
+  // 페이지마다 별도 코드 없이 모든 데이터 페이지에서 동작.
+  let _inflight = 0, _anyStarted = false, _dismissTimer = null;
+  function _markStart() {
+    _anyStarted = true;
+    _inflight++;
+    if (_dismissTimer) { clearTimeout(_dismissTimer); _dismissTimer = null; }
+  }
+  function _markEnd() {
+    _inflight = Math.max(0, _inflight - 1);
+    if (_inflight === 0 && _anyStarted) {
+      if (_dismissTimer) clearTimeout(_dismissTimer);
+      // 200ms 디바운스 — 연속 호출 사이의 짧은 공백에 닫히지 않게
+      _dismissTimer = setTimeout(() => {
+        if (window.NP_loadingDone) window.NP_loadingDone();
+      }, 200);
+    }
+  }
+
+  const _loadInner = async function (filename) {
     const sb = await waitForSupabase();
 
     // 세션 준비 — 없으면(비로그인) 에러로 빠르게 실패
@@ -81,5 +101,14 @@
     }
     console.error('[NP_loadData] ' + filename + ' 최종 실패:', lastErr && lastErr.message);
     throw lastErr;
+  };
+
+  window.NP_loadData = async function (filename) {
+    _markStart();
+    try {
+      return await _loadInner(filename);
+    } finally {
+      _markEnd();
+    }
   };
 })();

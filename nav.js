@@ -186,16 +186,8 @@
       location.replace(dest);
       return;
     }
-    // 보호 페이지 + approved + 약관 미동의자 → 프로필 완성 페이지로
-    // (Google OAuth 가입자는 약관·연락처·주소가 비어있는 상태로 시작 → 첫 방문 시 보완)
-    // /profile/* 페이지는 예외 (자체 보완 페이지)
-    const isProfileArea = path.startsWith('/profile/');
-    if (!isPublic && !isProfileArea
-        && profile && profile.status === 'approved'
-        && !profile.terms_agreed_version) {
-      location.replace('/profile/complete/?next=' + encodeURIComponent(path + location.search));
-      return;
-    }
+    // 약관 동의 기록은 가입 시점(/signup/terms/)에 받으므로 nav 가 추가 라우팅하지 않음.
+    // /profile/complete/ 는 연락처·주소 등 선택 정보 보완 페이지로만 사용 (자발적 방문).
 
     renderAuthArea(user, profile);
   }).catch(e => {

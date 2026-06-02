@@ -1,8 +1,7 @@
-/* Numbers Pool — 프로필 완성 페이지
+/* Numbers Pool — 프로필 추가 정보 입력 (연락처·주소)
  *
- * 첫 로그인 시(주로 Google OAuth 가입자) 약관 동의 + 추가 정보 입력
- * - 약관 동의가 안 된 사용자: 약관 섹션 표시 + 필수 동의 후 저장 가능
- * - 약관 이미 동의: 약관 섹션 숨김 + 연락처·주소만 추가/수정 가능 ("나중에" 가능)
+ * 약관 동의는 가입 시점(/signup/terms/)에 처리되므로 이 페이지에선 다루지 않음.
+ * 모든 사용자가 자유롭게 연락처·주소를 추가/수정할 수 있는 페이지.
  *
  * 저장은 RPC update_my_profile_extras 로 처리 (RLS 우회, 본인 행만 update)
  */
@@ -16,9 +15,7 @@
 
   // ─── 인증 체크 ───
   let profile;
-  try {
-    profile = await NP.getProfile();
-  } catch (e) { profile = null; }
+  try { profile = await NP.getProfile(); } catch (e) { profile = null; }
 
   if (!profile) {
     location.replace('/login/?next=' + encodeURIComponent('/profile/complete/'));
@@ -32,60 +29,21 @@
   // 본인 이메일 표시
   $('me-email').textContent = profile.email || '—';
 
-  // ─── 약관 동의 분기 ───
-  const needsTerms = !profile.terms_agreed_version;
   const next = (new URL(location.href).searchParams.get('next')) || '/main/';
 
-  if (needsTerms) {
-    // 약관 미동의자: 약관 섹션 표시, 필수 동의 전엔 저장 비활성
-    $('terms-section').hidden = false;
-    $('btn-save').disabled = true;
-    $('btn-save').textContent = '저장하고 시작';
-    // 안내 문구
-    $('welcome-sub').textContent =
-      '서비스 이용을 위해 약관 동의 및 추가 정보를 입력해주세요.';
-  } else {
-    // 약관 이미 동의됨: 추가 정보만 수정 (이미 시작한 사용자 / 자발 방문)
-    $('terms-section').hidden = true;
-    $('skip-link').hidden = false;  // "나중에" 허용
-    $('welcome-sub').textContent = '연락처와 주소 정보를 추가하거나 수정할 수 있습니다.';
-    // 기존 값 prefill
-    if (profile.phone) {
-      const m = profile.phone.match(/^(\d{2,3})-(\d{3,4})-(\d{4})$/);
-      if (m) { $('phone1').value = m[1]; $('phone2').value = m[2]; $('phone3').value = m[3]; }
-    }
-    if (profile.zipcode)        $('zipcode').value         = profile.zipcode;
-    if (profile.address)        $('address').value         = profile.address;
-    if (profile.address_detail) $('address-detail').value  = profile.address_detail;
-  }
+  // 안내 문구 + skip 링크는 항상 보임
+  $('welcome-sub').textContent = '연락처와 주소 정보를 추가하실 수 있습니다. (선택)';
+  $('skip-link').hidden = false;
+  $('btn-save').textContent = '저장하고 시작';
 
-  // ─── 약관 체크박스 ───
-  const allEl       = $('chk-all');
-  const requiredEls = Array.from(document.querySelectorAll('.chk-required'));
-  const marketingEl = $('chk-marketing');
-  const saveBtn     = $('btn-save');
-
-  function updateState() {
-    if (!needsTerms) return;  // 약관 동의 이미 됨 → 항상 활성
-    const ok = requiredEls.every(c => c.checked);
-    saveBtn.disabled = !ok;
-    const allChecked = ok && marketingEl.checked;
-    const anyChecked = ok || marketingEl.checked || requiredEls.some(c => c.checked);
-    allEl.checked = allChecked;
-    allEl.indeterminate = !allChecked && anyChecked;
+  // 기존 값 prefill
+  if (profile.phone) {
+    const m = profile.phone.match(/^(\d{2,3})-(\d{3,4})-(\d{4})$/);
+    if (m) { $('phone1').value = m[1]; $('phone2').value = m[2]; $('phone3').value = m[3]; }
   }
-
-  if (needsTerms) {
-    allEl.addEventListener('change', () => {
-      const v = allEl.checked;
-      requiredEls.forEach(c => c.checked = v);
-      marketingEl.checked = v;
-      allEl.indeterminate = false;
-      saveBtn.disabled = !v;
-    });
-    requiredEls.forEach(c => c.addEventListener('change', updateState));
-    marketingEl.addEventListener('change', updateState);
-  }
+  if (profile.zipcode)        $('zipcode').value         = profile.zipcode;
+  if (profile.address)        $('address').value         = profile.address;
+  if (profile.address_detail) $('address-detail').value  = profile.address_detail;
 
   // ─── 연락처 자동 포커스 + 숫자만 ───
   function setupPhone(curId, nextId, len) {
@@ -129,11 +87,6 @@
     msgEl.textContent = '';
     msgEl.className = '';
 
-    if (needsTerms && !requiredEls.every(c => c.checked)) {
-      showMsg('필수 약관에 모두 동의해주세요.', 'err');
-      return;
-    }
-
     const p1 = $('phone1').value.trim();
     const p2 = $('phone2').value.trim();
     const p3 = $('phone3').value.trim();
@@ -146,6 +99,7 @@
     const address        = $('address').value.trim()        || null;
     const addressDetail  = $('address-detail').value.trim() || null;
 
+    const saveBtn = $('btn-save');
     saveBtn.disabled = true;
     saveBtn.textContent = '저장 중...';
 
@@ -155,12 +109,10 @@
         p_zipcode:              zipcode,
         p_address:              address,
         p_address_detail:       addressDetail,
-        p_marketing_consent:    needsTerms ? !!marketingEl.checked : null,
-        p_terms_agreed_version: needsTerms ? '20260602' : null,
+        p_marketing_consent:    null,
+        p_terms_agreed_version: null,  // 가입 시점에 이미 기록됨 (변경 불가)
       });
       if (error) throw error;
-
-      // 성공 → next 로 (기본 /main/)
       location.replace(next);
     } catch (err) {
       let m = err.message || String(err);

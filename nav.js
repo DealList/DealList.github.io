@@ -186,6 +186,16 @@
       location.replace(dest);
       return;
     }
+    // 보호 페이지 + approved + 약관 미동의자 → 프로필 완성 페이지로
+    // (Google OAuth 가입자는 약관·연락처·주소가 비어있는 상태로 시작 → 첫 방문 시 보완)
+    // /profile/* 페이지는 예외 (자체 보완 페이지)
+    const isProfileArea = path.startsWith('/profile/');
+    if (!isPublic && !isProfileArea
+        && profile && profile.status === 'approved'
+        && !profile.terms_agreed_version) {
+      location.replace('/profile/complete/?next=' + encodeURIComponent(path + location.search));
+      return;
+    }
 
     renderAuthArea(user, profile);
   }).catch(e => {

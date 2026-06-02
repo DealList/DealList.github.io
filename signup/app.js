@@ -141,8 +141,6 @@
     const password = pwEl.value;
     const password2 = pw2El.value;
     const name = $('name').value.trim();
-    const affiliation = $('affiliation').value.trim();
-    const reason = $('reason').value.trim();
     const p1 = $('phone1').value.trim();
     const p2 = $('phone2').value.trim();
     const p3 = $('phone3').value.trim();
@@ -179,8 +177,6 @@
           data: {
             name,
             full_name: name,
-            affiliation,
-            signup_reason: reason,
             phone,
             zipcode,
             address,

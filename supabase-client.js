@@ -1,6 +1,5 @@
 /* Numbers Pool — Supabase 클라이언트 공용 초기화
  *
- * 모든 인증/회원 관련 페이지가 이 스크립트를 공유.
  * 로드 후 글로벌:
  *   window.sb                  : Supabase JS 클라이언트
  *   window.NP_SUPABASE_READY   : Promise<{ sb, error }>
@@ -10,18 +9,19 @@
  * 보안 정책:
  *   - 기본은 sessionStorage (브라우저 닫으면 로그아웃)
  *   - "이 기기에 로그인 유지" 체크 → localStorage (영구)
- *   읽기는 양쪽 다 시도 — 전환 케이스에서도 끊김 없음.
  *
- * 사용 순서:
- *   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
- *   <script src="/supabase-client.js"></script>
- *   <script src="/auth-helper.js"></script>
- *   <script src="app.js"></script>
+ * 안정성:
+ *   - lock 무력화: 기본 navigator Web Locks 잠금이 SPA 초기 로드에서
+ *     토큰 갱신과 경합해 getSession/storage 호출을 무한 대기시키는
+ *     데드락을 유발 → pass-through lock 으로 교체 (단일 탭 앱이라 안전).
+ *   - 중복 createClient 방지 (window.sb 이미 있으면 재사용).
  */
 (function () {
+  // 이미 초기화됐으면 재생성 금지 (다중 GoTrueClient → 락 경합 방지)
+  if (window.sb && window.NP_SUPABASE_READY) return;
+
   const URL = 'https://noacmyjepbtdvycrzsmj.supabase.co';
   // Publishable key — 브라우저 공개 가능 (RLS 가 진짜 보안선).
-  // service_role 키는 절대 여기 넣지 말 것.
   const KEY = 'sb_publishable_JZBEavKwRpl-KRfe1huBrA_082xbrrz';
 
   const REMEMBER_FLAG = 'np-remember-me';
@@ -36,9 +36,6 @@
   }
 
   // ─── 하이브리드 스토리지 어댑터 ───
-  // 쓰기: remember 플래그가 true 면 localStorage, 아니면 sessionStorage
-  // 읽기: localStorage → sessionStorage 순으로 시도
-  // 삭제: 양쪽 다 제거 (확실한 로그아웃 보장)
   const npStorage = {
     getItem(k) {
       try {
@@ -49,13 +46,13 @@
     },
     setItem(k, v) {
       try {
-        const remember = (function(){
+        const remember = (function () {
           try { return localStorage.getItem(REMEMBER_FLAG) === '1'; }
           catch (e) { return false; }
         })();
         if (remember) {
           localStorage.setItem(k, v);
-          sessionStorage.removeItem(k);  // 중복 저장 방지
+          sessionStorage.removeItem(k);
         } else {
           sessionStorage.setItem(k, v);
           localStorage.removeItem(k);
@@ -70,16 +67,19 @@
     },
   };
 
+  // pass-through lock — navigator.locks 데드락 회피 (단일 탭에선 조율 불필요)
+  const passThroughLock = async (_name, _acquireTimeout, fn) => fn();
+
   window.sb = window.supabase.createClient(URL, KEY, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storage: npStorage,
+      lock: passThroughLock,
     },
   });
 
-  // 로그인 페이지에서 signIn 호출 직전에 사용
   window.NP_setRemember = function (remember) {
     try {
       if (remember) localStorage.setItem(REMEMBER_FLAG, '1');

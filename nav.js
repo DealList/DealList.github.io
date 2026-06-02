@@ -197,7 +197,7 @@
       if (window.sb) { resolve(window.sb); return; }
       try {
         await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
-        await loadScript(root + '/supabase-client.js?v=20260602c');
+        await loadScript(root + '/supabase-client.js?v=20260602g');
         await loadScript(root + '/auth-helper.js?v=20260602c');
         resolve(window.sb || null);
       } catch (e) {

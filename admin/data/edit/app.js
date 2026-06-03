@@ -23,7 +23,7 @@
     { tk: 'rate_demand',       jk: 'r_demand',     label: '수요금리',   type: 'text' },
     { tk: 'rate_final',        jk: 'r_final',      label: '최종금리',   type: 'numf' },
   ];
-  const SELECT_COLS = DCM_FIELDS.map(f => f.tk).join(',') + ',rcept_no';
+  const SELECT_COLS = DCM_FIELDS.map(f => f.tk).join(',') + ',rcept_no,locked_fields';
 
   // ── 테마 ──
   const rootEl = document.documentElement;
@@ -84,7 +84,10 @@
         const ro = f.ro ? 'readonly' : '';
         const wrap = f.type === 'won' ? 'amt-won' : '';
         const eok = (f.type === 'won' && v != null && v !== '') ? `<span class="cell-eok">${fmtEok(v)}</span>` : '';
-        return `<td class="${wrap}"><input data-tk="${f.tk}" class="${numCls}" ${ro} value="${escAttr(v == null ? '' : v)}" />${eok}</td>`;
+        const locked = !f.ro && Array.isArray(r.locked_fields) && r.locked_fields.includes(f.tk);
+        const lockCls = locked ? ' locked' : '';
+        const lockTitle = locked ? ' title="수기 잠금 — 자동수집이 덮어쓰지 않음"' : '';
+        return `<td class="${wrap}"><input data-tk="${f.tk}" class="${numCls}${lockCls}"${lockTitle} ${ro} value="${escAttr(v == null ? '' : v)}" />${eok}</td>`;
       }).join('') + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
       tbody.appendChild(tr);
     });
@@ -124,8 +127,13 @@
 
     btn.disabled = true; btn.textContent = '저장 중...';
 
-    // 1) 테이블 UPDATE (원본 PK 로 지정)
-    const { error: upErr } = await sb.from('records').update(tablePatch)
+    // 수정한 칸을 잠금 목록에 누적 → 자동수집(DART)이 그 칸을 덮어쓰지 않음
+    const prevLocked = Array.isArray(orig.locked_fields) ? orig.locked_fields : [];
+    const lockedNow = Array.from(new Set([...prevLocked, ...Object.keys(tablePatch)]));
+
+    // 1) 테이블 UPDATE (원본 PK 로 지정) — 값 + locked_fields
+    const { error: upErr } = await sb.from('records')
+      .update({ ...tablePatch, locked_fields: lockedNow })
       .eq('subscription_date', orig.subscription_date)
       .eq('issuer_alias', orig.issuer_alias)
       .eq('series', orig.series);
@@ -135,6 +143,14 @@
       return;
     }
     Object.assign(orig, tablePatch);  // 로컬 원본 갱신
+    orig.locked_fields = lockedNow;
+    // 잠긴 칸 시각 표시
+    tr.querySelectorAll('input[data-tk]').forEach(inp => {
+      if (lockedNow.includes(inp.dataset.tk)) {
+        inp.classList.add('locked');
+        inp.title = '수기 잠금 — 자동수집이 덮어쓰지 않음';
+      }
+    });
 
     // 2) data.json 패치 + 재업로드 (즉시 반영)
     let reflect = '';

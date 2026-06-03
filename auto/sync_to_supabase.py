@@ -58,12 +58,68 @@ def transform_record(r: dict) -> dict:
         "is_foreign": bool(r.get("is_foreign")),
         "raw_tables_count": r.get("raw_tables_count") or 0,
         "notes": r.get("notes") or [],
+        "locked_fields": r.get("locked_fields") or [],
     }
 
 
 def chunk(lst, size):
     for i in range(0, len(lst), size):
         yield lst[i:i + size]
+
+
+# ============== 관리자 수기 잠금 필드 복원 ==============
+# records.locked_fields 에 적힌 칸은 관리자가 편집기에서 수정한 값.
+# cmd_update 가 DART 후속 공시로 그 칸을 덮어썼더라도, DB(편집값)로 되돌린다.
+# (잠긴 칸만 보존 — 나머지 칸은 정상적으로 후속 공시 값이 채워짐)
+RESTORE_COLS = (
+    "subscription_date,issuer_alias,series,locked_fields,"
+    "issuer_full,bond_type,credit_rating,maturity,"
+    "initial_amount,issue_limit,demand_amount,final_amount,series_total,"
+    "rate_target,rate_demand,rate_final"
+)
+
+
+def _fetch_locked(sb):
+    """locked_fields 가 비어있지 않은 records 행 → {(date,issuer,series): row}."""
+    out = {}
+    off = 0
+    while True:
+        try:
+            rows = sb.select("records", RESTORE_COLS, limit=1000, offset=off)
+        except Exception as e:
+            print(f"  [lock] locked_fields 조회 실패 — 복원 생략: {e}")
+            return {}
+        if not rows:
+            break
+        for row in rows:
+            if row.get("locked_fields"):
+                k = (_to_iso(row.get("subscription_date")),
+                     row.get("issuer_alias") or "", row.get("series") or "")
+                out[k] = row
+        if len(rows) < 1000:
+            break
+        off += 1000
+    return out
+
+
+def _restore_locks(records, locked_map):
+    """meta.json records 의 잠긴 칸을 DB(편집)값으로 복원. 복원한 행 수 반환."""
+    if not locked_map:
+        return 0
+    n = 0
+    for r in records:
+        k = (_to_iso(r.get("subscription_date")),
+             r.get("issuer_alias") or "", r.get("series") or "")
+        lk = locked_map.get(k)
+        if not lk:
+            continue
+        lf = lk.get("locked_fields") or []
+        for field in lf:
+            if field in lk:
+                r[field] = lk[field]
+        r["locked_fields"] = lf
+        n += 1
+    return n
 
 
 def main():
@@ -79,6 +135,21 @@ def main():
     processed_rcepts = raw.get("processed_rcept_nos", [])
     print(f"meta.json: records={len(records)}, processed_rcepts={len(processed_rcepts)}")
 
+    import supabase_client
+    if not supabase_client.health_check():
+        raise SystemExit("Supabase 연결 실패")
+
+    # ── 관리자 수기 잠금 필드 복원 (DART 덮어쓰기로부터 보호) ──
+    # DB 의 locked_fields 값을 meta.json 에 되돌린 뒤 파일도 다시 저장 →
+    # 이후 export_web(data.json 생성)도 복원된 값을 사용.
+    locked_map = _fetch_locked(supabase_client)
+    restored = _restore_locks(records, locked_map)
+    if restored:
+        raw["records"] = records
+        META_PATH.write_text(json.dumps(raw, ensure_ascii=False, indent=2),
+                             encoding="utf-8")
+        print(f"  [lock] 수기 잠금 필드 복원: {restored}개 행")
+
     transformed = []
     skipped = 0
     for r in records:
@@ -88,10 +159,6 @@ def main():
         transformed.append(transform_record(r))
     if skipped:
         print(f"  skip {skipped} (key 누락)")
-
-    import supabase_client
-    if not supabase_client.health_check():
-        raise SystemExit("Supabase 연결 실패")
 
     # records upsert
     total = 0

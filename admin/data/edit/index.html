@@ -19,6 +19,7 @@
     .edit-table input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
     .edit-table input.num { text-align: right; }
     .edit-table input[readonly] { background: transparent; border-color: transparent; color: var(--muted); cursor: default; }
+    .edit-table input.locked { border-color: var(--accent); background: var(--accent-soft); }
     .edit-table td { padding: 6px 8px; }
     .edit-table th { font-size: 10.5px; }
     .edit-table .amt-won { min-width: 130px; }
@@ -66,9 +67,8 @@
         <h2>발행정보 편집</h2>
 
         <div class="edit-hint">
-          발행사명으로 검색 → 값을 수정하고 <strong>저장</strong>하면 ① 원본 테이블에 영구 저장되고 ② 발행정보 페이지에 즉시 반영됩니다.
-          청약일·발행사·회차(키)는 수정할 수 없습니다.
-          <br/>※ 메인페이지 KPI·주관사 실적 등 파생 수치는 다음 데이터 수집 때 정확히 갱신됩니다.
+          발행사명으로 검색 → 값을 수정하고 <strong>저장</strong>하면 ① 원본 테이블에 영구 저장 ② 발행정보 페이지·메인 KPI에 즉시 반영됩니다. 청약일·발행사·회차(키)는 수정 불가.
+          <br/>※ <strong>수정한 칸은 자동 잠금</strong>(골드 테두리) — 다음 자동수집(DART)이 그 칸은 덮어쓰지 않습니다. 잠그지 않은 다른 칸은 후속 공시로 정상 갱신됩니다.
         </div>
 
         <div class="seg">
@@ -97,6 +97,6 @@
   <script src="../../../supabase-client.js?v=20260602g"></script>
   <script src="../../../auth-helper.js?v=20260603a"></script>
   <script src="../../../data-loader.js?v=20260602g"></script>
-  <script src="app.js?v=20260603c"></script>
+  <script src="app.js?v=20260603d"></script>
 </body>
 </html>

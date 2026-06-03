@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비밀번호 찾기 — Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../../auth.css?v=20260602j" />
+</head>
+<body>
+
+  <div class="auth-page">
+
+    <a href="../../" class="auth-logo" aria-label="Numbers Pool 홈으로">
+      <span class="auth-kicker">Korea Capital Market</span>
+      <img src="../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+      <img src="../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+    </a>
+
+    <main class="auth-wrap">
+      <h1>비밀번호 찾기</h1>
+      <div class="sub">
+        가입하신 이메일을 입력하시면 재설정 링크를 보내드립니다.
+      </div>
+
+      <form id="forgot-form">
+        <label for="email">이메일</label>
+        <input id="email" type="email" autocomplete="email" required />
+
+        <button type="submit" class="btn-primary" id="btn-send">재설정 메일 받기</button>
+      </form>
+
+      <div id="msg"></div>
+
+      <div class="foot-link">
+        ← <a href="../">로그인으로 돌아가기</a>
+      </div>
+    </main>
+
+    <footer class="auth-footer">
+      © Numbers Pool · 한국 자본시장 데이터 플랫폼<br/>
+      출처: 금융감독원 DART
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../supabase-client.js?v=20260602g"></script>
+  <script src="../../auth-helper.js?v=20260602c"></script>
+  <script src="app.js?v=20260603a"></script>
+</body>
+</html>

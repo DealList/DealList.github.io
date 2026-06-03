@@ -7,104 +7,92 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
-  <style>
-    body { background: var(--bg); margin: 0; color: var(--text); font-family: 'Pretendard', -apple-system, sans-serif; }
-    .topbar { padding: 18px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .topbar h1 { margin: 0; font-size: 18px; }
-    .topbar a { color: var(--muted); text-decoration: none; font-size: 13px; }
-    .topbar a:hover { color: var(--text); }
-    main { padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
-    .filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
-    .filter-row select, .filter-row input, .filter-row button {
-      padding: 7px 10px; border: 1px solid var(--border); border-radius: 5px;
-      background: var(--surface); color: var(--text); font-size: 13px;
-    }
-    .filter-row input[type="search"] { min-width: 240px; }
-    .filter-row button { cursor: pointer; }
-    .filter-row button:hover { background: var(--bg); }
-    .filter-row .count { margin-left: auto; color: var(--muted); font-size: 13px; }
-    table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
-    th, td { padding: 10px 12px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    th { background: var(--bg); font-weight: 600; color: var(--text-2); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: var(--bg); }
-    .status { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-    .status-pending  { background: var(--amber-bg); color: var(--amber); }
-    .status-approved { background: var(--green-bg); color: var(--green); }
-    .status-rejected { background: #fee2e2; color: #b91c1c; }
-    .status-revoked  { background: #e5e7eb; color: #6b7280; }
-    :root[data-theme="dark"] .status-rejected { background: #3a1414; color: #fca5a5; }
-    :root[data-theme="dark"] .status-revoked  { background: #1f2937; color: #9ca3af; }
-    .actions { white-space: nowrap; }
-    .actions button {
-      padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600;
-      border: 1px solid var(--border); background: var(--surface); cursor: pointer;
-      margin-right: 4px;
-    }
-    .actions .btn-approve { background: var(--accent); color: white; border-color: var(--accent); }
-    .actions .btn-approve:hover { background: var(--accent-2); }
-    .actions .btn-reject, .actions .btn-revoke { color: #b91c1c; border-color: #fecaca; }
-    .actions .btn-reject:hover, .actions .btn-revoke:hover { background: #fee2e2; }
-    :root[data-theme="dark"] .actions .btn-reject, :root[data-theme="dark"] .actions .btn-revoke { color: #fca5a5; border-color: #5a2020; }
-    :root[data-theme="dark"] .actions .btn-reject:hover, :root[data-theme="dark"] .actions .btn-revoke:hover { background: #3a1414; }
-    .empty { padding: 60px 20px; text-align: center; color: var(--muted); font-size: 14px; }
-    .method-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--bg); color: var(--muted); }
-    .role-admin { color: var(--accent); font-weight: 700; }
-    #loading { padding: 60px 20px; text-align: center; color: var(--muted); }
-  </style>
+  <link rel="stylesheet" href="../admin.css?v=20260603c" />
 </head>
 <body>
 
-  <header class="topbar">
-    <h1>회원 관리 — Numbers Pool Admin</h1>
-    <div style="display:flex; align-items:center; gap:14px;">
-      <span id="me-email" style="color:var(--muted); font-size:12px;"></span>
-      <a href="../../">← 홈으로</a>
-      <button id="btn-logout" style="padding:6px 12px; border:1px solid var(--border); border-radius:5px; background:var(--surface); color:var(--text); cursor:pointer; font-size:12px;">
-        로그아웃
-      </button>
-    </div>
-  </header>
+  <div class="admin-shell">
 
-  <main>
-    <div class="filter-row">
-      <label>상태
-        <select id="f-status">
-          <option value="">전체</option>
-          <option value="pending" selected>승인 대기</option>
-          <option value="approved">승인됨</option>
-          <option value="rejected">거절</option>
-          <option value="revoked">해제</option>
-        </select>
-      </label>
-      <input id="f-search" type="search" placeholder="이메일 / 이름 검색" />
-      <button id="btn-refresh">새로고침</button>
-      <span class="count" id="count"></span>
-    </div>
+    <header class="admin-top">
+      <a href="/main/" class="admin-logo" aria-label="Numbers Pool">
+        <img src="../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+        <img src="../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+        <span class="badge">ADMIN</span>
+      </a>
+      <div class="admin-user">
+        <span class="me" id="me-email">—</span>
+        <a href="/account/" class="admin-btn ghost">내 계정</a>
+        <a href="/main/" class="admin-btn ghost">사이트로</a>
+        <button id="btn-logout" class="admin-btn">로그아웃</button>
+        <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
 
-    <div id="loading">불러오는 중...</div>
-    <table id="grid" hidden>
-      <thead>
-        <tr>
-          <th>가입일</th>
-          <th>이메일</th>
-          <th>이름</th>
-          <th>소속</th>
-          <th>가입 사유</th>
-          <th>방법</th>
-          <th>상태</th>
-          <th>역할</th>
-          <th>작업</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div id="empty" class="empty" hidden>표시할 회원이 없습니다.</div>
-  </main>
+    <nav class="admin-nav" id="admin-nav" hidden>
+      <a href="../">대시보드</a>
+      <a href="./" class="active">회원 관리</a>
+      <a href="../data/">데이터 관리</a>
+    </nav>
+
+    <main class="admin-main">
+
+      <div id="guard-msg" class="guard-box" hidden></div>
+
+      <section id="panel" hidden>
+        <h2>회원 관리</h2>
+
+        <div class="filter-bar">
+          <label>상태
+            <select id="f-status">
+              <option value="">전체</option>
+              <option value="pending" selected>승인 대기</option>
+              <option value="approved">승인됨</option>
+              <option value="rejected">거절</option>
+              <option value="revoked">해제</option>
+            </select>
+          </label>
+          <input id="f-search" type="search" placeholder="이메일 / 이름 / 연락처 검색" />
+          <button id="btn-refresh" class="admin-btn ghost">새로고침</button>
+          <div class="spacer"></div>
+          <button id="btn-csv" class="admin-btn">CSV 내보내기</button>
+          <span class="count" id="count"></span>
+        </div>
+
+        <div class="table-scroll">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>가입일</th>
+                <th>이메일</th>
+                <th>이름</th>
+                <th>연락처</th>
+                <th>방법</th>
+                <th>상태</th>
+                <th>역할</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody id="rows">
+              <tr><td colspan="8" id="loading-row">불러오는 중...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="empty" class="empty-row" hidden>표시할 회원이 없습니다.</div>
+      </section>
+
+    </main>
+
+    <footer class="admin-foot">
+      Numbers Pool 관리자 · 회원 정보는 RLS 로 보호되며 관리자만 열람·관리할 수 있습니다.
+    </footer>
+
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../supabase-client.js?v=20260602g"></script>
   <script src="../../auth-helper.js?v=20260603a"></script>
-  <script src="app.js?v=20260602c"></script>
+  <script src="app.js?v=20260603a"></script>
 </body>
 </html>

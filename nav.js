@@ -93,14 +93,16 @@
         </div>
       </div>
       <div class="right">
+        <div class="np-right-top">
+          <div class="nav-auth" id="nav-auth"></div>
+          <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </button>
+        </div>
         <div class="updated">
           <span class="pulse"></span>
           <span id="nav-updated">최종 업데이트 로딩 중…</span>
         </div>
-        <div class="nav-auth" id="nav-auth"></div>
-        <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </button>
       </div>
     </nav>
   `;
@@ -122,8 +124,15 @@
         white-space: nowrap;
       }
       .nav-logout:hover, .nav-login:hover { background: var(--accent); color: white; border-color: var(--accent); }
-      .nav-mypage { color: var(--text-2); text-decoration: none; font-weight: 600; white-space: nowrap; }
-      .nav-mypage:hover { color: var(--accent); }
+      .nav-mypage {
+        color: var(--text-2); text-decoration: none; font-weight: 600; white-space: nowrap;
+        padding: 5px 11px; border: 1px solid var(--border); border-radius: 5px;
+      }
+      .nav-mypage:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+      /* 최종 업데이트를 auth+테마 줄 아래로 분리 */
+      .v1-nav .right { flex-direction: column; align-items: flex-end; gap: 7px; }
+      .v1-nav .right .np-right-top { display: flex; align-items: center; gap: 12px; }
+      @media (max-width: 720px) { .v1-nav .right .updated { display: none; } }
     `;
     document.head.appendChild(st);
   }

@@ -4,214 +4,263 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>데이터 관리 — Numbers Pool Admin</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../admin.css?v=20260603c" />
+  <style>
+    [hidden] { display: none !important; }
+    .admin-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 10px; color: var(--text); }
+    .admin-card h4 { font-size: 12px; font-weight: 700; color: var(--muted); margin: 16px 0 8px; letter-spacing: .04em; }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+    .card-head h3 { margin: 0; }
+
+    /* 업로드 */
+    .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 30px 20px; text-align: center; margin: 6px 0; transition: all .2s; }
+    .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: var(--bg); }
+    .upload-label { cursor: pointer; display: block; }
+    .upload-icon { font-size: 32px; margin-bottom: 8px; }
+    .file-info { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px 16px; margin-top: 12px; font-size: 13px; }
+    .upload-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; margin: 14px 0 0; }
+    .upload-check input { margin: 0; }
+
+    /* 통계 */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin: 8px 0 16px; }
+    .stat-cell { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; }
+    .stat-cell .stat-label { font-size: 11px; color: var(--muted); }
+    .stat-cell .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .stat-cell.stat-warn .stat-value { color: var(--amber); }
+    .stat-cell.stat-error .stat-value { color: #dc2626; }
+    .stat-cell.stat-ok .stat-value { color: var(--green); }
+    :root[data-theme="dark"] .stat-cell.stat-error .stat-value { color: #fca5a5; }
+
+    /* 검증 */
+    .validation-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px 16px; margin: 14px 0; }
+    #validation-list { max-height: 240px; overflow-y: auto; margin-top: 10px; }
+    .v-item { padding: 6px 10px; border-left: 3px solid var(--border); background: var(--surface); margin-bottom: 4px; font-size: 12px; border-radius: 0 4px 4px 0; }
+    .v-item.v-error { border-left-color: #dc2626; }
+    .v-item.v-warn { border-left-color: var(--amber); }
+    .v-item.v-info { border-left-color: var(--accent); }
+
+    /* 트리거 상태 */
+    .trigger-status { margin-top: 12px; padding: 12px 16px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-size: 13px; line-height: 1.6; }
+    .trigger-status.status-success { border-color: var(--green); background: var(--green-bg); }
+    .trigger-status.status-error { border-color: #dc2626; background: rgba(220,38,38,.08); }
+    .trigger-status .ts-title { font-weight: 700; margin-bottom: 6px; }
+    .trigger-status .ts-meta { color: var(--muted); font-size: 12px; }
+    .trigger-status a { color: var(--accent); text-decoration: none; }
+    .trigger-status a:hover { text-decoration: underline; }
+
+    /* 삭제 결과 */
+    .delete-results-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; overflow: hidden; }
+    .delete-results-table th, .delete-results-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    .delete-results-table th { background: var(--bg); font-size: 11px; color: var(--muted); }
+    .delete-results-table tbody tr:hover { background: var(--bg); }
+    .delete-results-table tbody tr:last-child td { border-bottom: none; }
+    .delete-empty-msg { text-align: center; padding: 18px; color: var(--muted); font-size: 13px; }
+    .btn-danger { background: none; color: #dc2626; border: 1px solid #fecaca; border-radius: 5px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .btn-danger:hover { background: #fee2e2; }
+    .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
+    :root[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #5a2020; }
+    :root[data-theme="dark"] .btn-danger:hover { background: #3a1414; }
+
+    /* audit */
+    .audit-list { max-height: 460px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .audit-row { display: grid; grid-template-columns: 120px 84px 110px 1fr auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; }
+    .audit-row:last-child { border-bottom: none; }
+    .audit-row:hover { background: var(--bg); }
+    .audit-row .a-time { color: var(--muted); font-size: 12px; }
+    .audit-row .a-op { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px; text-align: center; background: var(--bg); white-space: nowrap; }
+    .audit-row .a-op.op-INSERT { background: var(--green-bg); color: var(--green); }
+    .audit-row .a-op.op-UPDATE { background: var(--accent-soft); color: var(--accent-2); }
+    .audit-row .a-op.op-DELETE { background: rgba(220,38,38,.14); color: #dc2626; }
+    :root[data-theme="dark"] .audit-row .a-op.op-DELETE { color: #fca5a5; }
+    .audit-row .a-table { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
+    .audit-row .a-target { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .audit-row .a-toggle { color: var(--muted); font-size: 11px; }
+    .audit-detail { background: var(--bg); padding: 12px 14px; border-bottom: 1px solid var(--border); font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow-y: auto; }
+    .audit-detail .ad-section { margin-bottom: 10px; }
+    .audit-detail .ad-label { font-weight: 700; color: var(--muted); font-size: 10px; letter-spacing: .04em; margin-bottom: 4px; }
+    .audit-detail .ad-diff-line { padding: 1px 6px; border-radius: 3px; }
+    .audit-detail .ad-diff-line.diff-add { background: var(--green-bg); }
+    .audit-detail .ad-diff-line.diff-del { background: rgba(220,38,38,.12); }
+    .audit-detail .ad-email { color: var(--accent); }
+    @media (max-width: 640px) {
+      .audit-row { grid-template-columns: 1fr auto; gap: 6px; }
+      .audit-row .a-time, .audit-row .a-table { grid-column: 1 / -1; }
+    }
+
+    /* 결과 로그 */
+    #result-log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; max-height: 340px; overflow-y: auto; }
+    .log-line { margin: 2px 0; }
+    .log-success { color: var(--green); }
+    .log-error { color: #dc2626; }
+    .log-warn { color: var(--amber); }
+    .log-info { color: var(--muted); }
+    :root[data-theme="dark"] .log-error { color: #fca5a5; }
+
+    /* 로딩 */
+    .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(2px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 1000; color: #fff; font-weight: 600; }
+    .spinner { width: 38px; height: 38px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <a href="../" class="home-link">← 관리자 홈</a>
-      <h1 class="page-title">데이터 관리</h1>
-    </div>
-    <button id="btn-theme" class="theme-toggle" title="다크 모드 전환">🌙</button>
-  </header>
 
-  <main class="admin-main">
-    <!-- 비로그인 상태 -->
-    <section id="login-section" class="admin-card" hidden>
-      <h2>관리자 로그인</h2>
-      <p class="muted">
-        Deal List 데이터를 일괄 업로드하려면 등록된 관리자 계정으로 로그인하세요.
-      </p>
-      <button id="btn-google-login" class="btn-google">
-        <span class="g-icon">G</span>
-        Google 계정으로 로그인
-      </button>
-      <p class="muted small">
-        로그인 정보는 Supabase Auth 에 안전하게 저장되며, 등록된 관리자만 데이터를
-        수정할 수 있습니다 (Row Level Security 적용).
-      </p>
-    </section>
+  <div class="admin-shell">
 
-    <!-- 로그인됐지만 admin 권한 없음 -->
-    <section id="non-admin-section" class="admin-card" hidden>
-      <h2>접근 권한 없음</h2>
-      <p>
-        로그인 계정: <strong id="non-admin-email"></strong>
-      </p>
-      <p class="muted">
-        이 계정은 관리자 목록에 등록돼 있지 않습니다. 운영자에게 문의해 주세요.
-      </p>
-      <button id="btn-logout-non-admin" class="btn-secondary">로그아웃</button>
-    </section>
+    <header class="admin-top">
+      <a href="/main/" class="admin-logo" aria-label="Numbers Pool">
+        <img src="../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+        <img src="../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+        <span class="badge">ADMIN</span>
+      </a>
+      <div class="admin-user">
+        <span class="me" id="me-email">—</span>
+        <a href="/account/" class="admin-btn ghost">내 계정</a>
+        <a href="/main/" class="admin-btn ghost">사이트로</a>
+        <button id="btn-logout" class="admin-btn">로그아웃</button>
+        <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
 
-    <!-- 로그인 + admin 권한 -->
-    <section id="admin-section" hidden>
-      <div class="admin-card">
-        <div class="row-between" style="margin-bottom: 14px;">
-          <div>
-            <h2 style="margin: 0; border: none; padding: 0;">
-              🚀 지금 DCM 데이터 수집
-            </h2>
-            <p class="muted small" style="margin: 4px 0 0;">
-              매일 KST 06:17 자동 수집과 동일한 프로세스를 즉시 실행합니다 (약 3~5분 소요).
-            </p>
+    <nav class="admin-nav" id="admin-nav" hidden>
+      <a href="../">대시보드</a>
+      <a href="../members/">회원 관리</a>
+      <a href="./" class="active">데이터 관리</a>
+      <a href="../settings/">설정</a>
+    </nav>
+
+    <main class="admin-main">
+
+      <div id="guard-msg" class="guard-box" hidden></div>
+
+      <section id="panel" hidden>
+        <h2>데이터 관리</h2>
+
+        <!-- DCM 수집 -->
+        <div class="admin-card">
+          <div class="card-head">
+            <div>
+              <h3>🚀 DCM 데이터 수집</h3>
+              <p class="admin-muted">매일 06:17 자동 수집과 동일한 프로세스 (약 3~5분).</p>
+            </div>
+            <button id="btn-trigger-dart" class="admin-btn">지금 실행</button>
           </div>
-          <button id="btn-trigger-dart" class="btn-primary btn-large">
-            지금 실행
-          </button>
+          <div id="trigger-status" class="trigger-status" hidden></div>
         </div>
-        <div id="trigger-status" class="trigger-status" hidden></div>
-      </div>
 
-      <div class="admin-card">
-        <div class="row-between" style="margin-bottom: 14px;">
-          <div>
-            <h2 style="margin: 0; border: none; padding: 0;">
-              📈 지금 ECM 데이터 수집
-            </h2>
-            <p class="muted small" style="margin: 4px 0 0;">
-              매일 KST 06:27 자동 수집과 동일한 프로세스를 즉시 실행합니다 (약 3~5분 소요).
-            </p>
+        <!-- ECM 수집 -->
+        <div class="admin-card">
+          <div class="card-head">
+            <div>
+              <h3>📈 ECM 데이터 수집</h3>
+              <p class="admin-muted">매일 05:53 자동 수집과 동일한 프로세스 (약 3~5분).</p>
+            </div>
+            <button id="btn-trigger-ecm" class="admin-btn">지금 실행</button>
           </div>
-          <button id="btn-trigger-ecm" class="btn-primary btn-large">
-            지금 실행
-          </button>
+          <div id="trigger-status-ecm" class="trigger-status" hidden></div>
         </div>
-        <div id="trigger-status-ecm" class="trigger-status" hidden></div>
-      </div>
 
-      <div class="admin-card">
-        <div class="row-between">
-          <div>
-            <h2>xlsx 일괄 업로드</h2>
-            <p class="muted">
-              로그인: <strong id="admin-email"></strong>
-            </p>
+        <!-- 업로드 -->
+        <div class="admin-card">
+          <h3>xlsx / json 업로드 <span class="admin-muted" style="font-weight:400;">(DCM records)</span></h3>
+          <div class="upload-area" id="upload-area">
+            <input type="file" id="file-input" accept=".xlsx,.xlsm,.json" hidden />
+            <label for="file-input" class="upload-label">
+              <div class="upload-icon">📂</div>
+              <div>여기를 클릭해서 파일 선택</div>
+              <div class="admin-muted" style="font-size:12px;">또는 파일을 끌어다 놓기 (.xlsx / .json)</div>
+            </label>
           </div>
-          <button id="btn-logout" class="btn-secondary">로그아웃</button>
-        </div>
 
-        <div class="upload-area" id="upload-area">
-          <input type="file" id="file-input" accept=".xlsx,.xlsm" hidden />
-          <label for="file-input" class="upload-label">
-            <div class="upload-icon">📂</div>
-            <div>여기를 클릭해서 xlsx 파일 선택</div>
-            <div class="muted small">또는 파일을 이 영역으로 끌어다 놓기</div>
-          </label>
-        </div>
-
-        <div id="file-info" class="file-info" hidden>
-          <div>선택된 파일: <strong id="file-name"></strong></div>
-          <div class="muted small" id="file-size"></div>
-          <div class="row-between" style="margin-top: 10px;">
-            <button id="btn-parse" class="btn-primary">분석 / 미리보기</button>
-            <button id="btn-clear" class="btn-secondary">취소</button>
+          <div id="file-info" class="file-info" hidden>
+            <div>선택: <strong id="file-name"></strong> <span class="admin-muted" id="file-size"></span></div>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+              <button id="btn-parse" class="admin-btn">분석 / 미리보기</button>
+              <button id="btn-clear" class="admin-btn ghost">취소</button>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div id="preview-card" class="admin-card" hidden>
-        <h3>파싱 결과</h3>
-        <div id="parse-stats" class="stat-grid"></div>
+          <div id="preview-card" hidden style="margin-top:16px;">
+            <h4>파싱 결과</h4>
+            <div id="parse-stats" class="stat-grid"></div>
 
-        <div id="validation-panel" class="validation-panel" hidden>
-          <h4>검증 결과</h4>
-          <div id="validation-summary"></div>
-          <details id="validation-details">
-            <summary>전체 보기</summary>
-            <div id="validation-list"></div>
-          </details>
-        </div>
+            <div id="validation-panel" class="validation-panel" hidden>
+              <h4 style="margin-top:0;">검증 결과</h4>
+              <div id="validation-summary"></div>
+              <details id="validation-details"><summary>전체 보기</summary><div id="validation-list"></div></details>
+            </div>
 
-        <h4>미리보기 (상위 10건)</h4>
-        <div class="table-wrap">
-          <table id="preview-table">
-            <thead>
-              <tr>
-                <th>청약일</th>
-                <th>발행사</th>
-                <th>회차</th>
-                <th>종류</th>
-                <th>등급</th>
-                <th>발행금액</th>
-                <th>주관사</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+            <h4>미리보기 (상위 10건)</h4>
+            <div class="table-scroll">
+              <table class="admin-table" id="preview-table" style="min-width:640px;">
+                <thead><tr><th>청약일</th><th>발행사</th><th>회차</th><th>종류</th><th>등급</th><th style="text-align:right">발행금액</th><th>주관사</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
 
-        <div class="upload-actions">
-          <label class="checkbox-line">
-            <input type="checkbox" id="chk-upsert" checked />
-            Upsert 모드 (기존 동일 키 갱신, 신규 추가)
-            <span class="muted small">
-              ※ 끄면 Insert only — 중복 키 발생 시 실패
-            </span>
-          </label>
+            <label class="upload-check"><input type="checkbox" id="chk-upsert" checked /> Upsert 모드 (기존 동일 키 갱신·신규 추가)</label>
+            <button id="btn-upload" class="admin-btn" style="margin-top:12px;">Supabase 에 업로드</button>
+          </div>
 
-          <button id="btn-upload" class="btn-primary btn-large">
-            Supabase 에 업로드
-          </button>
-        </div>
-      </div>
-
-      <div id="result-card" class="admin-card" hidden>
-        <h3>업로드 결과</h3>
-        <div id="result-log"></div>
-      </div>
-
-      <div id="delete-card" class="admin-card">
-        <h3>특정 record 삭제</h3>
-        <p class="muted small" style="margin: 4px 0 14px;">
-          발행사명으로 검색 → 결과에서 한 행씩 삭제. 모든 삭제는 audit_log 에 기록됩니다.
-        </p>
-        <div class="delete-search-bar">
-          <input id="delete-search-input" type="search"
-                 placeholder="발행사명 (부분일치, 예: 한화에어로)"
-                 autocomplete="off" />
-          <button id="btn-delete-search" class="btn-secondary">검색</button>
-        </div>
-        <div id="delete-results"></div>
-      </div>
-
-      <div id="audit-card" class="admin-card">
-        <div class="row-between">
-          <h3 style="margin: 0;">최근 변경 내역</h3>
-          <div style="display: flex; gap: 8px; align-items: center;">
-            <select id="audit-filter-table" class="select-mini">
-              <option value="">전체 테이블</option>
-              <option value="records">records</option>
-              <option value="processed_rcepts">processed_rcepts</option>
-            </select>
-            <button id="btn-audit-refresh" class="btn-secondary">새로고침</button>
+          <div id="result-card" hidden style="margin-top:16px;">
+            <h4>업로드 결과</h4>
+            <div id="result-log"></div>
           </div>
         </div>
-        <p class="muted small" style="margin: 6px 0 14px;">
-          관리자 페이지에서 한 변경만 기록됩니다. (자동 수집 cron 의 변경은 제외)
-        </p>
-        <div id="audit-list" class="audit-list">
-          <div class="muted small" style="padding: 20px; text-align: center;">불러오는 중...</div>
+
+        <!-- 삭제 -->
+        <div class="admin-card" id="delete-card">
+          <h3>레코드 삭제</h3>
+          <p class="admin-muted">발행사명으로 검색 → 한 행씩 삭제. 모든 삭제는 audit_log 에 기록됩니다.</p>
+          <div class="filter-bar" style="margin-top:12px;">
+            <input id="delete-search-input" type="search" placeholder="발행사명 (부분일치, 예: 한화에어로)" autocomplete="off" />
+            <button id="btn-delete-search" class="admin-btn ghost">검색</button>
+          </div>
+          <div id="delete-results"></div>
         </div>
-      </div>
-    </section>
+
+        <!-- audit -->
+        <div class="admin-card" id="audit-card">
+          <div class="card-head">
+            <h3>최근 변경 내역</h3>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <select id="audit-filter-table" style="padding:7px 10px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:13px;">
+                <option value="">전체 테이블</option>
+                <option value="records">records</option>
+                <option value="processed_rcepts">processed_rcepts</option>
+              </select>
+              <button id="btn-audit-refresh" class="admin-btn ghost">새로고침</button>
+            </div>
+          </div>
+          <p class="admin-muted" style="margin:0 0 12px;">관리자 페이지에서 한 변경만 기록됩니다 (자동 수집 cron 변경 제외).</p>
+          <div id="audit-list" class="audit-list">
+            <div class="admin-muted" style="padding:20px; text-align:center;">불러오는 중...</div>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <footer class="admin-foot">
+      Numbers Pool 관리자 · 데이터 변경은 audit_log 에 기록됩니다.
+    </footer>
 
     <div id="loading" class="loading-overlay" hidden>
       <div class="spinner"></div>
       <div id="loading-msg">로딩 중...</div>
     </div>
-  </main>
 
-  <footer class="admin-footer">
-    <small>
-      Deal List Admin · 데이터 변경은 Supabase audit_log 에 기록됩니다.
-    </small>
-  </footer>
+  </div>
 
-  <!-- 외부 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <!-- 메인 로직 -->
-  <script src="admin.js?v=20260529d"></script>
+  <script src="../../supabase-client.js?v=20260602g"></script>
+  <script src="../../auth-helper.js?v=20260603a"></script>
+  <script src="admin.js?v=20260603e"></script>
 </body>
 </html>

@@ -6,10 +6,7 @@
  */
 
 // =========================== CONFIG ===========================
-const SUPABASE_URL = "https://noacmyjepbtdvycrzsmj.supabase.co";
-// anon (public) key — 브라우저 공개용으로 발급된 키. service_role 절대 금지.
-// 빈 값이면 페이지가 console 에 경고 띄우고 로그인 비활성화.
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5vYWNteWplcGJ0ZHZ5Y3J6c21qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzcyNzksImV4cCI6MjA5NDgxMzI3OX0.dRJHP3GoNFfTwurmdaniUxur5u3l0s8eLmws8lqAb2M";
+// 인증·DB 는 사이트 공유 클라이언트(window.sb, supabase-client.js)를 사용 — 별도 로그인 불필요.
 
 // xlsx 컬럼 매핑 (1-indexed → 0-indexed 로 변환해서 사용)
 const XLSX_COL = {
@@ -42,126 +39,57 @@ let currentSession = null;
 let parsedRecords = null;
 let parseSource = null;   // 'json' | 'xlsx'
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", initAdmin);
+
+async function initAdmin() {
   setupTheme();
 
-  if (SUPABASE_ANON_KEY === "__PASTE_ANON_KEY_HERE__") {
-    showError("SUPABASE_ANON_KEY 가 설정되지 않았습니다. admin.js 파일을 수정하세요.");
+  // 사이트 공유 클라이언트(window.sb) 준비 대기
+  for (let i = 0; i < 120 && !window.sb; i++) await new Promise(r => setTimeout(r, 50));
+  sb = window.sb;
+  if (!sb) { showGuard("Supabase 클라이언트를 불러오지 못했습니다. 새로고침해 주세요."); return; }
+
+  // 권한 가드 — 사이트 세션 + role (다른 admin 페이지와 동일)
+  let profile = null;
+  try { profile = await window.NP.getProfile(); } catch (e) {}
+  if (!profile) {
+    location.replace("/login/?next=" + encodeURIComponent("/admin/data/"));
     return;
   }
-
-  try {
-    // Supabase client (auto-refresh + persist session in localStorage)
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-    });
-
-    // OAuth 콜백 후 URL 의 access_token hash 처리 → 세션 가져오기
-    const { data: { session } } = await sb.auth.getSession();
-    await renderForSession(session);
-
-    // 이후 auth 상태 변화 listen
-    sb.auth.onAuthStateChange(async (_event, sess) => {
-      await renderForSession(sess);
-    });
-
-    setupAuthButtons();
-    setupFileUpload();
-
-    // mappings.json 비동기 로드 (xlsx 브로커 파싱용) — 실패해도 페이지 작동 OK
-    fetchMappings();
-  } catch (e) {
-    console.error("admin.js init 실패:", e);
-    // 초기화 실패 시에도 로그인 화면이라도 노출 (사용자가 새로고침 시도 가능)
-    const loginSec = document.getElementById("login-section");
-    if (loginSec) loginSec.hidden = false;
-    showError(`초기화 실패: ${e.message || e}`);
-  }
-});
-
-// bfcache(뒤로/앞으로 가기 캐시)로 복원될 때는 DOMContentLoaded 가 다시 안 떠서
-// 섹션이 빈 채로 남을 수 있다 → 복원 시 세션을 다시 확인해 재렌더.
-window.addEventListener("pageshow", async (e) => {
-  if (!e.persisted || !sb) return;
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    await renderForSession(session);
-  } catch (err) {
-    console.warn("pageshow 재렌더 실패:", err);
-  }
-});
-
-// =========================== AUTH ===========================
-async function renderForSession(session) {
-  currentSession = session;
-  const loginSec = document.getElementById("login-section");
-  const nonAdminSec = document.getElementById("non-admin-section");
-  const adminSec = document.getElementById("admin-section");
-
-  // 세션 없음 → 로그인 화면
-  if (!session) {
-    loginSec.hidden = false;
-    nonAdminSec.hidden = true;
-    adminSec.hidden = true;
+  if (profile.role !== "admin") {
+    showGuard(`이 계정(${escapeHtml(profile.email || "")})은 관리자가 아닙니다.`);
     return;
   }
+  try { currentSession = await window.NP.getSession(); } catch (e) {}
 
-  // 관리자 여부를 먼저 확인한 뒤 섹션을 토글한다.
-  // (먼저 다 숨긴 뒤 await 하면, 그 사이/실패 시 빈 화면으로 남음 — 특히 bfcache 복원 시)
-  let isAdmin = false;
-  try {
-    isAdmin = await checkIsAdmin();
-  } catch (e) {
-    console.warn("checkIsAdmin 실패:", e);
-  }
-
-  const email = session.user?.email || "";
-  loginSec.hidden = true;
-  adminSec.hidden = !isAdmin;
-  nonAdminSec.hidden = isAdmin;
-
-  if (isAdmin) {
-    document.getElementById("admin-email").textContent = email;
-    loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
-    setupAuditButtons();
-    setupDeleteUI();
-    setupTriggerButton();
-    setupEcmTriggerButton();
-  } else {
-    document.getElementById("non-admin-email").textContent = email;
-  }
-}
-
-async function checkIsAdmin() {
-  // RLS 정책의 is_admin() 함수를 RPC 로 호출.
-  // 함수가 SECURITY DEFINER 라 authenticated role 로 호출 가능.
-  try {
-    const { data, error } = await sb.rpc("is_admin");
-    if (error) {
-      console.warn("is_admin RPC 실패:", error);
-      return false;
-    }
-    return !!data;
-  } catch (e) {
-    console.warn("is_admin 호출 예외:", e);
-    return false;
-  }
-}
-
-function setupAuthButtons() {
-  document.getElementById("btn-google-login").onclick = async () => {
-    const { error } = await sb.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href },
-    });
-    if (error) showError(`Google 로그인 실패: ${error.message}`);
+  // 헤더 + 본문 노출
+  const meEl = document.getElementById("me-email");
+  if (meEl) meEl.textContent = profile.email || "";
+  const nav = document.getElementById("admin-nav"); if (nav) nav.hidden = false;
+  const panel = document.getElementById("panel"); if (panel) panel.hidden = false;
+  const lo = document.getElementById("btn-logout");
+  if (lo) lo.onclick = async () => {
+    if (!confirm("로그아웃하시겠습니까?")) return;
+    await window.NP.signOut(); location.href = "/";
   };
 
-  const logout = async () => {
-    await sb.auth.signOut();
-  };
-  document.getElementById("btn-logout").onclick = logout;
-  document.getElementById("btn-logout-non-admin").onclick = logout;
+  // 데이터 기능 초기화
+  setupFileUpload();
+  setupTriggerButton();
+  setupEcmTriggerButton();
+  setupDeleteUI();
+  setupAuditButtons();
+  loadAuditLog().catch(e => console.warn("audit_log 로드 실패:", e));
+  fetchMappings();
+}
+
+// =========================== AUTH (가드) ===========================
+function showGuard(msg) {
+  const g = document.getElementById("guard-msg");
+  if (!g) { showError(msg); return; }
+  g.hidden = false;
+  g.innerHTML = `<h2>접근 권한 없음</h2><p>${escapeHtml(msg)}</p>` +
+    `<a href="/main/" class="admin-btn">← 메인으로</a>`;
 }
 
 // =========================== FILE UPLOAD ===========================
@@ -1086,27 +1014,18 @@ function showError(msg) {
   console.error(msg);
 }
 
-// =========================== Theme (다른 페이지와 동일 패턴) ===========================
+// =========================== Theme ===========================
 function setupTheme() {
   const root = document.documentElement;
   const KEY = "deallist-theme";
-  if (localStorage.getItem(KEY) === "dark") {
-    root.setAttribute("data-theme", "dark");
-  }
+  if (localStorage.getItem(KEY) !== "light") root.setAttribute("data-theme", "dark");
   const btn = document.getElementById("btn-theme");
-  const updateBtn = () => {
-    btn.textContent = root.getAttribute("data-theme") === "dark" ? "☀️" : "🌙";
-  };
-  updateBtn();
+  if (!btn) return;
   btn.addEventListener("click", () => {
-    const cur = root.getAttribute("data-theme");
-    if (cur === "dark") {
-      root.removeAttribute("data-theme");
-      localStorage.setItem(KEY, "light");
+    if (root.getAttribute("data-theme") === "dark") {
+      root.removeAttribute("data-theme"); localStorage.setItem(KEY, "light");
     } else {
-      root.setAttribute("data-theme", "dark");
-      localStorage.setItem(KEY, "dark");
+      root.setAttribute("data-theme", "dark"); localStorage.setItem(KEY, "dark");
     }
-    updateBtn();
   });
 }

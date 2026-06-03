@@ -30,6 +30,38 @@
   try {
     const profile = await NP.getProfile();
     if (profile) {
+      // ── Google OAuth 가입자 약관 동의 기록 ──
+      // Google 가입은 /signup/terms/ 의 동의가 metadata 로 안 넘어와 terms_agreed_version 이 빔.
+      // 비어있으면 이 시점(= Google 버튼 클릭 = 약관 동의 간주)에 기록 (coalesce 로 1회만 반영).
+      // /signup/terms/ 를 거쳤으면 sessionStorage 의 명시적 버전·마케팅 동의를 사용.
+      if (!profile.terms_agreed_version) {
+        let tv = '20260603-oauth-implied';
+        // 마케팅 동의 기본값 = 기존 프로필 값 (sessionStorage 신호 없으면 그대로 유지)
+        let mk = (typeof profile.marketing_consent === 'boolean') ? profile.marketing_consent : false;
+        try {
+          const sv = sessionStorage.getItem('np-terms-version');
+          if (sv) tv = sv;
+          const m = sessionStorage.getItem('np-marketing-consent');
+          if (m === '1') mk = true; else if (m === '0') mk = false;
+        } catch (e) {}
+        try {
+          // 전체 파라미터를 기존 값으로 채워 호출 — RPC 가 coalesce 든 직접대입이든
+          // 연락처·주소가 지워지지 않도록. terms 만 새로 기록.
+          await sb.rpc('update_my_profile_extras', {
+            p_phone: profile.phone || null,
+            p_zipcode: profile.zipcode || null,
+            p_address: profile.address || null,
+            p_address_detail: profile.address_detail || null,
+            p_marketing_consent: mk,
+            p_terms_agreed_version: tv
+          });
+        } catch (e) { console.warn('[login] terms record failed', e); }
+        try {
+          sessionStorage.removeItem('np-terms-agreed');
+          sessionStorage.removeItem('np-terms-version');
+          sessionStorage.removeItem('np-marketing-consent');
+        } catch (e) {}
+      }
       if (profile.status === 'pending') { location.href = '/pending/'; return; }
       if (profile.status === 'rejected' || profile.status === 'revoked') {
         location.href = '/pending/?denied=' + profile.status; return;

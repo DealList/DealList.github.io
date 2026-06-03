@@ -58,7 +58,9 @@ def transform_record(r: dict) -> dict:
         "is_foreign": bool(r.get("is_foreign")),
         "raw_tables_count": r.get("raw_tables_count") or 0,
         "notes": r.get("notes") or [],
-        "locked_fields": r.get("locked_fields") or [],
+        # locked_fields 는 payload 에 넣지 않음 — PostgREST 부분 업서트가
+        # payload 에 없는 컬럼은 기존값 보존하므로 잠금이 유지된다.
+        # (컬럼 미생성 상태에서도 업서트가 안 깨지는 안전성 확보)
     }
 
 

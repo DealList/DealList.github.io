@@ -173,6 +173,76 @@
     const blob = new Blob([JSON.stringify(arr)], { type: 'application/json' });
     const { error } = await sb.storage.from('site-data').upload('data.json', blob, { upsert: true, contentType: 'application/json' });
     if (error) throw new Error(error.message || '업로드 실패');
+
+    // 메인페이지 KPI(summary.json) 재계산 + 재업로드 — export_web.py _compute_summary 와 동일 로직
+    try {
+      const summary = computeSummary(arr);
+      const sblob = new Blob([JSON.stringify(summary)], { type: 'application/json' });
+      const { error: serr } = await sb.storage.from('site-data').upload('summary.json', sblob, { upsert: true, contentType: 'application/json' });
+      if (serr) throw new Error(serr.message);
+    } catch (e) {
+      console.warn('[edit] summary.json 재계산/업로드 실패 — 메인 KPI는 다음 수집 때 갱신', e);
+    }
+  }
+
+  // ── summary.json 재계산 (Python export_web._compute_summary 1:1 포팅) ──
+  function computeSummary(records) {
+    const dealsMap = {};
+    for (const r of records) {
+      if (r.final == null) continue;
+      if (!r.date) continue;
+      const seriesBase = (r.series || '').split('-')[0];
+      const key = r.issuer + '|' + seriesBase + '|' + r.date;
+      if (!dealsMap[key]) dealsMap[key] = { issuer: r.issuer, series: seriesBase, date: r.date, final: 0, lead_amt: {} };
+      const d = dealsMap[key];
+      d.final += r.final || 0;
+      const la = r.lead_amt || {};
+      for (const a in la) d.lead_amt[a] = (d.lead_amt[a] || 0) + (la[a] || 0);
+    }
+    const deals = Object.values(dealsMap);
+    if (!deals.length) return { updated: kstNow(), kpi: [] };
+
+    const maxD = deals.reduce((m, d) => (d.date > m ? d.date : m), deals[0].date);
+    const y = maxD.slice(0, 4), m = maxD.slice(5, 7);
+    const thisMonth = `${y}-${m}`;
+    const pm = new Date(Date.UTC(+y, +m - 1, 1) - 86400000);  // 전월 말일
+    const prevMonth = `${pm.getUTCFullYear()}-${String(pm.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    const thisDeals = deals.filter(d => d.date.startsWith(thisMonth));
+    const prevDeals = deals.filter(d => d.date.startsWith(prevMonth));
+    const thisCount = thisDeals.length, thisAmt = thisDeals.reduce((s, d) => s + d.final, 0);
+    const prevCount = prevDeals.length, prevAmt = prevDeals.reduce((s, d) => s + d.final, 0);
+    const pct = (cur, prev) => (prev ? Math.round((cur - prev) / prev * 1000) / 10 : null);
+
+    const yearStart = `${y}-01-01`;
+    const thisYearDeals = deals.filter(d => d.date >= yearStart);
+    const thisYearTotal = thisYearDeals.reduce((s, d) => s + d.final, 0);
+    const leadSum = {};
+    for (const d of thisYearDeals) for (const a in d.lead_amt) leadSum[a] = (leadSum[a] || 0) + d.lead_amt[a];
+    let topAlias = '', topAmt = 0;
+    for (const a in leadSum) if (leadSum[a] > topAmt) { topAmt = leadSum[a]; topAlias = a; }
+    const topShare = thisYearTotal ? topAmt / thisYearTotal * 100 : 0;
+    let biggest = null;
+    for (const d of thisYearDeals) if (!biggest || d.final > biggest.final) biggest = d;
+
+    return {
+      updated: kstNow(),
+      max_date: maxD, year: y, this_month_label: thisMonth,
+      this_month_count: thisCount, this_month_amount: Math.round(thisAmt),
+      this_month_count_change: pct(thisCount, prevCount),
+      this_month_amount_change: pct(thisAmt, prevAmt),
+      this_year_top_broker: topAlias, this_year_top_amount: Math.round(topAmt),
+      this_year_top_share: Math.round(topShare * 100) / 100,
+      this_year_biggest_issuer: biggest ? biggest.issuer : '',
+      this_year_biggest_series: biggest ? biggest.series : '',
+      this_year_biggest_amount: biggest ? Math.round(biggest.final) : 0,
+      this_year_biggest_date: biggest ? biggest.date : '',
+    };
+  }
+  function kstNow() {
+    const d = new Date(Date.now() + 9 * 3600 * 1000);
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
   }
 
   // ── 입력 파싱 ──

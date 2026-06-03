@@ -272,9 +272,12 @@
           ? ` <span class="nav-status-badge">${statusLabel(status)}</span>`
           : '';
 
-      const myPageLink = (profile && profile.status === 'approved')
-        ? `<a href="${root}/account/" class="nav-mypage">마이페이지</a>`
-        : '';
+      let myPageLink = '';
+      if (profile && profile.status === 'approved') {
+        myPageLink = (profile.role === 'admin')
+          ? `<a href="${root}/admin/" class="nav-mypage">관리자</a>`
+          : `<a href="${root}/account/" class="nav-mypage">마이페이지</a>`;
+      }
       el.innerHTML = `
         <span class="nav-welcome">${esc(name)}님 환영합니다${statusBadge}</span>
         ${myPageLink}

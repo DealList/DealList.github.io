@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마이페이지 — Numbers Pool</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../auth.css?v=20260602j" />
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <style>
+    .auth-wrap.account-wrap { max-width: 640px; }
+
+    .back-link {
+      display: inline-flex; align-items: center; gap: 5px;
+      color: var(--muted); text-decoration: none; font-size: 13px; margin-bottom: 6px;
+    }
+    .back-link:hover { color: var(--text); }
+
+    .acct-section { margin-top: 26px; }
+    .acct-section > h2 {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+
+    /* 계정 정보 (읽기 전용) */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    .info-grid .cell .lbl { font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+    .info-grid .cell .val { font-size: 13.5px; color: var(--text); font-weight: 600; word-break: break-all; }
+    @media (max-width: 520px) { .info-grid { grid-template-columns: 1fr; } }
+
+    /* 폼 공통 */
+    .form-hint { font-size: 11.5px; color: var(--muted); margin: 6px 0 0; line-height: 1.55; }
+    .phone-group { display: flex; align-items: center; gap: 6px; }
+    .phone-group input { flex: 1; min-width: 0; text-align: center; }
+    .phone-group .sep { color: var(--muted); font-weight: 700; }
+    .addr-group { display: flex; flex-direction: column; gap: 8px; }
+    .addr-zip-line { display: flex; gap: 8px; }
+    .addr-zip-line input { flex: 1; background: var(--bg); cursor: default; color: var(--text); }
+    .addr-zip-line input:focus { outline: none; }
+    .addr-zip-line .btn-zip {
+      padding: 0 18px; background: var(--text-2); color: var(--surface);
+      border: 0; border-radius: 7px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .addr-zip-line .btn-zip:hover { opacity: 0.85; }
+    .addr-group .addr-main { background: var(--bg); cursor: default; }
+    label .lbl-opt { color: var(--muted); font-weight: 500; font-size: 11.5px; margin-left: 6px; }
+
+    .mkt-line {
+      display: flex; align-items: center; gap: 9px; cursor: pointer;
+      font-size: 13px; color: var(--text); margin-top: 14px;
+    }
+    .mkt-line input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+
+    .pw-note { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin: 0; }
+
+    /* 위험 구역 */
+    .danger-zone {
+      margin-top: 32px; padding: 18px;
+      border: 1px solid #ef4444; border-radius: 10px; background: rgba(239,68,68,.05);
+    }
+    .danger-zone h2 { color: #dc2626; margin: 0 0 8px; font-size: 14px; font-weight: 700; }
+    :root[data-theme="dark"] .danger-zone h2 { color: #fca5a5; }
+    .danger-zone p { font-size: 12px; color: var(--muted); line-height: 1.65; margin: 0 0 14px; }
+    .btn-danger {
+      width: 100%; padding: 11px; background: transparent; color: #dc2626;
+      border: 1px solid #ef4444; border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+    }
+    .btn-danger:hover { background: #ef4444; color: #fff; }
+    :root[data-theme="dark"] .btn-danger { color: #fca5a5; }
+    :root[data-theme="dark"] .btn-danger:hover { color: #fff; }
+    .danger-confirm.hidden { display: none; }
+    .danger-ack {
+      display: flex; align-items: flex-start; gap: 9px; cursor: pointer;
+      font-size: 12.5px; color: var(--text); line-height: 1.5; margin: 16px 0 12px;
+    }
+    .danger-ack input { width: 16px; height: 16px; margin: 1px 0 0; cursor: pointer; flex-shrink: 0; }
+    #btn-delete-final:disabled { opacity: .45; cursor: not-allowed; }
+    #btn-delete-final:disabled:hover { background: transparent; color: #dc2626; }
+    :root[data-theme="dark"] #btn-delete-final:disabled:hover { color: #fca5a5; }
+  </style>
+</head>
+<body>
+
+  <div class="auth-page">
+
+    <a href="../" class="auth-logo" aria-label="Numbers Pool 홈으로">
+      <span class="auth-kicker">Korea Capital Market</span>
+      <img src="../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+      <img src="../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+    </a>
+
+    <main class="auth-wrap account-wrap">
+      <a href="/main/" class="back-link">← 메인으로</a>
+      <h1>마이페이지</h1>
+      <div class="sub">내 정보를 확인하고 수정할 수 있습니다.</div>
+
+      <!-- ═══ 계정 정보 (읽기 전용) ═══ -->
+      <section class="acct-section">
+        <h2>계정 정보</h2>
+        <div class="info-grid">
+          <div class="cell"><div class="lbl">이메일 (아이디)</div><div class="val" id="i-email">—</div></div>
+          <div class="cell"><div class="lbl">가입 방식</div><div class="val" id="i-method">—</div></div>
+          <div class="cell"><div class="lbl">상태</div><div class="val" id="i-status">—</div></div>
+          <div class="cell"><div class="lbl">가입일</div><div class="val" id="i-created">—</div></div>
+        </div>
+      </section>
+
+      <!-- ═══ 내 정보 수정 ═══ -->
+      <section class="acct-section">
+        <h2>내 정보 수정</h2>
+        <form id="profile-form" autocomplete="off">
+          <label for="name">이름</label>
+          <input id="name" type="text" maxlength="40" placeholder="이름" />
+
+          <label>연락처 <span class="lbl-opt">(선택)</span></label>
+          <div class="phone-group">
+            <input id="phone1" type="text" maxlength="3" placeholder="010" inputmode="numeric" />
+            <span class="sep">-</span>
+            <input id="phone2" type="text" maxlength="4" placeholder="1234" inputmode="numeric" />
+            <span class="sep">-</span>
+            <input id="phone3" type="text" maxlength="4" placeholder="5678" inputmode="numeric" />
+          </div>
+
+          <label>주소 <span class="lbl-opt">(선택)</span></label>
+          <div class="addr-group">
+            <div class="addr-zip-line">
+              <input id="zipcode" type="text" placeholder="우편번호" readonly />
+              <button type="button" class="btn-zip" id="btn-zipcode">우편번호 검색</button>
+            </div>
+            <input id="address" class="addr-main" type="text" placeholder="기본 주소" readonly />
+            <input id="address-detail" type="text" placeholder="상세 주소 (예: 미라클빌딩 11층)" />
+          </div>
+
+          <label class="mkt-line" for="marketing">
+            <input id="marketing" type="checkbox" />
+            <span>마케팅 정보 수신 동의 (선택)</span>
+          </label>
+
+          <button type="submit" class="btn-primary" id="btn-save" style="margin-top:18px;">저장</button>
+        </form>
+      </section>
+
+      <!-- ═══ 비밀번호 변경 (이메일 가입자) ═══ -->
+      <section class="acct-section" id="pw-section" hidden>
+        <h2>비밀번호 변경</h2>
+        <form id="pw-form" autocomplete="off">
+          <label for="pw1">새 비밀번호</label>
+          <input id="pw1" type="password" autocomplete="new-password" />
+          <div class="form-hint">반복 문자/숫자 4자 이상 불가하며 영문·숫자·특수문자 중 2가지 이상 조합하여 8~32자 내로 입력.</div>
+
+          <label for="pw2">새 비밀번호 확인</label>
+          <input id="pw2" type="password" autocomplete="new-password" />
+
+          <button type="submit" class="btn-primary" id="btn-pw" style="margin-top:14px;">비밀번호 변경</button>
+        </form>
+      </section>
+
+      <!-- ═══ 비밀번호 (Google 가입자) ═══ -->
+      <section class="acct-section" id="pw-google-note" hidden>
+        <h2>비밀번호</h2>
+        <p class="pw-note">Google 계정으로 로그인 중입니다. 비밀번호는 Google 계정에서 직접 관리됩니다.</p>
+      </section>
+
+      <!-- ═══ 회원 탈퇴 ═══ -->
+      <section class="danger-zone">
+        <h2>회원 탈퇴</h2>
+        <p>
+          탈퇴 시 회원님의 계정과 모든 개인정보(이름·연락처·주소 등)가 즉시 삭제되며 복구할 수 없습니다.
+          동일 이메일로 재가입은 가능하나, 다시 관리자 승인을 받아야 합니다.
+        </p>
+        <button type="button" class="btn-danger" id="btn-delete">회원 탈퇴</button>
+        <div class="danger-confirm hidden" id="delete-confirm">
+          <label class="danger-ack" for="delete-ack">
+            <input id="delete-ack" type="checkbox" />
+            <span>위 내용을 확인했으며, 계정과 모든 정보의 영구 삭제에 동의합니다.</span>
+          </label>
+          <button type="button" class="btn-danger" id="btn-delete-final" disabled>영구 탈퇴하기</button>
+        </div>
+      </section>
+
+      <div id="msg"></div>
+    </main>
+
+    <footer class="auth-footer">
+      © Numbers Pool · 한국 자본시장 데이터 플랫폼<br/>
+      문의: <a href="mailto:admin@numberspool.co.kr">admin@numberspool.co.kr</a>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-client.js?v=20260602g"></script>
+  <script src="../auth-helper.js?v=20260603a"></script>
+  <script src="app.js?v=20260603a"></script>
+</body>
+</html>

@@ -122,6 +122,8 @@
         white-space: nowrap;
       }
       .nav-logout:hover, .nav-login:hover { background: var(--accent); color: white; border-color: var(--accent); }
+      .nav-mypage { color: var(--text-2); text-decoration: none; font-weight: 600; white-space: nowrap; }
+      .nav-mypage:hover { color: var(--accent); }
     `;
     document.head.appendChild(st);
   }
@@ -261,8 +263,12 @@
           ? ` <span class="nav-status-badge">${statusLabel(status)}</span>`
           : '';
 
+      const myPageLink = (profile && profile.status === 'approved')
+        ? `<a href="${root}/account/" class="nav-mypage">마이페이지</a>`
+        : '';
       el.innerHTML = `
         <span class="nav-welcome">${esc(name)}님 환영합니다${statusBadge}</span>
+        ${myPageLink}
         <a href="${root}/logout/" class="nav-logout">로그아웃</a>
       `;
     } else {

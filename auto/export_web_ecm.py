@@ -106,7 +106,38 @@ def rights_record(r: dict) -> dict:
     }
 
 
+def _restore_locks(table):
+    """관리자 수기 잠금 복원: locked_fields 의 칸을 locked_values 값으로 DB 에 되돌림.
+    cloud_update/finalize 가 덮어썼어도 잠긴 칸만 편집값으로 복원. (컬럼 미생성 시 안전하게 skip)"""
+    n = 0
+    try:
+        rows = fetch_all(table)
+    except Exception as e:
+        print(f"  [lock] {table} 조회 실패 — 복원 생략: {e}")
+        return 0
+    for r in rows:
+        lf = r.get("locked_fields") or []
+        lv = r.get("locked_values") or {}
+        if not lf or r.get("id") is None:
+            continue
+        patch = {f: lv[f] for f in lf if f in lv}
+        if not patch:
+            continue
+        try:
+            sb.update(table, {"id": "eq." + str(r["id"])}, patch)
+            n += 1
+        except Exception as e:
+            print(f"  [lock] {table} id={r.get('id')} 복원 실패: {e}")
+    return n
+
+
 def main():
+    # ── 관리자 수기 잠금 필드 복원 (cloud_update/finalize 덮어쓰기 후, export 전) ──
+    ni = _restore_locks("ecm_ipo")
+    nr = _restore_locks("ecm_rights")
+    if ni or nr:
+        print(f"  [lock] 수기 잠금 복원: ipo {ni} / rights {nr}")
+
     print("Supabase → ecm_ipo / ecm_rights 조회...")
     ipo_raw = fetch_all("ecm_ipo")
     rt_raw = fetch_all("ecm_rights")

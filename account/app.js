@@ -184,7 +184,7 @@
       setTimeout(() => location.replace('/'), 2400);
     } catch (err) {
       console.error('[account] delete failed', err);
-      showMsg(authErr(err, '탈퇴 처리에 실패했습니다. 잠시 후 다시 시도하거나 admin@numberspool.co.kr 로 문의해주세요.'), 'err');
+      showMsg(authErr(err, '탈퇴 처리에 실패했습니다. 잠시 후 다시 시도하거나 master@numberspool.co.kr 로 문의해주세요.'), 'err');
       btn.disabled = false; btn.textContent = '영구 탈퇴하기';
     }
   });

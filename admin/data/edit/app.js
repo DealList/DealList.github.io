@@ -62,6 +62,17 @@
     { tk: 'price_2',       label: '2차가',    type: 'numf' },
     { tk: 'final_price',   label: '확정가',   type: 'numf' },
   ];
+  // 읽기전용 계산 칼럼 (수량×가격 = 억). 수량·가격 편집 시 실시간 갱신.
+  const IPO_COMPUTED = [
+    { label: '최초총액', from: ['init_qty', 'init_price'] },
+    { label: '확정총액', from: ['final_qty', 'final_price'] },
+  ];
+  const RIGHTS_COMPUTED = [
+    { label: '최초총액', from: ['init_qty', 'init_price'] },
+    { label: '1차총액', from: ['new_qty', 'price_1'] },
+    { label: '2차총액', from: ['new_qty', 'price_2'] },
+    { label: '확정총액', from: ['new_qty', 'final_price'] },
+  ];
 
   let market = 'dcm';
   let origMap = {};  // key → 원본 행 (DCM key=PK문자열, ECM key=id)
@@ -233,26 +244,53 @@
     if (!total) { msg('검색 결과가 없습니다.'); return; }
 
     let html = '';
-    if (ipoRows.length) html += ecmSection('ipo', 'IPO', IPO_FIELDS, ipoRows);
-    if (rtRows.length) html += ecmSection('rights', '유상증자', RIGHTS_FIELDS, rtRows);
+    if (ipoRows.length) html += ecmSection('ipo', 'IPO', IPO_FIELDS, IPO_COMPUTED, ipoRows);
+    if (rtRows.length) html += ecmSection('rights', '유상증자', RIGHTS_FIELDS, RIGHTS_COMPUTED, rtRows);
     results.innerHTML = html;
 
     results.querySelectorAll('table[data-kind]').forEach(tbl => {
       const kind = tbl.dataset.kind;
       const fields = kind === 'ipo' ? IPO_FIELDS : RIGHTS_FIELDS;
-      bindRows(tbl.querySelector('tbody'), fields, (tr) => saveEcmRow(kind, tr.dataset.id, tr));
+      const computed = kind === 'ipo' ? IPO_COMPUTED : RIGHTS_COMPUTED;
+      const tbody = tbl.querySelector('tbody');
+      tbody.querySelectorAll('.btn-save').forEach(btn =>
+        btn.addEventListener('click', () => { const tr = btn.closest('tr'); saveEcmRow(kind, tr.dataset.id, tr); }));
+      tbody.querySelectorAll('tr').forEach(tr => bindEcmCompute(tr, computed));
     });
   }
 
-  function ecmSection(kind, title, fields, rows) {
+  function ecmSection(kind, title, fields, computed, rows) {
     rows.forEach(r => { origMap[kind + ':' + r.id] = Object.assign({}, r); });
-    const head = fields.map(f => `<th>${f.label}</th>`).join('') + '<th></th>';
+    const head = fields.map(f => `<th>${f.label}</th>`).join('')
+      + computed.map(c => `<th>${c.label}</th>`).join('') + '<th></th>';
     const body = rows.map(r => {
-      const cells = rowCells(fields, r) + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
+      const comp = computed.map((c, i) => {
+        const val = eok(num(r[c.from[0]]), num(r[c.from[1]]));
+        return `<td class="comp-cell" data-comp="${i}">${val == null ? '—' : val.toLocaleString() + '억'}</td>`;
+      }).join('');
+      const cells = rowCells(fields, r) + comp + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
       return `<tr data-id="${r.id}">${cells}</tr>`;
     }).join('');
+    const cols = fields.length + computed.length + 1;
     return `<h3 style="font-size:14px; margin:18px 0 8px;">${title} <span class="admin-muted" style="font-weight:400;">(${rows.length})</span></h3>
-      <div class="table-scroll"><table class="admin-table edit-table" data-kind="${kind}" style="min-width:${fields.length * 110}px;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+      <div class="table-scroll"><table class="admin-table edit-table" data-kind="${kind}" style="min-width:${cols * 105}px;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
+  function bindEcmCompute(tr, computed) {
+    const recompute = () => {
+      const get = (tk) => {
+        const inp = tr.querySelector('input[data-tk="' + tk + '"]');
+        if (!inp) return null;
+        const s = inp.value.replace(/,/g, '').trim(); const n = Number(s);
+        return (s !== '' && isFinite(n)) ? n : null;
+      };
+      computed.forEach((c, i) => {
+        const cell = tr.querySelector('.comp-cell[data-comp="' + i + '"]'); if (!cell) return;
+        const val = eok(get(c.from[0]), get(c.from[1]));
+        cell.textContent = (val == null) ? '—' : val.toLocaleString() + '억';
+      });
+    };
+    tr.querySelectorAll('input[data-tk]').forEach(inp => inp.addEventListener('input', recompute));
   }
 
   async function saveEcmRow(kind, id, tr) {

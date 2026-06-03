@@ -211,7 +211,7 @@
       } else if (/Password should be at least/i.test(m)) {
         m = '비밀번호 정책: 8~32자, 영문·숫자·특수문자 중 2가지 이상.';
       } else if (/rate limit/i.test(m)) {
-        m = '잠시 후 다시 시도해주세요. 보안을 위해 잠깐 메일 발송이 제한됩니다 (약 1분).';
+        m = '메일 발송 한도 초과 — 같은 이메일은 시간당 2회까지 가능합니다. 약 1시간 뒤 다시 시도해주세요.';
       }
       showMsg(m, 'err');
       btn.disabled = false;

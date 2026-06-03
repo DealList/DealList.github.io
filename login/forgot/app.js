@@ -36,7 +36,7 @@
     } catch (err) {
       let m = err.message || String(err);
       if (/rate limit/i.test(m)) {
-        m = '잠시 후 다시 시도해주세요. 보안을 위해 잠깐 메일 발송이 제한됩니다 (약 1분).';
+        m = '메일 발송 한도 초과 — 같은 이메일은 시간당 2회까지 가능합니다. 약 1시간 뒤 다시 시도해주세요.';
       } else if (/invalid email|not a valid email/i.test(m)) {
         m = '올바른 이메일 형식이 아닙니다.';
       }

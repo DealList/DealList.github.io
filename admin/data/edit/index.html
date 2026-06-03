@@ -30,6 +30,16 @@
 
     .reflect-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 4px 0 0; }
     .edit-hint { background: var(--accent-soft); color: var(--accent-2); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; margin-bottom: 16px; }
+
+    .filter-bar input[type="date"] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+    .quick-btns { display: inline-flex; gap: 4px; }
+    .qbtn { padding: 6px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .qbtn:hover { color: var(--text); }
+    .qbtn.on { background: var(--accent-soft); color: var(--accent-2); border-color: var(--accent); }
+    .pager { display: flex; align-items: center; gap: 6px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .pager button { padding: 5px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12.5px; cursor: pointer; }
+    .pager button:disabled { opacity: .45; cursor: not-allowed; }
+    .pager .pinfo { font-size: 12.5px; color: var(--muted); margin: 0 8px; }
   </style>
 </head>
 <body>
@@ -78,12 +88,28 @@
         </div>
 
         <div class="filter-bar">
-          <input id="q" type="search" placeholder="발행사명 (부분일치, 예: 한화에어로)" style="min-width:280px;" autocomplete="off" />
-          <button id="btn-search" class="admin-btn">검색</button>
+          <label>기간
+            <input id="f-from" type="date" />
+            <span style="color:var(--muted);">~</span>
+            <input id="f-to" type="date" />
+          </label>
+          <div class="quick-btns">
+            <button class="qbtn" data-q="3m">최근 3개월</button>
+            <button class="qbtn" data-q="6m">최근 6개월</button>
+            <button class="qbtn on" data-q="1y">최근 1년</button>
+            <button class="qbtn" data-q="all">전체</button>
+          </div>
+          <input id="q" type="search" placeholder="발행사 검색" style="min-width:160px;" autocomplete="off" />
+          <select id="f-type"><option value="">종류 전체</option></select>
+          <select id="f-rating"><option value="">등급 전체</option></select>
+          <button id="btn-search" class="admin-btn">조회</button>
+          <button id="btn-reset" class="admin-btn ghost">초기화</button>
+          <div class="spacer"></div>
           <span class="count" id="count"></span>
         </div>
 
         <div id="results"></div>
+        <div id="pager" class="pager"></div>
       </section>
 
     </main>
@@ -98,6 +124,6 @@
   <script src="../../../supabase-client.js?v=20260602g"></script>
   <script src="../../../auth-helper.js?v=20260603a"></script>
   <script src="../../../data-loader.js?v=20260602g"></script>
-  <script src="app.js?v=20260603i"></script>
+  <script src="app.js?v=20260603j"></script>
 </body>
 </html>

@@ -96,52 +96,103 @@
   $('panel').hidden = false;
   $('btn-logout').addEventListener('click', async () => { if (!confirm('로그아웃하시겠습니까?')) return; await NP.signOut(); location.href = '/'; });
 
-  const qEl = $('q'), results = $('results'), countEl = $('count');
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  const qEl = $('q'), results = $('results'), countEl = $('count'), pagerEl = $('pager');
+  let dcmRows = [], page = 1; const PAGE = 50;
 
   // ───────── 시장 토글 ─────────
   function setMarket(m) {
     market = m;
     $('seg-dcm').classList.toggle('active', m === 'dcm');
     $('seg-ecm').classList.toggle('active', m === 'ecm');
-    results.innerHTML = ''; countEl.textContent = ''; qEl.value = '';
-    origMap = {};
+    $('f-type').style.display = (m === 'dcm') ? '' : 'none';
+    $('f-rating').style.display = (m === 'dcm') ? '' : 'none';
+    results.innerHTML = ''; countEl.textContent = ''; pagerEl.innerHTML = '';
+    origMap = {}; dcmRows = []; page = 1;
+    if (m === 'dcm') populateDcmFilters();
+    applyPreset('1y');
+    load();
   }
   $('seg-dcm').addEventListener('click', () => setMarket('dcm'));
   $('seg-ecm').addEventListener('click', () => setMarket('ecm'));
 
-  function search() { return market === 'ecm' ? searchEcm() : searchDcm(); }
+  function load() { return market === 'ecm' ? loadEcm() : loadDcm(); }
 
-  // ═══════════════════ DCM ═══════════════════
-  async function searchDcm() {
-    const q = qEl.value.trim();
-    if (!q) { msg('발행사명을 입력하세요.'); countEl.textContent = ''; return; }
-    msg('검색 중...');
-    const { data, error } = await sb.from('records').select(DCM_SELECT)
-      .ilike('issuer_alias', `%${q}%`)
-      .order('subscription_date', { ascending: false }).order('series', { ascending: true })
-      .limit(100);
-    if (error) { msg('검색 실패: ' + esc(error.message)); return; }
-    renderDcm(data || []);
+  function readFilters() {
+    return { from: $('f-from').value || '', to: $('f-to').value || '', issuer: qEl.value.trim(), type: $('f-type').value || '', rating: $('f-rating').value || '' };
+  }
+  function applyPreset(preset) {
+    $$('.qbtn').forEach(b => b.classList.toggle('on', b.dataset.q === preset));
+    if (preset === 'all') { $('f-from').value = ''; $('f-to').value = ''; return; }
+    const months = preset === '3m' ? 3 : preset === '6m' ? 6 : 12;
+    const t = new Date();
+    $('f-from').value = isoDate(new Date(t.getFullYear(), t.getMonth() - months, t.getDate()));
+    $('f-to').value = isoDate(new Date(t.getFullYear(), t.getMonth() + 6, t.getDate()));  // 예정 건 포함 버퍼
+  }
+  function isoDate(d) { const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
+
+  let dcmFiltersLoaded = false;
+  async function populateDcmFilters() {
+    if (dcmFiltersLoaded) return;
+    dcmFiltersLoaded = true;
+    try {
+      const meta = await NP_loadData('meta.json');
+      (meta.types || []).forEach(t => $('f-type').appendChild(opt(t)));
+      (meta.ratings || []).forEach(t => $('f-rating').appendChild(opt(t)));
+    } catch (e) { console.warn('[edit] meta 필터 로드 실패', e); }
+  }
+  function opt(v) { const o = document.createElement('option'); o.value = v; o.textContent = v; return o; }
+
+  function renderPager(total, rerender) {
+    const pages = Math.ceil(total / PAGE);
+    if (pages <= 1) { pagerEl.innerHTML = ''; return; }
+    pagerEl.innerHTML = '';
+    const mk = (label, p, disabled) => {
+      const b = document.createElement('button'); b.textContent = label; b.disabled = disabled;
+      b.addEventListener('click', () => { page = p; rerender(); try { window.scrollTo(0, 0); } catch (e) {} });
+      return b;
+    };
+    pagerEl.appendChild(mk('← 이전', page - 1, page <= 1));
+    const info = document.createElement('span'); info.className = 'pinfo'; info.textContent = `${page} / ${pages}`;
+    pagerEl.appendChild(info);
+    pagerEl.appendChild(mk('다음 →', page + 1, page >= pages));
   }
 
-  function renderDcm(rows) {
+  // ═══════════════════ DCM ═══════════════════
+  async function loadDcm() {
+    msg('조회 중...'); pagerEl.innerHTML = '';
+    const f = readFilters();
+    let qb = sb.from('records').select(DCM_SELECT)
+      .order('subscription_date', { ascending: false }).order('series', { ascending: true }).limit(1000);
+    if (f.from) qb = qb.gte('subscription_date', f.from);
+    if (f.to) qb = qb.lte('subscription_date', f.to);
+    if (f.issuer) qb = qb.ilike('issuer_alias', `%${f.issuer}%`);
+    if (f.type) qb = qb.eq('bond_type', f.type);
+    if (f.rating) qb = qb.eq('credit_rating', f.rating);
+    const { data, error } = await qb;
+    if (error) { msg('조회 실패: ' + esc(error.message)); return; }
+    dcmRows = data || [];
     origMap = {};
-    countEl.textContent = rows.length ? `${rows.length}건${rows.length === 100 ? ' (최대 100)' : ''}` : '';
-    if (!rows.length) { msg('검색 결과가 없습니다.'); return; }
+    dcmRows.forEach(r => { origMap[[r.subscription_date, r.issuer_alias, r.series].join('|')] = r; });
+    page = 1;
+    renderDcmPage();
+  }
 
+  function renderDcmPage() {
+    countEl.textContent = dcmRows.length ? `${dcmRows.length}건${dcmRows.length === 1000 ? '+ (최대)' : ''}` : '';
+    if (!dcmRows.length) { msg('조회 결과가 없습니다.'); pagerEl.innerHTML = ''; return; }
+    const slice = dcmRows.slice((page - 1) * PAGE, (page - 1) * PAGE + PAGE);
     const head = DCM_FIELDS.map(f => `<th>${f.label}</th>`).join('') + '<th></th>';
-    results.innerHTML = `<div class="table-scroll"><table class="admin-table edit-table" style="min-width:1400px;"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
+    results.innerHTML = `<div class="table-scroll"><table class="admin-table edit-table" style="min-width:1500px;"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
     const tbody = results.querySelector('tbody');
-
-    rows.forEach(r => {
-      const key = [r.subscription_date, r.issuer_alias, r.series].join('|');
-      origMap[key] = Object.assign({}, r);
+    slice.forEach(r => {
       const tr = document.createElement('tr');
-      tr.dataset.key = key;
+      tr.dataset.key = [r.subscription_date, r.issuer_alias, r.series].join('|');
       tr.innerHTML = rowCells(DCM_FIELDS, r) + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
       tbody.appendChild(tr);
     });
     bindRows(tbody, DCM_FIELDS, (tr) => saveDcmRow(tr.dataset.key, tr));
+    renderPager(dcmRows.length, renderDcmPage);
   }
 
   async function saveDcmRow(key, tr) {
@@ -223,16 +274,26 @@
   function kstNow() { const d = new Date(Date.now() + 9 * 3600 * 1000); const p = n => String(n).padStart(2, '0'); return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`; }
 
   // ═══════════════════ ECM ═══════════════════
-  async function searchEcm() {
-    const q = qEl.value.trim();
-    if (!q) { msg('발행사명을 입력하세요.'); countEl.textContent = ''; return; }
-    msg('검색 중...');
-    const [ipoRes, rtRes] = await Promise.all([
-      sb.from('ecm_ipo').select('*').ilike('issuer', `%${q}%`).order('listing_date', { ascending: false }).limit(100),
-      sb.from('ecm_rights').select('*').ilike('issuer', `%${q}%`).order('record_date', { ascending: false }).limit(100),
-    ]);
-    if (ipoRes.error || rtRes.error) { msg('검색 실패: ' + esc((ipoRes.error || rtRes.error).message)); return; }
+  async function loadEcm() {
+    msg('조회 중...'); pagerEl.innerHTML = '';
+    const f = readFilters();
+    let ipoQ = sb.from('ecm_ipo').select('*').order('listing_date', { ascending: false }).limit(500);
+    let rtQ = sb.from('ecm_rights').select('*').order('record_date', { ascending: false }).limit(500);
+    if (f.issuer) { ipoQ = ipoQ.ilike('issuer', `%${f.issuer}%`); rtQ = rtQ.ilike('issuer', `%${f.issuer}%`); }
+    ipoQ = applyEcmDate(ipoQ, 'listing_date', f);
+    rtQ = applyEcmDate(rtQ, 'record_date', f);
+    const [ipoRes, rtRes] = await Promise.all([ipoQ, rtQ]);
+    if (ipoRes.error || rtRes.error) { msg('조회 실패: ' + esc((ipoRes.error || rtRes.error).message)); return; }
     renderEcm(ipoRes.data || [], rtRes.data || []);
+  }
+  function applyEcmDate(qb, col, f) {
+    // 날짜 미정(null=진행 중) 행은 항상 포함 + 범위 내 dated 행
+    if (!f.from && !f.to) return qb;
+    const range = [];
+    if (f.from) range.push(`${col}.gte.${f.from}`);
+    if (f.to) range.push(`${col}.lte.${f.to}`);
+    const rangeCond = range.length === 1 ? range[0] : `and(${range.join(',')})`;
+    return qb.or(`${col}.is.null,${rangeCond}`);
   }
 
   function renderEcm(ipoRows, rtRows) {
@@ -444,6 +505,14 @@
   function escAttr(v) { return String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
   // ───────── 이벤트 ─────────
-  $('btn-search').addEventListener('click', search);
-  qEl.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+  $$('.qbtn').forEach(b => b.addEventListener('click', () => { applyPreset(b.dataset.q); load(); }));
+  $('btn-search').addEventListener('click', () => { page = 1; load(); });
+  $('btn-reset').addEventListener('click', () => {
+    qEl.value = ''; $('f-type').value = ''; $('f-rating').value = '';
+    applyPreset('1y'); load();
+  });
+  qEl.addEventListener('keydown', e => { if (e.key === 'Enter') { page = 1; load(); } });
+
+  // 초기: DCM 최근 1년 자동 조회
+  setMarket('dcm');
 })();

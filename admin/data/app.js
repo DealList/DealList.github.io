@@ -85,7 +85,7 @@
   // ───────── 가드 ─────────
   let profile;
   try { profile = await NP.getProfile(); } catch (e) { profile = null; }
-  if (!profile) { location.replace('/login/?next=' + encodeURIComponent('/admin/data/edit/')); return; }
+  if (!profile) { location.replace('/login/?next=' + encodeURIComponent('/admin/data/')); return; }
   if (profile.role !== 'admin') {
     const g = $('guard-msg'); g.hidden = false;
     g.innerHTML = `<h2>접근 권한 없음</h2><p>이 계정(<strong>${esc(profile.email || '')}</strong>)은 관리자가 아닙니다.</p><a href="/main/" class="admin-btn">← 메인으로</a>`;
@@ -95,6 +95,7 @@
   $('admin-nav').hidden = false;
   $('panel').hidden = false;
   $('btn-logout').addEventListener('click', async () => { if (!confirm('로그아웃하시겠습니까?')) return; await NP.signOut(); location.href = '/'; });
+  setupTriggers();
 
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const qEl = $('q'), results = $('results'), countEl = $('count'), pagerEl = $('pager');
@@ -518,6 +519,39 @@
     applyPreset('1y'); load();
   });
   qEl.addEventListener('keydown', e => { if (e.key === 'Enter') { page = 1; load(); } });
+
+  // ───────── 수동 수집 트리거 ─────────
+  function setupTriggers() {
+    wireTrigger('btn-trigger-dart', 'trigger-status', 'trigger_dart_update', 'DCM', 'https://github.com/DealList/DealList.github.io/actions/workflows/data-update.yml');
+    wireTrigger('btn-trigger-ecm', 'trigger-status-ecm', 'trigger_ecm_update', 'ECM', 'https://github.com/DealList/DealList.github.io/actions/workflows/ecm-data-update.yml');
+  }
+  function wireTrigger(btnId, statusId, rpc, label, actionsUrl) {
+    const btn = $(btnId); if (!btn) return;
+    btn.addEventListener('click', async () => {
+      const box = $(statusId);
+      if (!confirm(`지금 ${label} 데이터 수집을 실행하시겠습니까?\n\n자동 수집과 동일한 작업이며 약 3~5분 후 사이트에 반영됩니다.`)) return;
+      btn.disabled = true; btn.textContent = '실행 요청 중...';
+      box.hidden = false; box.className = 'trigger-status';
+      box.innerHTML = `<div class="ts-title">GitHub Actions 에 요청 보내는 중...</div>`;
+      try {
+        const { error } = await sb.rpc(rpc);
+        if (error) throw error;
+        const now = new Date(), fin = new Date(now.getTime() + 5 * 60 * 1000);
+        const fmt = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        box.className = 'trigger-status status-success';
+        box.innerHTML = `<div class="ts-title">✅ 실행 요청 완료</div><div>${label} 수집 워크플로우가 시작됐습니다.</div>` +
+          `<div class="ts-meta" style="margin-top:6px;">• 요청 ${fmt(now)} · 예상 완료 ~${fmt(fin)}<br>• <a href="${actionsUrl}" target="_blank" rel="noopener">진행 상황 확인</a></div>`;
+        btn.textContent = '✓ 요청 완료';
+        setTimeout(() => { btn.disabled = false; btn.textContent = '지금 실행'; }, 30000);
+      } catch (e) {
+        let m = e.message || String(e);
+        if (/permission denied/i.test(m)) m += ' (관리자 권한 필요 — 로그아웃 후 재로그인)';
+        box.className = 'trigger-status status-error';
+        box.innerHTML = `<div class="ts-title">❌ 실행 요청 실패</div><div>${esc(m)}</div>`;
+        btn.disabled = false; btn.textContent = '지금 실행';
+      }
+    });
+  }
 
   // 초기: DCM 최근 1년 자동 조회
   setMarket('dcm');

@@ -10,39 +10,12 @@
   <link rel="stylesheet" href="../admin.css?v=20260603c" />
   <style>
     [hidden] { display: none !important; }
-    .admin-card h3 { font-size: 15px; font-weight: 700; margin: 0 0 10px; color: var(--text); }
-    .admin-card h4 { font-size: 12px; font-weight: 700; color: var(--muted); margin: 16px 0 8px; letter-spacing: .04em; }
-    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
-    .card-head h3 { margin: 0; }
+    .admin-main { max-width: none; }  /* 발행정보 페이지처럼 전체 너비 */
 
-    /* 업로드 */
-    .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 30px 20px; text-align: center; margin: 6px 0; transition: all .2s; }
-    .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: var(--bg); }
-    .upload-label { cursor: pointer; display: block; }
-    .upload-icon { font-size: 32px; margin-bottom: 8px; }
-    .file-info { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px 16px; margin-top: 12px; font-size: 13px; }
-    .upload-check { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; margin: 14px 0 0; }
-    .upload-check input { margin: 0; }
-
-    /* 통계 */
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin: 8px 0 16px; }
-    .stat-cell { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; }
-    .stat-cell .stat-label { font-size: 11px; color: var(--muted); }
-    .stat-cell .stat-value { font-size: 18px; font-weight: 700; margin-top: 2px; }
-    .stat-cell.stat-warn .stat-value { color: var(--amber); }
-    .stat-cell.stat-error .stat-value { color: #dc2626; }
-    .stat-cell.stat-ok .stat-value { color: var(--green); }
-    :root[data-theme="dark"] .stat-cell.stat-error .stat-value { color: #fca5a5; }
-
-    /* 검증 */
-    .validation-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 13px 16px; margin: 14px 0; }
-    #validation-list { max-height: 240px; overflow-y: auto; margin-top: 10px; }
-    .v-item { padding: 6px 10px; border-left: 3px solid var(--border); background: var(--surface); margin-bottom: 4px; font-size: 12px; border-radius: 0 4px 4px 0; }
-    .v-item.v-error { border-left-color: #dc2626; }
-    .v-item.v-warn { border-left-color: var(--amber); }
-    .v-item.v-info { border-left-color: var(--accent); }
-
-    /* 트리거 상태 */
+    /* 수동 수집 카드 */
+    .trig-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 26px; }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+    .card-head h3 { margin: 0 0 4px; font-size: 15px; font-weight: 700; color: var(--text); }
     .trigger-status { margin-top: 12px; padding: 12px 16px; border-radius: 8px; background: var(--bg); border: 1px solid var(--border); font-size: 13px; line-height: 1.6; }
     .trigger-status.status-success { border-color: var(--green); background: var(--green-bg); }
     .trigger-status.status-error { border-color: #dc2626; background: rgba(220,38,38,.08); }
@@ -51,58 +24,36 @@
     .trigger-status a { color: var(--accent); text-decoration: none; }
     .trigger-status a:hover { text-decoration: underline; }
 
-    /* 삭제 결과 */
-    .delete-results-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; overflow: hidden; }
-    .delete-results-table th, .delete-results-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
-    .delete-results-table th { background: var(--bg); font-size: 11px; color: var(--muted); }
-    .delete-results-table tbody tr:hover { background: var(--bg); }
-    .delete-results-table tbody tr:last-child td { border-bottom: none; }
-    .delete-empty-msg { text-align: center; padding: 18px; color: var(--muted); font-size: 13px; }
-    .btn-danger { background: none; color: #dc2626; border: 1px solid #fecaca; border-radius: 5px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; }
-    .btn-danger:hover { background: #fee2e2; }
-    .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
-    :root[data-theme="dark"] .btn-danger { color: #fca5a5; border-color: #5a2020; }
-    :root[data-theme="dark"] .btn-danger:hover { background: #3a1414; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .seg button { padding: 8px 18px; background: var(--surface); color: var(--muted); border: 0; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+    .seg button.active { background: var(--accent); color: #fff; }
+    .ecm-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .etab { padding: 7px 16px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 700; cursor: pointer; }
+    .etab.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-    /* audit */
-    .audit-list { max-height: 460px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
-    .audit-row { display: grid; grid-template-columns: 120px 84px 110px 1fr auto; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; cursor: pointer; }
-    .audit-row:last-child { border-bottom: none; }
-    .audit-row:hover { background: var(--bg); }
-    .audit-row .a-time { color: var(--muted); font-size: 12px; }
-    .audit-row .a-op { font-weight: 700; font-size: 11px; padding: 2px 8px; border-radius: 4px; text-align: center; background: var(--bg); white-space: nowrap; }
-    .audit-row .a-op.op-INSERT { background: var(--green-bg); color: var(--green); }
-    .audit-row .a-op.op-UPDATE { background: var(--accent-soft); color: var(--accent-2); }
-    .audit-row .a-op.op-DELETE { background: rgba(220,38,38,.14); color: #dc2626; }
-    :root[data-theme="dark"] .audit-row .a-op.op-DELETE { color: #fca5a5; }
-    .audit-row .a-table { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
-    .audit-row .a-target { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .audit-row .a-toggle { color: var(--muted); font-size: 11px; }
-    .audit-detail { background: var(--bg); padding: 12px 14px; border-bottom: 1px solid var(--border); font-family: ui-monospace, monospace; font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow-y: auto; }
-    .audit-detail .ad-section { margin-bottom: 10px; }
-    .audit-detail .ad-label { font-weight: 700; color: var(--muted); font-size: 10px; letter-spacing: .04em; margin-bottom: 4px; }
-    .audit-detail .ad-diff-line { padding: 1px 6px; border-radius: 3px; }
-    .audit-detail .ad-diff-line.diff-add { background: var(--green-bg); }
-    .audit-detail .ad-diff-line.diff-del { background: rgba(220,38,38,.12); }
-    .audit-detail .ad-email { color: var(--accent); }
-    @media (max-width: 640px) {
-      .audit-row { grid-template-columns: 1fr auto; gap: 6px; }
-      .audit-row .a-time, .audit-row .a-table { grid-column: 1 / -1; }
-    }
+    .edit-table input { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-size: 12.5px; font-family: inherit; }
+    .edit-table input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+    .edit-table input.num { text-align: right; }
+    .edit-table input[readonly] { background: transparent; border-color: transparent; color: var(--muted); cursor: default; }
+    .edit-table input.locked { border-color: var(--accent); background: var(--accent-soft); }
+    .edit-table .comp-cell { font-size: 11.5px; color: var(--accent-2); font-weight: 700; text-align: right; white-space: nowrap; background: var(--accent-soft); }
+    .edit-table td { padding: 6px 8px; }
+    .edit-table th { font-size: 10.5px; }
+    .edit-table .amt-won { min-width: 130px; }
+    .cell-eok { font-size: 10px; color: var(--muted); text-align: right; display: block; margin-top: 2px; }
+    .save-cell { white-space: nowrap; }
+    .row-saved td { background: var(--green-bg) !important; transition: background .3s; }
+    .edit-hint { background: var(--accent-soft); color: var(--accent-2); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; margin-bottom: 16px; }
 
-    /* 결과 로그 */
-    #result-log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; white-space: pre-wrap; max-height: 340px; overflow-y: auto; }
-    .log-line { margin: 2px 0; }
-    .log-success { color: var(--green); }
-    .log-error { color: #dc2626; }
-    .log-warn { color: var(--amber); }
-    .log-info { color: var(--muted); }
-    :root[data-theme="dark"] .log-error { color: #fca5a5; }
-
-    /* 로딩 */
-    .loading-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(2px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; z-index: 1000; color: #fff; font-weight: 600; }
-    .spinner { width: 38px; height: 38px; border: 3px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .filter-bar input[type="date"] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 13px; font-family: inherit; }
+    .quick-btns { display: inline-flex; gap: 4px; }
+    .qbtn { padding: 6px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--muted); font-size: 12.5px; font-weight: 600; cursor: pointer; }
+    .qbtn:hover { color: var(--text); }
+    .qbtn.on { background: var(--accent-soft); color: var(--accent-2); border-color: var(--accent); }
+    .pager { display: flex; align-items: center; gap: 6px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
+    .pager button { padding: 5px 11px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--text); font-size: 12.5px; cursor: pointer; }
+    .pager button:disabled { opacity: .45; cursor: not-allowed; }
+    .pager .pinfo { font-size: 12.5px; color: var(--muted); margin: 0 8px; }
   </style>
 </head>
 <body>
@@ -140,136 +91,81 @@
       <section id="panel" hidden>
         <h2>데이터 관리</h2>
 
-        <!-- 발행정보 편집 진입 -->
-        <a href="edit/" class="admin-card" style="display:flex; justify-content:space-between; align-items:center; gap:14px; text-decoration:none;">
-          <div>
-            <h3 style="margin:0 0 4px;">✏️ 발행정보 편집</h3>
-            <p class="admin-muted" style="margin:0;">발행사 검색 → 수치 직접 수정 → 발행정보 페이지에 즉시 반영</p>
-          </div>
-          <span class="admin-btn">편집 →</span>
-        </a>
-
-        <!-- DCM 수집 -->
-        <div class="admin-card">
-          <div class="card-head">
-            <div>
-              <h3>🚀 DCM 데이터 수집</h3>
-              <p class="admin-muted">매일 06:17 자동 수집과 동일한 프로세스 (약 3~5분).</p>
+        <!-- 수동 수집 트리거 -->
+        <div class="trig-grid">
+          <div class="admin-card" style="margin:0;">
+            <div class="card-head">
+              <div>
+                <h3>🚀 DCM 데이터 수집</h3>
+                <p class="admin-muted" style="margin:0;">자동 수집과 동일 · 약 3~5분 후 사이트 반영</p>
+              </div>
+              <button id="btn-trigger-dart" class="admin-btn">지금 실행</button>
             </div>
-            <button id="btn-trigger-dart" class="admin-btn">지금 실행</button>
+            <div id="trigger-status" class="trigger-status" hidden></div>
           </div>
-          <div id="trigger-status" class="trigger-status" hidden></div>
-        </div>
-
-        <!-- ECM 수집 -->
-        <div class="admin-card">
-          <div class="card-head">
-            <div>
-              <h3>📈 ECM 데이터 수집</h3>
-              <p class="admin-muted">매일 05:53 자동 수집과 동일한 프로세스 (약 3~5분).</p>
+          <div class="admin-card" style="margin:0;">
+            <div class="card-head">
+              <div>
+                <h3>📈 ECM 데이터 수집</h3>
+                <p class="admin-muted" style="margin:0;">자동 수집과 동일 · 약 3~5분 후 사이트 반영</p>
+              </div>
+              <button id="btn-trigger-ecm" class="admin-btn">지금 실행</button>
             </div>
-            <button id="btn-trigger-ecm" class="admin-btn">지금 실행</button>
-          </div>
-          <div id="trigger-status-ecm" class="trigger-status" hidden></div>
-        </div>
-
-        <!-- 업로드 -->
-        <div class="admin-card">
-          <h3>xlsx / json 업로드 <span class="admin-muted" style="font-weight:400;">(DCM records)</span></h3>
-          <div class="upload-area" id="upload-area">
-            <input type="file" id="file-input" accept=".xlsx,.xlsm,.json" hidden />
-            <label for="file-input" class="upload-label">
-              <div class="upload-icon">📂</div>
-              <div>여기를 클릭해서 파일 선택</div>
-              <div class="admin-muted" style="font-size:12px;">또는 파일을 끌어다 놓기 (.xlsx / .json)</div>
-            </label>
-          </div>
-
-          <div id="file-info" class="file-info" hidden>
-            <div>선택: <strong id="file-name"></strong> <span class="admin-muted" id="file-size"></span></div>
-            <div style="display:flex; gap:8px; margin-top:10px;">
-              <button id="btn-parse" class="admin-btn">분석 / 미리보기</button>
-              <button id="btn-clear" class="admin-btn ghost">취소</button>
-            </div>
-          </div>
-
-          <div id="preview-card" hidden style="margin-top:16px;">
-            <h4>파싱 결과</h4>
-            <div id="parse-stats" class="stat-grid"></div>
-
-            <div id="validation-panel" class="validation-panel" hidden>
-              <h4 style="margin-top:0;">검증 결과</h4>
-              <div id="validation-summary"></div>
-              <details id="validation-details"><summary>전체 보기</summary><div id="validation-list"></div></details>
-            </div>
-
-            <h4>미리보기 (상위 10건)</h4>
-            <div class="table-scroll">
-              <table class="admin-table" id="preview-table" style="min-width:640px;">
-                <thead><tr><th>청약일</th><th>발행사</th><th>회차</th><th>종류</th><th>등급</th><th style="text-align:right">발행금액</th><th>주관사</th></tr></thead>
-                <tbody></tbody>
-              </table>
-            </div>
-
-            <label class="upload-check"><input type="checkbox" id="chk-upsert" checked /> Upsert 모드 (기존 동일 키 갱신·신규 추가)</label>
-            <button id="btn-upload" class="admin-btn" style="margin-top:12px;">Supabase 에 업로드</button>
-          </div>
-
-          <div id="result-card" hidden style="margin-top:16px;">
-            <h4>업로드 결과</h4>
-            <div id="result-log"></div>
+            <div id="trigger-status-ecm" class="trigger-status" hidden></div>
           </div>
         </div>
 
-        <!-- 삭제 -->
-        <div class="admin-card" id="delete-card">
-          <h3>레코드 삭제</h3>
-          <p class="admin-muted">발행사명으로 검색 → 한 행씩 삭제. 모든 삭제는 audit_log 에 기록됩니다.</p>
-          <div class="filter-bar" style="margin-top:12px;">
-            <input id="delete-search-input" type="search" placeholder="발행사명 (부분일치, 예: 한화에어로)" autocomplete="off" />
-            <button id="btn-delete-search" class="admin-btn ghost">검색</button>
-          </div>
-          <div id="delete-results"></div>
+        <!-- 발행정보 편집 -->
+        <h2 class="sec">발행정보 편집</h2>
+
+        <div class="edit-hint">
+          기간·발행사·종류 등으로 조회 → 값을 수정하고 <strong>저장</strong>하면 ① 원본 테이블에 영구 저장 ② 발행정보 페이지·메인 KPI에 즉시 반영됩니다. 청약일·발행사·회차(키)는 수정 불가.
+          <br/>※ <strong>수정한 칸은 자동 잠금</strong>(골드 테두리) — 다음 자동수집(DART)이 그 칸은 덮어쓰지 않습니다. 잠그지 않은 다른 칸은 후속 공시로 정상 갱신됩니다.
         </div>
 
-        <!-- audit -->
-        <div class="admin-card" id="audit-card">
-          <div class="card-head">
-            <h3>최근 변경 내역</h3>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <select id="audit-filter-table" style="padding:7px 10px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); font-size:13px;">
-                <option value="">전체 테이블</option>
-                <option value="records">records</option>
-                <option value="processed_rcepts">processed_rcepts</option>
-              </select>
-              <button id="btn-audit-refresh" class="admin-btn ghost">새로고침</button>
-            </div>
-          </div>
-          <p class="admin-muted" style="margin:0 0 12px;">관리자 페이지에서 한 변경만 기록됩니다 (자동 수집 cron 변경 제외).</p>
-          <div id="audit-list" class="audit-list">
-            <div class="admin-muted" style="padding:20px; text-align:center;">불러오는 중...</div>
-          </div>
+        <div class="seg">
+          <button id="seg-dcm" class="active" data-market="dcm">DCM · 채권</button>
+          <button id="seg-ecm" data-market="ecm">ECM · 주식</button>
         </div>
 
+        <div class="filter-bar">
+          <label>기간
+            <input id="f-from" type="date" />
+            <span style="color:var(--muted);">~</span>
+            <input id="f-to" type="date" />
+          </label>
+          <div class="quick-btns">
+            <button class="qbtn" data-q="3m">최근 3개월</button>
+            <button class="qbtn" data-q="6m">최근 6개월</button>
+            <button class="qbtn on" data-q="1y">최근 1년</button>
+            <button class="qbtn" data-q="all">전체</button>
+          </div>
+          <input id="q" type="search" placeholder="발행사 검색" style="min-width:160px;" autocomplete="off" />
+          <select id="f-type"><option value="">종류 전체</option></select>
+          <select id="f-rating"><option value="">등급 전체</option></select>
+          <button id="btn-search" class="admin-btn">조회</button>
+          <button id="btn-reset" class="admin-btn ghost">초기화</button>
+          <div class="spacer"></div>
+          <span class="count" id="count"></span>
+        </div>
+
+        <div id="results"></div>
+        <div id="pager" class="pager"></div>
       </section>
 
     </main>
 
     <footer class="admin-foot">
-      Numbers Pool 관리자 · 데이터 변경은 audit_log 에 기록됩니다.
+      Numbers Pool 관리자 · 발행정보 수정은 원본 테이블에 저장되며 사이트에 즉시 반영됩니다.
     </footer>
-
-    <div id="loading" class="loading-overlay" hidden>
-      <div class="spinner"></div>
-      <div id="loading-msg">로딩 중...</div>
-    </div>
 
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="../../supabase-client.js?v=20260602g"></script>
   <script src="../../auth-helper.js?v=20260603a"></script>
-  <script src="admin.js?v=20260603e"></script>
+  <script src="../../data-loader.js?v=20260602g"></script>
+  <script src="app.js?v=20260603l"></script>
+
 </body>
 </html>

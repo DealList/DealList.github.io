@@ -169,7 +169,7 @@
       const termsVersion = sessionStorage.getItem('np-terms-version') || '';
 
       // raw_user_meta_data 에 추가 정보 전달 → 트리거가 profiles 로 INSERT
-      const { error } = await sb.auth.signUp({
+      const { data, error } = await sb.auth.signUp({
         email,
         password,
         options: {
@@ -188,7 +188,23 @@
       });
       if (error) throw error;
 
-      // 가입 성공 → 약관 sessionStorage 정리
+      // Supabase enumeration 보호: 이미 가입자도 success 응답
+      // 다만 user.identities 가 빈 배열이면 이미 가입자라는 신호 → 명확히 안내
+      const isExisting = data && data.user
+        && Array.isArray(data.user.identities) && data.user.identities.length === 0;
+
+      if (isExisting) {
+        showMsg(
+          '이미 가입된 이메일입니다.\n' +
+          '로그인 페이지에서 로그인하시거나, 비밀번호를 잊으셨다면 비밀번호 찾기를 이용해주세요.',
+          'err'
+        );
+        btn.disabled = false;
+        btn.textContent = '가입 신청';
+        return;
+      }
+
+      // 신규 가입 성공 → 약관 sessionStorage 정리
       try {
         sessionStorage.removeItem('np-terms-agreed');
         sessionStorage.removeItem('np-terms-version');
@@ -198,6 +214,7 @@
       showMsg(
         '가입 신청이 접수되었습니다.\n' +
         '이메일로 보낸 인증 메일의 링크를 눌러 확인을 완료한 뒤 로그인해주세요. ' +
+        '메일이 오지 않으면 스팸함을 확인하시거나, 이미 가입된 이메일인지 확인해주세요. ' +
         '(관리자 승인 후 이용 가능)',
         'ok'
       );

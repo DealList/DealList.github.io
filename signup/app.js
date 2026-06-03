@@ -210,6 +210,8 @@
         m = '이미 가입된 이메일입니다. 로그인 페이지로 이동해주세요.';
       } else if (/Password should be at least/i.test(m)) {
         m = '비밀번호 정책: 8~32자, 영문·숫자·특수문자 중 2가지 이상.';
+      } else if (/rate limit/i.test(m)) {
+        m = '잠시 후 다시 시도해주세요. 보안을 위해 잠깐 메일 발송이 제한됩니다 (약 1분).';
       }
       showMsg(m, 'err');
       btn.disabled = false;

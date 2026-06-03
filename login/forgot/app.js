@@ -34,7 +34,12 @@
       btn.textContent = '메일 발송 완료';
       $('email').disabled = true;
     } catch (err) {
-      const m = err.message || String(err);
+      let m = err.message || String(err);
+      if (/rate limit/i.test(m)) {
+        m = '잠시 후 다시 시도해주세요. 보안을 위해 잠깐 메일 발송이 제한됩니다 (약 1분).';
+      } else if (/invalid email|not a valid email/i.test(m)) {
+        m = '올바른 이메일 형식이 아닙니다.';
+      }
       showMsg('재설정 메일 발송 실패: ' + m, 'err');
       btn.disabled = false;
       btn.textContent = '재설정 메일 받기';

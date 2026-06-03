@@ -139,11 +139,11 @@
     // 2) data.json 패치 + 재업로드 (즉시 반영)
     let reflect = '';
     try {
-      await patchJson(orig);
-      reflect = ' · 사이트 반영됨';
+      const res = await patchJson(orig);
+      reflect = res.summaryOk ? ' · 사이트 반영됨 (KPI 포함)' : ' · 발행정보만 반영 (KPI는 다음 수집)';
     } catch (e) {
       console.warn('[edit] data.json 패치 실패', e);
-      reflect = ' · 반영은 다음 수집 때';
+      reflect = ' · 반영은 다음 수집 때 (' + (e.message || e) + ')';
     }
     btn.disabled = false; btn.textContent = '저장';
     flash(tr, '저장됨' + reflect, true);
@@ -175,14 +175,17 @@
     if (error) throw new Error(error.message || '업로드 실패');
 
     // 메인페이지 KPI(summary.json) 재계산 + 재업로드 — export_web.py _compute_summary 와 동일 로직
+    let summaryOk = false;
     try {
       const summary = computeSummary(arr);
       const sblob = new Blob([JSON.stringify(summary)], { type: 'application/json' });
       const { error: serr } = await sb.storage.from('site-data').upload('summary.json', sblob, { upsert: true, contentType: 'application/json' });
       if (serr) throw new Error(serr.message);
+      summaryOk = true;
     } catch (e) {
       console.warn('[edit] summary.json 재계산/업로드 실패 — 메인 KPI는 다음 수집 때 갱신', e);
     }
+    return { summaryOk };
   }
 
   // ── summary.json 재계산 (Python export_web._compute_summary 1:1 포팅) ──

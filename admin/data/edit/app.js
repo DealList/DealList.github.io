@@ -23,13 +23,14 @@
     { tk: 'initial_amount',    jk: 'init',         label: '최초모집',   type: 'won' },
     { tk: 'issue_limit',       jk: 'limit',        label: '발행한도',   type: 'won' },
     { tk: 'demand_amount',     jk: 'demand',       label: '수요예측',   type: 'won' },
+    { comp: true, label: '수요예측경쟁률', from: ['demand_amount', 'initial_amount'], calc: 'x2' },
     { tk: 'final_amount',      jk: 'final',        label: '최종발행',   type: 'won' },
     { tk: 'series_total',      jk: 'series_total', label: '회차합산',   type: 'won' },
     { tk: 'rate_target',       jk: 'r_target',     label: '희망금리',   type: 'text' },
     { tk: 'rate_demand',       jk: 'r_demand',     label: '수요금리',   type: 'text' },
     { tk: 'rate_final',        jk: 'r_final',      label: '최종금리',   type: 'numf' },
   ];
-  const DCM_SELECT = DCM_FIELDS.map(f => f.tk).join(',') + ',rcept_no,locked_fields';
+  const DCM_SELECT = DCM_FIELDS.filter(f => f.tk).map(f => f.tk).join(',') + ',rcept_no,locked_fields';
 
   const IPO_FIELDS = [
     { tk: 'listing_date',     label: '상장일',   type: 'text' },
@@ -39,16 +40,19 @@
     { tk: 'init_price',       label: '최초가',   type: 'numf' },
     { tk: 'final_qty',        label: '확정수량', type: 'numf' },
     { tk: 'final_price',      label: '확정가',   type: 'numf' },
-    { comp: true,             label: '확정총액', from: ['final_qty', 'final_price'] },
+    { comp: true,             label: '확정총액', from: ['final_qty', 'final_price'], calc: 'eok' },
     { tk: 'new_share_ratio',  label: '신주비율', type: 'numf' },
     { tk: 'inst_initial',     label: '기관모집', type: 'numf' },
     { tk: 'inst_subscribed',  label: '기관청약', type: 'numf' },
     { tk: 'inst_final',       label: '기관배정', type: 'numf' },
+    { comp: true,             label: '기관경쟁률', from: ['inst_subscribed', 'inst_initial'], calc: 'x' },
     { tk: 'general_initial',  label: '일반모집', type: 'numf' },
     { tk: 'general_subscribed', label: '일반청약', type: 'numf' },
     { tk: 'general_final',    label: '일반배정', type: 'numf' },
+    { comp: true,             label: '일반경쟁률', from: ['general_subscribed', 'general_initial'], calc: 'x' },
     { tk: 'esop_initial',     label: '우리사주모집', type: 'numf' },
     { tk: 'esop_final',       label: '우리사주배정', type: 'numf' },
+    { comp: true,             label: '우리사주청약률', from: ['esop_final', 'esop_initial'], calc: 'pct' },
   ];
   const RIGHTS_FIELDS = [
     { tk: 'record_date',   label: '기준일',   type: 'text' },
@@ -57,14 +61,15 @@
     { tk: 'payment_date',  label: '납입일',   type: 'text' },
     { tk: 'new_qty',       label: '신주수량', type: 'numf' },
     { tk: 'existing_qty',  label: '기존수량', type: 'numf' },
+    { comp: true,          label: '증자비율', from: ['new_qty', 'existing_qty'], calc: 'pct' },
     { tk: 'init_qty',      label: '최초수량', type: 'numf' },
     { tk: 'init_price',    label: '최초가',   type: 'numf' },
     { tk: 'price_1',       label: '1차가',    type: 'numf' },
-    { comp: true,          label: '1차총액',  from: ['new_qty', 'price_1'] },
+    { comp: true,          label: '1차총액',  from: ['new_qty', 'price_1'], calc: 'eok' },
     { tk: 'price_2',       label: '2차가',    type: 'numf' },
-    { comp: true,          label: '2차총액',  from: ['new_qty', 'price_2'] },
+    { comp: true,          label: '2차총액',  from: ['new_qty', 'price_2'], calc: 'eok' },
     { tk: 'final_price',   label: '확정가',   type: 'numf' },
-    { comp: true,          label: '확정총액', from: ['new_qty', 'final_price'] },
+    { comp: true,          label: '확정총액', from: ['new_qty', 'final_price'], calc: 'eok' },
   ];
 
   let market = 'dcm';
@@ -170,7 +175,7 @@
     const idx = arr.findIndex(x => (x.date || '') === (rec.subscription_date || '') && (x.issuer || '') === (rec.issuer_alias || '') && (x.series || '') === (rec.series || ''));
     if (idx < 0) throw new Error('표시 대상 아님');
     const tgt = arr[idx];
-    DCM_FIELDS.forEach(f => { if (f.ro) return; const v = rec[f.tk]; tgt[f.jk] = (f.type === 'won') ? (v == null ? null : Math.round(v)) : v; });
+    DCM_FIELDS.forEach(f => { if (f.ro || f.comp) return; const v = rec[f.tk]; tgt[f.jk] = (f.type === 'won') ? (v == null ? null : Math.round(v)) : v; });
     if (arr.length !== len) throw new Error('배열 변형');
     await upload('data.json', arr);
 
@@ -244,10 +249,7 @@
     results.querySelectorAll('table[data-kind]').forEach(tbl => {
       const kind = tbl.dataset.kind;
       const fields = kind === 'ipo' ? IPO_FIELDS : RIGHTS_FIELDS;
-      const tbody = tbl.querySelector('tbody');
-      tbody.querySelectorAll('.btn-save').forEach(btn =>
-        btn.addEventListener('click', () => { const tr = btn.closest('tr'); saveEcmRow(kind, tr.dataset.id, tr); }));
-      tbody.querySelectorAll('tr').forEach(tr => bindEcmCompute(tr, fields));
+      bindRows(tbl.querySelector('tbody'), fields, (tr) => saveEcmRow(kind, tr.dataset.id, tr));
     });
   }
 
@@ -261,24 +263,6 @@
     const cols = fields.length + 1;
     return `<h3 style="font-size:14px; margin:18px 0 8px;">${title} <span class="admin-muted" style="font-weight:400;">(${rows.length})</span></h3>
       <div class="table-scroll"><table class="admin-table edit-table" data-kind="${kind}" style="min-width:${cols * 105}px;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-  }
-
-  function bindEcmCompute(tr, fields) {
-    const recompute = () => {
-      const get = (tk) => {
-        const inp = tr.querySelector('input[data-tk="' + tk + '"]');
-        if (!inp) return null;
-        const s = inp.value.replace(/,/g, '').trim(); const n = Number(s);
-        return (s !== '' && isFinite(n)) ? n : null;
-      };
-      fields.forEach((f, i) => {
-        if (!f.comp) return;
-        const cell = tr.querySelector('.comp-cell[data-comp="' + i + '"]'); if (!cell) return;
-        const val = eok(get(f.from[0]), get(f.from[1]));
-        cell.textContent = (val == null) ? '—' : val.toLocaleString() + '억';
-      });
-    };
-    tr.querySelectorAll('input[data-tk]').forEach(inp => inp.addEventListener('input', recompute));
   }
 
   async function saveEcmRow(kind, id, tr) {
@@ -362,8 +346,7 @@
   function rowCells(fields, r) {
     return fields.map((f, i) => {
       if (f.comp) {
-        const val = eok(num(r[f.from[0]]), num(r[f.from[1]]));
-        return `<td class="comp-cell" data-comp="${i}">${val == null ? '—' : val.toLocaleString() + '억'}</td>`;
+        return `<td class="comp-cell" data-comp="${i}">${compCalc(f.calc, num(r[f.from[0]]), num(r[f.from[1]]))}</td>`;
       }
       const v = r[f.tk];
       const numCls = (f.type === 'won' || f.type === 'numf') ? 'num' : '';
@@ -379,14 +362,39 @@
 
   function bindRows(tbody, fields, saveFn) {
     tbody.querySelectorAll('.btn-save').forEach(btn => btn.addEventListener('click', () => saveFn(btn.closest('tr'))));
-    tbody.querySelectorAll('input[data-tk]').forEach(inp => {
-      const f = fields.find(x => x.tk === inp.dataset.tk);
-      if (f && f.type === 'won') inp.addEventListener('input', () => {
-        const span = inp.parentElement.querySelector('.cell-eok'); if (!span) return;
-        const s = inp.value.replace(/,/g, '').trim(); const n = Number(s);
-        span.textContent = (s !== '' && isFinite(n)) ? fmtEok(n) : '';
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const recompute = () => fields.forEach((f, i) => {
+        if (!f.comp) return;
+        const cell = tr.querySelector('.comp-cell[data-comp="' + i + '"]'); if (!cell) return;
+        cell.textContent = compCalc(f.calc, getInputNum(tr, f.from[0]), getInputNum(tr, f.from[1]));
+      });
+      tr.querySelectorAll('input[data-tk]').forEach(inp => {
+        const f = fields.find(x => x.tk === inp.dataset.tk);
+        inp.addEventListener('input', () => {
+          if (f && f.type === 'won') {
+            const span = inp.parentElement.querySelector('.cell-eok');
+            if (span) { const s = inp.value.replace(/,/g, '').trim(); const n = Number(s); span.textContent = (s !== '' && isFinite(n)) ? fmtEok(n) : ''; }
+          }
+          recompute();
+        });
       });
     });
+  }
+  function getInputNum(tr, tk) {
+    const inp = tr.querySelector('input[data-tk="' + tk + '"]');
+    if (!inp) return null;
+    const s = inp.value.replace(/,/g, '').trim(); const n = Number(s);
+    return (s !== '' && isFinite(n)) ? n : null;
+  }
+  // 자동계산 표기: eok(억) · x(경쟁률 배) · x2(소수2자리 배) · pct(%)
+  function compCalc(calc, a, b) {
+    if (typeof a !== 'number' || typeof b !== 'number') return '—';
+    if (calc === 'eok') return Math.round(a * b / 1e8).toLocaleString() + '억';
+    if (!b) return '—';
+    if (calc === 'x')   return (Math.round(a / b * 100) / 100).toLocaleString() + '배';
+    if (calc === 'x2')  return (a / b).toFixed(2) + '배';
+    if (calc === 'pct') return ((Math.round(a / b * 100) / 100) * 100).toFixed(1) + '%';
+    return '—';
   }
 
   function collectPatch(tr, fields, orig) {

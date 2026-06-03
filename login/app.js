@@ -7,11 +7,21 @@
   };
 
   // URL 파라미터 분석
-  //   np_from=oauth : Google OAuth 콜백으로 돌아옴 (자동 redirect)
-  //   next=...      : 로그인 후 가야 할 곳
+  //   np_from=oauth   : Google OAuth 콜백으로 돌아옴 (자동 redirect)
+  //   next=...        : 로그인 후 가야 할 곳
+  //   reason=inactive : 30일 비활성으로 자동 로그아웃되어 들어옴
   const urlParams = new URL(location.href).searchParams;
   const isOauthCallback = urlParams.get('np_from') === 'oauth';
   const nextParam = urlParams.get('next');
+  const reason = urlParams.get('reason');
+
+  // 비활성 자동 로그아웃 안내
+  if (reason === 'inactive') {
+    showMsg(
+      '30일 이상 활동이 없어 보안을 위해 자동 로그아웃되었습니다. 다시 로그인해주세요.',
+      'err'
+    );
+  }
 
   // 이미 로그인된 사용자: 상태별 처리
   //   pending/rejected/revoked → /pending/ 로 자동 이동 (다른 작업 불가)

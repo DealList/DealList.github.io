@@ -189,6 +189,25 @@
     // 약관 동의 기록은 가입 시점(/signup/terms/)에 받으므로 nav 가 추가 라우팅하지 않음.
     // /profile/complete/ 는 연락처·주소 등 선택 정보 보완 페이지로만 사용 (자발적 방문).
 
+    // ─── 비활성 자동 로그아웃 (30일) — 클라이언트 측 구현 ───
+    // localStorage 의 마지막 활동 시각이 30일 전이면 강제 로그아웃 + /login/?reason=inactive
+    // (Supabase 의 inactivity timeout 이 Pro 플랜 전용이라 무료 플랜 대안)
+    if (profile && profile.status === 'approved') {
+      const ACTIVE_KEY = 'np-last-active';
+      const LIMIT_MS = 30 * 24 * 60 * 60 * 1000;
+      let last = 0;
+      try { last = parseInt(localStorage.getItem(ACTIVE_KEY) || '0', 10) || 0; } catch (e) {}
+      if (last > 0 && (Date.now() - last) > LIMIT_MS) {
+        try { await sb.auth.signOut(); } catch (e) {}
+        try { localStorage.removeItem(ACTIVE_KEY); } catch (e) {}
+        try { if (window.NP_clearRemember) window.NP_clearRemember(); } catch (e) {}
+        location.replace('/login/?reason=inactive');
+        return;
+      }
+      // 활동 시각 갱신
+      try { localStorage.setItem(ACTIVE_KEY, String(Date.now())); } catch (e) {}
+    }
+
     renderAuthArea(user, profile);
   }).catch(e => {
     console.warn('[nav] supabase load error', e);

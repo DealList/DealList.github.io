@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>발행정보 편집 — Numbers Pool Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../../admin.css?v=20260603c" />
+  <style>
+    [hidden] { display: none !important; }
+    .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .seg button { padding: 8px 18px; background: var(--surface); color: var(--muted); border: 0; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+    .seg button.active { background: var(--accent); color: #fff; }
+    .seg button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .edit-table input { width: 100%; box-sizing: border-box; padding: 5px 7px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); font-size: 12.5px; font-family: inherit; }
+    .edit-table input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+    .edit-table input.num { text-align: right; }
+    .edit-table input[readonly] { background: transparent; border-color: transparent; color: var(--muted); cursor: default; }
+    .edit-table td { padding: 6px 8px; }
+    .edit-table th { font-size: 10.5px; }
+    .edit-table .amt-won { min-width: 130px; }
+    .cell-eok { font-size: 10px; color: var(--muted); text-align: right; display: block; margin-top: 2px; }
+    .save-cell { white-space: nowrap; }
+    .row-saved td { background: var(--green-bg) !important; transition: background .3s; }
+
+    .reflect-note { font-size: 12px; color: var(--muted); line-height: 1.6; margin: 4px 0 0; }
+    .edit-hint { background: var(--accent-soft); color: var(--accent-2); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+  <div class="admin-shell">
+
+    <header class="admin-top">
+      <a href="/main/" class="admin-logo" aria-label="Numbers Pool">
+        <img src="../../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+        <img src="../../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+        <span class="badge">ADMIN</span>
+      </a>
+      <div class="admin-user">
+        <span class="me" id="me-email">—</span>
+        <a href="/account/" class="admin-btn ghost">내 계정</a>
+        <a href="/main/" class="admin-btn ghost">사이트로</a>
+        <button id="btn-logout" class="admin-btn">로그아웃</button>
+        <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="admin-nav" id="admin-nav" hidden>
+      <a href="../../">대시보드</a>
+      <a href="../../members/">회원 관리</a>
+      <a href="../">데이터 관리</a>
+      <a href="../../settings/">설정</a>
+    </nav>
+
+    <main class="admin-main">
+
+      <div id="guard-msg" class="guard-box" hidden></div>
+
+      <section id="panel" hidden>
+        <h2>발행정보 편집</h2>
+
+        <div class="edit-hint">
+          발행사명으로 검색 → 값을 수정하고 <strong>저장</strong>하면 ① 원본 테이블에 영구 저장되고 ② 발행정보 페이지에 즉시 반영됩니다.
+          청약일·발행사·회차(키)는 수정할 수 없습니다.
+          <br/>※ 메인페이지 KPI·주관사 실적 등 파생 수치는 다음 데이터 수집 때 정확히 갱신됩니다.
+        </div>
+
+        <div class="seg">
+          <button id="seg-dcm" class="active" data-market="dcm">DCM · 채권</button>
+          <button id="seg-ecm" data-market="ecm" disabled title="준비 중">ECM · 주식 (준비 중)</button>
+        </div>
+
+        <div class="filter-bar">
+          <input id="q" type="search" placeholder="발행사명 (부분일치, 예: 한화에어로)" style="min-width:280px;" autocomplete="off" />
+          <button id="btn-search" class="admin-btn">검색</button>
+          <span class="count" id="count"></span>
+        </div>
+
+        <div id="results"></div>
+      </section>
+
+    </main>
+
+    <footer class="admin-foot">
+      Numbers Pool 관리자 · 발행정보 수정은 원본 테이블에 저장되며 사이트에 즉시 반영됩니다.
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../../supabase-client.js?v=20260602g"></script>
+  <script src="../../../auth-helper.js?v=20260603a"></script>
+  <script src="../../../data-loader.js?v=20260602g"></script>
+  <script src="app.js?v=20260603a"></script>
+</body>
+</html>

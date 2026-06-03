@@ -133,6 +133,16 @@
       .v1-nav .right { flex-direction: column; align-items: flex-end; gap: 7px; }
       .v1-nav .right .np-right-top { display: flex; align-items: center; gap: 12px; }
       @media (max-width: 720px) { .v1-nav .right .updated { display: none; } }
+      .np-notice {
+        display: flex; align-items: center; gap: 12px; padding: 9px 18px;
+        font-size: 13px; line-height: 1.5;
+        background: var(--accent-soft); color: var(--accent-2); border-bottom: 1px solid var(--border);
+      }
+      .np-notice.np-notice-warn { background: #fef3c7; color: #92400e; }
+      :root[data-theme="dark"] .np-notice.np-notice-warn { background: #3a2e0c; color: #fde047; }
+      .np-notice .np-notice-msg { flex: 1; white-space: pre-line; }
+      .np-notice .np-notice-x { background: none; border: 0; color: inherit; font-size: 18px; line-height: 1; cursor: pointer; opacity: .65; padding: 0 2px; }
+      .np-notice .np-notice-x:hover { opacity: 1; }
     `;
     document.head.appendChild(st);
   }
@@ -172,6 +182,7 @@
       renderAuthArea(null, null);
       return;
     }
+    loadNotice(sb);  // 공지 배너 (독립 실행, 실패 무시)
     let user = null, profile = null;
     try {
       const sres = await sb.auth.getSession();
@@ -295,5 +306,43 @@
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c =>
       ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ─── 공지 배너 (notices 테이블의 활성 공지를 상단에 표시) ───
+  async function loadNotice(sb) {
+    try {
+      const { data, error } = await sb.from('notices')
+        .select('id,message,level')
+        .eq('active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error) return;  // 테이블 없음/권한 등 — 조용히 무시
+      const n = data && data[0];
+      if (!n) return;
+      let dismissed = null;
+      try { dismissed = localStorage.getItem('np-notice-dismissed'); } catch (e) {}
+      if (dismissed && String(dismissed) === String(n.id)) return;
+      renderNotice(n);
+    } catch (e) { /* 무시 */ }
+  }
+  function renderNotice(n) {
+    if (document.getElementById('np-notice')) return;
+    const bar = document.createElement('div');
+    bar.id = 'np-notice';
+    bar.className = 'np-notice' + (n.level === 'warn' ? ' np-notice-warn' : '');
+    const msg = document.createElement('span');
+    msg.className = 'np-notice-msg';
+    msg.textContent = n.message || '';
+    const x = document.createElement('button');
+    x.className = 'np-notice-x';
+    x.setAttribute('aria-label', '닫기');
+    x.textContent = '×';
+    x.addEventListener('click', () => {
+      bar.remove();
+      try { localStorage.setItem('np-notice-dismissed', String(n.id)); } catch (e) {}
+    });
+    bar.appendChild(msg);
+    bar.appendChild(x);
+    document.body.insertBefore(bar, document.body.firstChild);
   }
 })();

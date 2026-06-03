@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>설정 — Numbers Pool Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
+  <link rel="stylesheet" href="../admin.css?v=20260603c" />
+  <style>
+    .dom-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: 8px; background: var(--surface); font-size: 13.5px;
+    }
+    .dom-row span { font-weight: 600; }
+    #notice-msg {
+      width: 100%; box-sizing: border-box; padding: 10px 12px; margin: 6px 0 10px;
+      border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+      color: var(--text); font-size: 13.5px; font-family: inherit; resize: vertical; line-height: 1.5;
+    }
+    .notice-preview {
+      padding: 10px 14px; border-radius: 8px; font-size: 13px; line-height: 1.5;
+      white-space: pre-line; margin-bottom: 12px;
+      background: var(--accent-soft); color: var(--accent-2);
+    }
+    .notice-preview.lv-warn { background: #fef3c7; color: #92400e; }
+    :root[data-theme="dark"] .notice-preview.lv-warn { background: #3a2e0c; color: #fde047; }
+    .sec-desc { color: var(--muted); font-size: 12.5px; line-height: 1.6; margin: 0 0 4px; }
+  </style>
+</head>
+<body>
+
+  <div class="admin-shell">
+
+    <header class="admin-top">
+      <a href="/main/" class="admin-logo" aria-label="Numbers Pool">
+        <img src="../../assets/numbers-pool-logo.png" alt="Numbers Pool" class="light-only" />
+        <img src="../../assets/numbers-pool-logo-dark.png" alt="" class="dark-only" />
+        <span class="badge">ADMIN</span>
+      </a>
+      <div class="admin-user">
+        <span class="me" id="me-email">—</span>
+        <a href="/account/" class="admin-btn ghost">내 계정</a>
+        <a href="/main/" class="admin-btn ghost">사이트로</a>
+        <button id="btn-logout" class="admin-btn">로그아웃</button>
+        <button id="btn-theme" class="theme-btn" title="다크 모드 전환">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="admin-nav" id="admin-nav" hidden>
+      <a href="../">대시보드</a>
+      <a href="../members/">회원 관리</a>
+      <a href="../data/">데이터 관리</a>
+      <a href="./" class="active">설정</a>
+    </nav>
+
+    <main class="admin-main">
+
+      <div id="guard-msg" class="guard-box" hidden></div>
+
+      <section id="panel" hidden>
+        <h2>설정</h2>
+
+        <!-- 자동승인 도메인 -->
+        <div class="admin-card">
+          <h2 style="margin:0 0 6px; font-size:15px;">자동승인 도메인</h2>
+          <p class="sec-desc">여기 등록된 이메일 도메인으로 가입하면 <strong>관리자 승인 없이 자동 승인</strong>됩니다. (사내 메일 등)</p>
+          <div class="filter-bar" style="margin-top:14px;">
+            <input id="dom-input" type="text" placeholder="도메인 (예: numbers.co.kr)" style="min-width:240px;" />
+            <button id="dom-add" class="admin-btn">추가</button>
+          </div>
+          <div id="dom-list"></div>
+        </div>
+
+        <!-- 공지 배너 -->
+        <div class="admin-card">
+          <h2 style="margin:0 0 6px; font-size:15px;">공지 배너</h2>
+          <p class="sec-desc">사이트 상단에 공지를 띄웁니다. 한 번에 하나만 노출되며, 방문자는 닫을 수 있습니다.</p>
+          <div style="margin:12px 0;">
+            <div class="sec-desc" style="margin-bottom:4px;">현재 공지</div>
+            <div id="notice-current"></div>
+          </div>
+          <div class="sec-desc" style="margin-bottom:2px;">새 공지 작성</div>
+          <textarea id="notice-msg" rows="2" placeholder="예: 6/10(월) 새벽 2~4시 데이터 점검이 예정되어 있습니다."></textarea>
+          <div class="filter-bar">
+            <label>유형
+              <select id="notice-level">
+                <option value="info">안내 (골드)</option>
+                <option value="warn">주의 (노랑)</option>
+              </select>
+            </label>
+            <button id="notice-post" class="admin-btn">공지 게시</button>
+            <button id="notice-clear" class="admin-btn ghost">현재 공지 내리기</button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <footer class="admin-foot">
+      Numbers Pool 관리자 · 설정 변경은 즉시 사이트에 반영됩니다.
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../supabase-client.js?v=20260602g"></script>
+  <script src="../../auth-helper.js?v=20260603a"></script>
+  <script src="app.js?v=20260603a"></script>
+</body>
+</html>

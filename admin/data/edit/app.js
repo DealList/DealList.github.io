@@ -98,7 +98,7 @@
 
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const qEl = $('q'), results = $('results'), countEl = $('count'), pagerEl = $('pager');
-  let dcmRows = [], page = 1; const PAGE = 50;
+  let dcmRows = [], ipoRows = [], rtRows = [], ecmTab = 'ipo', page = 1; const PAGE = 50;
 
   // ───────── 시장 토글 ─────────
   function setMarket(m) {
@@ -284,7 +284,13 @@
     rtQ = applyEcmDate(rtQ, 'record_date', f);
     const [ipoRes, rtRes] = await Promise.all([ipoQ, rtQ]);
     if (ipoRes.error || rtRes.error) { msg('조회 실패: ' + esc((ipoRes.error || rtRes.error).message)); return; }
-    renderEcm(ipoRes.data || [], rtRes.data || []);
+    ipoRows = ipoRes.data || [];
+    rtRows = rtRes.data || [];
+    origMap = {};
+    ipoRows.forEach(r => { origMap['ipo:' + r.id] = r; });
+    rtRows.forEach(r => { origMap['rights:' + r.id] = r; });
+    ecmTab = 'ipo'; page = 1;
+    renderEcmTab();
   }
   function applyEcmDate(qb, col, f) {
     // 날짜 미정(null=진행 중) 행은 항상 포함 + 범위 내 dated 행
@@ -296,34 +302,34 @@
     return qb.or(`${col}.is.null,${rangeCond}`);
   }
 
-  function renderEcm(ipoRows, rtRows) {
-    origMap = {};
+  function renderEcmTab() {
     const total = ipoRows.length + rtRows.length;
     countEl.textContent = total ? `IPO ${ipoRows.length} · 유증 ${rtRows.length}` : '';
-    if (!total) { msg('검색 결과가 없습니다.'); return; }
-
-    let html = '';
-    if (ipoRows.length) html += ecmSection('ipo', 'IPO', IPO_FIELDS, ipoRows);
-    if (rtRows.length) html += ecmSection('rights', '유상증자', RIGHTS_FIELDS, rtRows);
-    results.innerHTML = html;
-
-    results.querySelectorAll('table[data-kind]').forEach(tbl => {
-      const kind = tbl.dataset.kind;
-      const fields = kind === 'ipo' ? IPO_FIELDS : RIGHTS_FIELDS;
-      bindRows(tbl.querySelector('tbody'), fields, (tr) => saveEcmRow(kind, tr.dataset.id, tr));
-    });
-  }
-
-  function ecmSection(kind, title, fields, rows) {
-    rows.forEach(r => { origMap[kind + ':' + r.id] = Object.assign({}, r); });
+    const tabs = `<div class="ecm-tabs">
+      <button class="etab ${ecmTab === 'ipo' ? 'on' : ''}" data-tab="ipo">IPO (${ipoRows.length})</button>
+      <button class="etab ${ecmTab === 'rights' ? 'on' : ''}" data-tab="rights">유상증자 (${rtRows.length})</button>
+    </div>`;
+    const rows = ecmTab === 'ipo' ? ipoRows : rtRows;
+    const fields = ecmTab === 'ipo' ? IPO_FIELDS : RIGHTS_FIELDS;
+    if (!rows.length) {
+      results.innerHTML = tabs + `<div class="admin-muted" style="padding:26px;text-align:center;">${total ? '해당 유형 결과가 없습니다.' : '조회 결과가 없습니다.'}</div>`;
+      bindEcmTabs(); pagerEl.innerHTML = ''; return;
+    }
+    const slice = rows.slice((page - 1) * PAGE, (page - 1) * PAGE + PAGE);
     const head = fields.map(f => `<th>${f.label}</th>`).join('') + '<th></th>';
-    const body = rows.map(r => {
-      const cells = rowCells(fields, r) + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
-      return `<tr data-id="${r.id}">${cells}</tr>`;
-    }).join('');
-    const cols = fields.length + 1;
-    return `<h3 style="font-size:14px; margin:18px 0 8px;">${title} <span class="admin-muted" style="font-weight:400;">(${rows.length})</span></h3>
-      <div class="table-scroll"><table class="admin-table edit-table" data-kind="${kind}" style="min-width:${cols * 105}px;"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    results.innerHTML = tabs + `<div class="table-scroll"><table class="admin-table edit-table" data-kind="${ecmTab}" style="min-width:${(fields.length + 1) * 105}px;"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
+    const tbody = results.querySelector('tbody');
+    slice.forEach(r => {
+      const tr = document.createElement('tr'); tr.dataset.id = r.id;
+      tr.innerHTML = rowCells(fields, r) + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
+      tbody.appendChild(tr);
+    });
+    bindRows(tbody, fields, (tr) => saveEcmRow(ecmTab, tr.dataset.id, tr));
+    bindEcmTabs();
+    renderPager(rows.length, renderEcmTab);
+  }
+  function bindEcmTabs() {
+    results.querySelectorAll('.etab').forEach(b => b.addEventListener('click', () => { ecmTab = b.dataset.tab; page = 1; renderEcmTab(); }));
   }
 
   async function saveEcmRow(kind, id, tr) {

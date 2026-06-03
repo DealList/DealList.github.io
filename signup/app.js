@@ -221,9 +221,11 @@
   $('btn-google').addEventListener('click', async () => {
     msgEl.textContent = '';
     try {
+      // 콜백 URL 에 np_from=oauth 마커 — 돌아왔을 때 자동 이동 (카드 안 거침)
+      const redirectTo = `${location.origin}/login/?np_from=oauth&next=${encodeURIComponent('/main/')}`;
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: location.origin + '/login/' },
+        options: { redirectTo },
       });
       if (error) throw error;
     } catch (err) {

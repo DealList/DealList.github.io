@@ -6,9 +6,17 @@
     msgEl.textContent = text;
   };
 
+  // URL 파라미터 분석
+  //   np_from=oauth : Google OAuth 콜백으로 돌아옴 (자동 redirect)
+  //   next=...      : 로그인 후 가야 할 곳
+  const urlParams = new URL(location.href).searchParams;
+  const isOauthCallback = urlParams.get('np_from') === 'oauth';
+  const nextParam = urlParams.get('next');
+
   // 이미 로그인된 사용자: 상태별 처리
   //   pending/rejected/revoked → /pending/ 로 자동 이동 (다른 작업 불가)
-  //   approved → "이미 로그인됨" 카드 표시 (사용자가 직접 [계속] / [다른 계정] 선택)
+  //   approved + OAuth 콜백/next 있음 → 자동 이동 (카드 안 거침)
+  //   approved + 직접 URL 진입 → "이미 로그인됨" 카드 표시
   try {
     const profile = await NP.getProfile();
     if (profile) {
@@ -17,17 +25,21 @@
         location.href = '/pending/?denied=' + profile.status; return;
       }
       if (profile.status === 'approved') {
+        // OAuth 콜백이거나 next 파라미터 있으면 즉시 이동 — 카드 안 거침
+        if (isOauthCallback || nextParam) {
+          location.replace(nextParam || '/main/');
+          return;
+        }
+        // 직접 URL 진입 → 이미 로그인 카드 표시
         document.getElementById('login-card').hidden = true;
         const card = document.getElementById('already-card');
         card.hidden = false;
         document.getElementById('already-email').textContent = profile.email || '—';
         document.getElementById('btn-continue').addEventListener('click', () => {
-          const next = new URL(location.href).searchParams.get('next') || '/main/';
-          location.href = next;
+          location.href = '/main/';
         });
         document.getElementById('btn-switch').addEventListener('click', async () => {
           await NP.signOut();
-          // 로그아웃 후 재진입 — 폼이 깨끗하게 보이도록 강제 리로드
           location.replace('/login/');
         });
         return;
@@ -76,9 +88,12 @@
     try {
       // OAuth 리디렉트 전에 remember 플래그 — 돌아왔을 때 저장 위치 결정
       window.NP_setRemember(getRemember());
+      // 콜백 URL 에 np_from=oauth 마커 + next 파라미터 — 돌아왔을 때 자동 이동 (카드 안 거침)
+      const next = nextParam || '/main/';
+      const redirectTo = `${location.origin}/login/?np_from=oauth&next=${encodeURIComponent(next)}`;
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: location.origin + '/login/' },
+        options: { redirectTo },
       });
       if (error) throw error;
     } catch (err) {

@@ -31,6 +31,7 @@
   }
 
   $('me-email').textContent = profile.email || '';
+  $('role-badge').textContent = profile.role === 'master' ? 'MASTER' : 'ADMIN';
   $('admin-nav').hidden = false;
   $('panel').hidden = false;
   $('btn-logout').addEventListener('click', async () => {

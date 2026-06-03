@@ -92,6 +92,7 @@
     return;
   }
   $('me-email').textContent = profile.email || '';
+  $('role-badge').textContent = profile.role === 'master' ? 'MASTER' : 'ADMIN';
   $('admin-nav').hidden = false;
   $('panel').hidden = false;
   $('btn-logout').addEventListener('click', async () => { if (!confirm('로그아웃하시겠습니까?')) return; await NP.signOut(); location.href = '/'; });

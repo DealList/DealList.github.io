@@ -36,6 +36,7 @@
 
   // ── 관리자 확인됨 ──
   $('me-email').textContent = profile.email || '';
+  $('role-badge').textContent = profile.role === 'master' ? 'MASTER' : 'ADMIN';
   $('admin-nav').hidden = false;
   $('dash').hidden = false;
 

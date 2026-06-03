@@ -1,6 +1,7 @@
-/* Numbers Pool — 회원 관리 (관리자 전용)
- * 권한: profile.role === 'admin' (RLS 가 실제 접근을 막음 — 화면도 같이 안내)
- * 강제 탈퇴: admin_delete_user RPC (SECURITY DEFINER, 관리자만)
+/* Numbers Pool — 회원 관리 (master·admin 접근)
+ * 권한: profile.role in ('admin','master') (RLS 가 실제 접근을 막음 — 화면도 같이 안내)
+ * 역할 변경: master 만 가능 · '역할' 칸 드롭다운 → admin_set_role RPC
+ * 강제 탈퇴: admin_delete_user RPC (SECURITY DEFINER)
  */
 (async () => {
   const $ = (id) => document.getElementById(id);
@@ -84,29 +85,37 @@
         <td>${esc(r.phone || '')}</td>
         <td><span class="method-tag">${esc(r.signup_method || '')}</span></td>
         <td><span class="status-badge sb-${r.status}">${statusLabel(r.status)}</span></td>
-        <td class="${(r.role === 'admin' || r.role === 'master') ? 'role-admin' : ''}">${esc(r.role || '')}</td>
+        <td>${roleCell(r)}</td>
         <td><div class="row-actions">${actionButtons(r)}</div></td>
       </tr>`).join('');
 
     tbody.querySelectorAll('button[data-act]').forEach(btn =>
       btn.addEventListener('click', () => handleAction(btn)));
+    tbody.querySelectorAll('select.role-select').forEach(sel =>
+      sel.addEventListener('change', () => handleRoleChange(sel)));
+  }
+
+  // 역할 칸: master 는 텍스트, 그 외엔 master 가 보면 드롭다운(회원/관리자)
+  function roleCell(r) {
+    if (r.role === 'master') return '<span class="role-master">master</span>';
+    const cur = r.role || 'member';
+    const canEdit = profile.role === 'master' && (r.role === 'admin' || r.status === 'approved');
+    if (!canEdit) return `<span class="${r.role === 'admin' ? 'role-admin' : ''}">${esc(cur)}</span>`;
+    return `<select class="role-select" data-prev="${esc(cur)}">
+        <option value="member"${cur === 'member' ? ' selected' : ''}>회원</option>
+        <option value="admin"${cur === 'admin' ? ' selected' : ''}>관리자</option>
+      </select>`;
   }
 
   function actionButtons(r) {
-    const iAmMaster = profile.role === 'master';
-    if (r.role === 'master') return '<span class="admin-muted">마스터</span>';
-    if (r.role === 'admin') {
-      return iAmMaster
-        ? `<button class="mini-btn" data-act="demote">관리자 해제</button>`
-        : '<span class="admin-muted">관리자 계정</span>';
-    }
+    // 역할(master/admin) 변경은 '역할' 칸 드롭다운에서. admin 은 회원으로 내린 뒤 탈퇴 가능.
+    if (r.role === 'master' || r.role === 'admin') return '<span class="admin-muted">—</span>';
     let b = '';
     if (r.status === 'pending') {
       b += `<button class="mini-btn primary" data-act="approve">승인</button>`;
       b += `<button class="mini-btn danger" data-act="reject">거절</button>`;
     } else if (r.status === 'approved') {
       b += `<button class="mini-btn danger" data-act="revoke">권한 해제</button>`;
-      if (iAmMaster) b += `<button class="mini-btn" data-act="promote">관리자 지정</button>`;
     } else if (r.status === 'rejected' || r.status === 'revoked') {
       b += `<button class="mini-btn primary" data-act="approve">복원</button>`;
     }
@@ -121,8 +130,6 @@
     const email = tr.children[1].textContent.trim();
 
     if (act === 'delete') return forceDelete(id, email, btn);
-    if (act === 'promote') return changeRole(id, email, 'admin', btn);
-    if (act === 'demote') return changeRole(id, email, 'member', btn);
 
     const verb = { approve: '승인/복원', reject: '거절', revoke: '권한 해제' }[act];
     if (!confirm(`${email} 회원을 ${verb} 처리합니다.\n계속하시겠습니까?`)) return;
@@ -164,18 +171,25 @@
     await load();
   }
 
-  async function changeRole(id, email, newRole, btn) {
-    const label = newRole === 'admin' ? '관리자로 지정' : '관리자에서 해제';
-    if (!confirm(`${email} 회원을 ${label}하시겠습니까?`)) return;
-    btn.disabled = true; btn.textContent = '처리 중...';
+  async function handleRoleChange(sel) {
+    const tr = sel.closest('tr');
+    const id = tr.dataset.id;
+    const email = tr.children[1].textContent.trim();
+    const prev = sel.dataset.prev;
+    const newRole = sel.value;
+    if (newRole === prev) return;
+    const label = newRole === 'admin' ? '관리자로 지정' : '회원으로 변경';
+    if (!confirm(`${email} 회원을 ${label}하시겠습니까?`)) { sel.value = prev; return; }
+    sel.disabled = true;
     const { error } = await sb.rpc('admin_set_role', { p_target: id, p_role: newRole });
     if (error) {
       let m = error.message || String(error);
       if (/only master/i.test(m)) m = '마스터만 역할을 변경할 수 있습니다.';
       else if (/does not exist/i.test(m)) m = 'admin_set_role RPC 미생성 — SQL 실행이 필요합니다.';
       else if (/master role/i.test(m)) m = '마스터 계정의 역할은 변경할 수 없습니다.';
+      else if (/invalid role/i.test(m)) m = '허용되지 않는 역할입니다.';
       alert('역할 변경 실패: ' + m);
-      btn.disabled = false; return;
+      sel.value = prev; sel.disabled = false; return;
     }
     await load();
   }

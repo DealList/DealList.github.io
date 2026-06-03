@@ -104,7 +104,7 @@
     saveBtn.textContent = '저장 중...';
 
     try {
-      const { data, error } = await sb.rpc('update_my_profile_extras', {
+      const { error } = await sb.rpc('update_my_profile_extras', {
         p_phone:                phone,
         p_zipcode:              zipcode,
         p_address:              address,
@@ -112,23 +112,17 @@
         p_marketing_consent:    null,
         p_terms_agreed_version: null,  // 가입 시점에 이미 기록됨 (변경 불가)
       });
-      console.log('[profile/complete] RPC result:', { data, error });
       if (error) throw error;
       location.replace(next);
     } catch (err) {
       console.error('[profile/complete] save failed', err);
       const raw = (err && (err.message || err.error_description || JSON.stringify(err))) || String(err);
-      let m = raw;
-      if (/function .* does not exist/i.test(raw)) {
-        m = 'RPC 함수가 아직 설정되지 않았습니다. (update_my_profile_extras)';
-      } else if (/permission|denied|forbidden|RLS/i.test(raw)) {
-        m = '권한 거부 — RPC 함수에 authenticated 롤 grant 누락 가능. 운영팀 확인 필요.';
-      } else if (/not authenticated/i.test(raw)) {
+      let m = '저장에 실패했습니다. 잠시 후 다시 시도해주세요.';
+      if (/not authenticated/i.test(raw)) {
         m = '인증 세션이 만료됐습니다. 다시 로그인해주세요.';
       }
-      showMsg('저장 실패: ' + m, 'err');
+      showMsg(m, 'err');
       msgEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      alert('저장 실패\n\n' + m + '\n\n원본 메시지: ' + raw);
       saveBtn.disabled = false;
       saveBtn.textContent = '저장하고 시작';
     }

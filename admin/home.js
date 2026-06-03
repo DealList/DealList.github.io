@@ -23,7 +23,7 @@
     location.replace('/login/?next=' + encodeURIComponent('/admin/'));
     return;
   }
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'master') {
     const g = $('guard-msg');
     g.hidden = false;
     g.innerHTML = `

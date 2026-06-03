@@ -21,7 +21,7 @@
     location.replace('/login/?next=' + encodeURIComponent('/admin/settings/'));
     return;
   }
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'master') {
     const g = $('guard-msg');
     g.hidden = false;
     g.innerHTML = `<h2>접근 권한 없음</h2>

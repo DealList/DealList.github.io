@@ -285,7 +285,7 @@
 
       let myPageLink = '';
       if (profile && profile.status === 'approved') {
-        myPageLink = (profile.role === 'admin')
+        myPageLink = (profile.role === 'admin' || profile.role === 'master')
           ? `<a href="${root}/admin/" class="nav-mypage">관리자</a>`
           : `<a href="${root}/account/" class="nav-mypage">마이페이지</a>`;
       }

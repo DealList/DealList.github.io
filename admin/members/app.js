@@ -22,7 +22,7 @@
     location.replace('/login/?next=' + encodeURIComponent('/admin/members/'));
     return;
   }
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'master') {
     const g = $('guard-msg');
     g.hidden = false;
     g.innerHTML = `<h2>접근 권한 없음</h2>
@@ -84,7 +84,7 @@
         <td>${esc(r.phone || '')}</td>
         <td><span class="method-tag">${esc(r.signup_method || '')}</span></td>
         <td><span class="status-badge sb-${r.status}">${statusLabel(r.status)}</span></td>
-        <td class="${r.role === 'admin' ? 'role-admin' : ''}">${esc(r.role || '')}</td>
+        <td class="${(r.role === 'admin' || r.role === 'master') ? 'role-admin' : ''}">${esc(r.role || '')}</td>
         <td><div class="row-actions">${actionButtons(r)}</div></td>
       </tr>`).join('');
 
@@ -93,13 +93,20 @@
   }
 
   function actionButtons(r) {
-    if (r.role === 'admin') return '<span class="admin-muted">관리자 계정</span>';
+    const iAmMaster = profile.role === 'master';
+    if (r.role === 'master') return '<span class="admin-muted">마스터</span>';
+    if (r.role === 'admin') {
+      return iAmMaster
+        ? `<button class="mini-btn" data-act="demote">관리자 해제</button>`
+        : '<span class="admin-muted">관리자 계정</span>';
+    }
     let b = '';
     if (r.status === 'pending') {
       b += `<button class="mini-btn primary" data-act="approve">승인</button>`;
       b += `<button class="mini-btn danger" data-act="reject">거절</button>`;
     } else if (r.status === 'approved') {
       b += `<button class="mini-btn danger" data-act="revoke">권한 해제</button>`;
+      if (iAmMaster) b += `<button class="mini-btn" data-act="promote">관리자 지정</button>`;
     } else if (r.status === 'rejected' || r.status === 'revoked') {
       b += `<button class="mini-btn primary" data-act="approve">복원</button>`;
     }
@@ -114,6 +121,8 @@
     const email = tr.children[1].textContent.trim();
 
     if (act === 'delete') return forceDelete(id, email, btn);
+    if (act === 'promote') return changeRole(id, email, 'admin', btn);
+    if (act === 'demote') return changeRole(id, email, 'member', btn);
 
     const verb = { approve: '승인/복원', reject: '거절', revoke: '권한 해제' }[act];
     if (!confirm(`${email} 회원을 ${verb} 처리합니다.\n계속하시겠습니까?`)) return;
@@ -151,6 +160,22 @@
       alert('탈퇴 처리 실패: ' + m);
       btn.disabled = false; btn.textContent = '강제 탈퇴';
       return;
+    }
+    await load();
+  }
+
+  async function changeRole(id, email, newRole, btn) {
+    const label = newRole === 'admin' ? '관리자로 지정' : '관리자에서 해제';
+    if (!confirm(`${email} 회원을 ${label}하시겠습니까?`)) return;
+    btn.disabled = true; btn.textContent = '처리 중...';
+    const { error } = await sb.rpc('admin_set_role', { p_target: id, p_role: newRole });
+    if (error) {
+      let m = error.message || String(error);
+      if (/only master/i.test(m)) m = '마스터만 역할을 변경할 수 있습니다.';
+      else if (/does not exist/i.test(m)) m = 'admin_set_role RPC 미생성 — SQL 실행이 필요합니다.';
+      else if (/master role/i.test(m)) m = '마스터 계정의 역할은 변경할 수 없습니다.';
+      alert('역할 변경 실패: ' + m);
+      btn.disabled = false; return;
     }
     await load();
   }

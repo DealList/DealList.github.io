@@ -86,7 +86,7 @@
   let profile;
   try { profile = await NP.getProfile(); } catch (e) { profile = null; }
   if (!profile) { location.replace('/login/?next=' + encodeURIComponent('/admin/data/')); return; }
-  if (profile.role !== 'admin') {
+  if (profile.role !== 'admin' && profile.role !== 'master') {
     const g = $('guard-msg'); g.hidden = false;
     g.innerHTML = `<h2>접근 권한 없음</h2><p>이 계정(<strong>${esc(profile.email || '')}</strong>)은 관리자가 아닙니다.</p><a href="/main/" class="admin-btn">← 메인으로</a>`;
     return;

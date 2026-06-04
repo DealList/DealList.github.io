@@ -30,6 +30,7 @@ import dart_client
 import supabase_client as sb
 
 START = date(2018, 1, 1)  # records 최古(2019~)보다 이르게
+SLEEP = 0.12  # corp별 list API 조회 간격 — list API 는 IP 차단 무관(API키 한도)이라 짧게
 
 
 def _compact(iso) -> str:
@@ -113,7 +114,7 @@ def build_corp_index(corp_codes, end):
         except Exception as e:
             fail += 1
             print(f"  corp={cc} 조회 실패: {e}")
-            time.sleep(config.REQUEST_SLEEP)
+            time.sleep(SLEEP)
             continue
         for f in filings:
             if _keep(f):

@@ -1,26 +1,30 @@
 # -*- coding: utf-8 -*-
 """DCM records 의 최초 증권신고서 공시일(disclosure_date) 백필.
 
-방식 A — OpenDART list API only (본문 0건 → IP 차단 무관). 전체 8년 목록을 받지 않고,
-대상 발행사만 corp_code 로 콕 집어 조회 → 빠름.
+방식 A — OpenDART list API only (본문 0건 → IP 차단 무관). 발행사 병렬 조회.
 
-  1. records 전체에서 issuer → corp_code 맵 구성 (corp_code 있는 자동수집 건에서)
-  2. corp_code 없는 옛 엑셀 건은 발행사명으로 corp_code 를 빌려옴
-  3. 대상의 고유 corp_code 만 개별 조회 (corp_code 지정 → 기간제한 없이 1회, corp당 1~2 페이지)
-     → 증권신고서(채무증권) 최초신고([기재정정]/[발행조건확정]/철회 제외) 의 rcept_dt
-  4. records 매칭: 같은 corp 의 최초신고 중 청약일 직전(<=) 가장 가까운 것 = 최초 공시일
+  1. records 에서 issuer → corp_code 맵 (corp_code 있는 자동수집 건에서)
+  2. 대상의 corp_code 해석 (3단계):
+     ① 자기 corp_code  ② records 내부 issuer 빌림  ③ DART 전체 기업코드(corpCode) 직접 조회
+  3. 고유 corp 들을 병렬 조회 → 증권신고서(채무증권) 최초신고([기재정정]/[발행조건확정]/철회 제외)
+  4. 청약일 직전(<=) 가장 가까운 rcept_dt(접수일 = 접수번호 앞 8자리) = 최초 공시일
   5. records.disclosure_date batch upsert (PK = issuer_alias,series,subscription_date)
 
 기본은 disclosure_date 미설정 행만(증분). --all 전체 재계산. --dry-run 미반영.
 """
 from __future__ import annotations
 import argparse
+import io
 import re
 import sys
+import zipfile
+import xml.etree.ElementTree as ET
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
+
+import requests
 
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -30,7 +34,7 @@ import dart_client
 import supabase_client as sb
 
 START = date(2018, 1, 1)  # records 최古(2019~)보다 이르게
-WORKERS = 8  # OpenDART list API 병렬 조회 워커 수 (API키 기반 → IP 차단 무관, 분당 한도 내)
+WORKERS = 8  # OpenDART list API 병렬 워커 (API키 기반 → IP 차단 무관)
 
 
 def _compact(iso) -> str:
@@ -59,7 +63,6 @@ def chunk(lst, n):
 
 
 def fetch_records():
-    """records 전체 조회 (PK + issuer_full + corp_code + disclosure_date)."""
     out, off = [], 0
     cols = "issuer_alias,issuer_full,series,subscription_date,corp_code,disclosure_date"
     while True:
@@ -74,7 +77,7 @@ def fetch_records():
 
 
 def build_issuer_corp_map(all_records):
-    """corp_code 있는 행에서 norm(issuer) → corp_code (옛 엑셀 건이 빌려 씀)."""
+    """corp_code 있는 행에서 norm(issuer) → corp_code (옛/누락 건이 빌려 씀)."""
     m = {}
     for r in all_records:
         cc = r.get("corp_code")
@@ -87,16 +90,29 @@ def build_issuer_corp_map(all_records):
     return m
 
 
-def resolve_corp(r, issuer_corp):
-    """행의 corp_code (없으면 발행사명으로 빌림)."""
-    cc = r.get("corp_code")
-    if cc:
-        return cc
+def resolve_by_name(r, name_map):
     for nm in (r.get("issuer_full"), r.get("issuer_alias")):
-        cc = issuer_corp.get(_norm(nm))
+        cc = name_map.get(_norm(nm))
         if cc:
             return cc
     return None
+
+
+def load_dart_corpcode():
+    """DART 전체 기업코드 → {norm(corp_name): corp_code}. records 에서 못 찾은 발행사 보완용."""
+    r = requests.get("https://opendart.fss.or.kr/api/corpCode.xml",
+                     params={"crtfc_key": config.DART_API_KEY}, timeout=120)
+    r.raise_for_status()
+    zf = zipfile.ZipFile(io.BytesIO(r.content))
+    root = ET.fromstring(zf.read(zf.namelist()[0]))
+    m = {}
+    for el in root.iter("list"):
+        name = el.findtext("corp_name")
+        code = el.findtext("corp_code")
+        key = _norm(name)
+        if key and code and key not in m:
+            m[key] = code.strip()
+    return m
 
 
 def _fetch_corp(cc, end):
@@ -109,11 +125,7 @@ def _fetch_corp(cc, end):
 
 
 def build_corp_index(corp_codes, end):
-    """대상 corp 들의 증권신고서(채무증권) 최초신고 → {corp_code: sorted [rcept_dt]}.
-
-    OpenDART list API 는 API키 기반(IP 차단 무관)이라 병렬 조회 → 수백 발행사도 ~1-2분.
-    corp_code 지정 시 기간제한 없이 1회 (corp당 보통 1 페이지).
-    """
+    """대상 corp 들의 최초신고 → {corp_code: sorted [rcept_dt]}. 병렬 조회."""
     corps = sorted({c for c in corp_codes if c})
     print(f"DART 병렬 조회({WORKERS} workers): {len(corps)}개 발행사 ...")
     idx, done, fail = defaultdict(list), 0, 0
@@ -149,16 +161,31 @@ def main():
         print("채울 대상 없음 — 종료")
         return
 
-    # 각 대상의 corp_code 해석 (없으면 발행사명으로 빌림)
-    resolved, no_corp = [], 0
+    # corp 해석: ① 자기 corp_code  ② records 내부 issuer  ③ DART 전체 기업코드
+    resolved, unresolved = [], []
     for r in targets:
-        cc = resolve_corp(r, issuer_corp)
+        cc = r.get("corp_code") or resolve_by_name(r, issuer_corp)
         if cc:
             r["_corp"] = cc
             resolved.append(r)
         else:
-            no_corp += 1
-    print(f"  corp 해석 {len(resolved)}건 / corp 못 찾음 {no_corp}건")
+            unresolved.append(r)
+    print(f"  records 내부 corp 해석 {len(resolved)} / 미해석 {len(unresolved)}")
+
+    if unresolved:
+        print("  DART 전체 기업코드 로딩 (corp 보완) ...")
+        try:
+            dart_corp = load_dart_corpcode()
+            print(f"    기업코드 {len(dart_corp)}개 로딩")
+            for r in unresolved:
+                cc = resolve_by_name(r, dart_corp)
+                if cc:
+                    r["_corp"] = cc
+                    resolved.append(r)
+        except Exception as e:
+            print(f"    DART 기업코드 로딩 실패: {e}")
+    no_corp = len(targets) - len(resolved)
+    print(f"  최종 corp 해석 {len(resolved)} / corp 못 찾음 {no_corp}")
     if not resolved:
         print("조회할 corp 없음 — 종료")
         return

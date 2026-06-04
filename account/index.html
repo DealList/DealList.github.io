@@ -8,7 +8,6 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../deallist.css?v=20260601f" />
   <link rel="stylesheet" href="../auth.css?v=20260602j" />
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <style>
     .auth-wrap.account-wrap { max-width: 640px; }
 
@@ -123,16 +122,6 @@
             <input id="phone3" type="text" maxlength="4" placeholder="5678" inputmode="numeric" />
           </div>
 
-          <label>주소 <span class="lbl-opt">(선택)</span></label>
-          <div class="addr-group">
-            <div class="addr-zip-line">
-              <input id="zipcode" type="text" placeholder="우편번호" readonly />
-              <button type="button" class="btn-zip" id="btn-zipcode">우편번호 검색</button>
-            </div>
-            <input id="address" class="addr-main" type="text" placeholder="기본 주소" readonly />
-            <input id="address-detail" type="text" placeholder="상세 주소 (예: 미라클빌딩 11층)" />
-          </div>
-
           <label class="mkt-line" for="marketing">
             <input id="marketing" type="checkbox" />
             <span>마케팅 정보 수신 동의 (선택)</span>
@@ -167,7 +156,7 @@
       <section class="danger-zone">
         <h2>회원 탈퇴</h2>
         <p>
-          탈퇴 시 회원님의 계정과 모든 개인정보(이름·연락처·주소 등)가 즉시 삭제되며 복구할 수 없습니다.
+          탈퇴 시 회원님의 계정과 모든 개인정보(이름·연락처 등)가 즉시 삭제되며 복구할 수 없습니다.
           동일 이메일로 재가입은 가능하나, 다시 관리자 승인을 받아야 합니다.
         </p>
         <button type="button" class="btn-danger" id="btn-delete">회원 탈퇴</button>
@@ -193,6 +182,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js?v=20260602g"></script>
   <script src="../auth-helper.js?v=20260603a"></script>
-  <script src="app.js?v=20260603b"></script>
+  <script src="app.js?v=20260604a"></script>
 </body>
 </html>

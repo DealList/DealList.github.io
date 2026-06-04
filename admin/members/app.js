@@ -202,7 +202,6 @@
     const cols = [
       ['email', '이메일'], ['name', '이름'], ['phone', '연락처'],
       ['status', '상태'], ['role', '역할'], ['signup_method', '가입방법'],
-      ['zipcode', '우편번호'], ['address', '주소'], ['address_detail', '상세주소'],
       ['marketing_consent', '마케팅동의'], ['created_at', '가입일'], ['approved_at', '승인일'],
     ];
     const head = cols.map(c => c[1]).join(',');

@@ -104,27 +104,6 @@
   setupPhoneField('phone2', 'phone3', 4);
   setupPhoneField('phone3', null, 4);
 
-  // ─── 우편번호 검색 (다음/카카오 우편번호 API) ───
-  $('btn-zipcode').addEventListener('click', () => {
-    if (typeof daum === 'undefined' || !daum.Postcode) {
-      showMsg('우편번호 검색 스크립트 로드 실패. 잠시 후 다시 시도해주세요.', 'err');
-      return;
-    }
-    new daum.Postcode({
-      oncomplete: (data) => {
-        // 도로명 주소 우선, 없으면 지번
-        const addr = data.roadAddress || data.jibunAddress || '';
-        let extra = '';
-        if (data.bname) extra += data.bname;
-        if (data.buildingName) extra += (extra ? ', ' : '') + data.buildingName;
-        const fullAddr = extra ? `${addr} (${extra})` : addr;
-        $('zipcode').value = data.zonecode || '';
-        $('address').value = fullAddr;
-        $('address-detail').focus();
-      },
-    }).open();
-  });
-
   // ─── 폼 제출 ───
   $('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -145,9 +124,6 @@
     const p2 = $('phone2').value.trim();
     const p3 = $('phone3').value.trim();
     const phone = (p1 && p2 && p3) ? `${p1}-${p2}-${p3}` : '';
-    const zipcode = $('zipcode').value.trim();
-    const address = $('address').value.trim();
-    const addressDetail = $('address-detail').value.trim();
 
     // 비밀번호 검증
     const pwErr = validatePassword(password);
@@ -178,9 +154,6 @@
             name,
             full_name: name,
             phone,
-            zipcode,
-            address,
-            address_detail: addressDetail,
             terms_agreed_version: termsVersion,
             marketing_consent: marketingConsent,
           },

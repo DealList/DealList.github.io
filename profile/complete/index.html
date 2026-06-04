@@ -8,7 +8,6 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../../deallist.css?v=20260601f" />
   <link rel="stylesheet" href="../../auth.css?v=20260602j" />
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <style>
     .auth-wrap.profile-wrap { max-width: 640px; }
 
@@ -104,7 +103,7 @@
 
     <main class="auth-wrap profile-wrap">
       <h1>프로필 완성</h1>
-      <div class="sub" id="welcome-sub">Numbers Pool 이용을 위해 추가 정보를 입력해주세요.</div>
+      <div class="sub" id="welcome-sub">Numbers Pool 이용을 위해 연락처를 입력해주세요. (선택)</div>
 
       <div class="info-box" style="margin-top: 8px;">
         <div class="lbl">로그인 계정</div>
@@ -121,16 +120,6 @@
           <input id="phone2" type="text" maxlength="4" placeholder="1234" inputmode="numeric" />
           <span class="sep">-</span>
           <input id="phone3" type="text" maxlength="4" placeholder="5678" inputmode="numeric" />
-        </div>
-
-        <label>주소 <span class="lbl-opt">(선택)</span></label>
-        <div class="addr-group">
-          <div class="addr-zip-line">
-            <input id="zipcode" type="text" placeholder="우편번호" readonly />
-            <button type="button" class="btn-zip" id="btn-zipcode">우편번호 검색</button>
-          </div>
-          <input id="address" class="addr-main" type="text" placeholder="기본 주소" readonly />
-          <input id="address-detail" type="text" placeholder="상세 주소 (예: 미라클빌딩 11층)" />
         </div>
 
         <button type="submit" class="btn-primary" id="btn-save">저장하고 시작</button>
@@ -150,6 +139,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../../supabase-client.js?v=20260602g"></script>
   <script src="../../auth-helper.js?v=20260603a"></script>
-  <script src="app.js?v=20260603a"></script>
+  <script src="app.js?v=20260604a"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 /* Numbers Pool — 마이페이지
  *
- * 조회: 이메일·가입방식·상태·가입일 + 이름·연락처·주소·마케팅동의
- * 수정: update_my_account RPC (이름·연락처·주소·마케팅)
+ * 조회: 이메일·가입방식·상태·가입일 + 이름·연락처·마케팅동의
+ * 수정: update_my_account RPC (이름·연락처·마케팅 — 주소 인자는 호환 위해 null 로 전달)
  * 비번 변경: sb.auth.updateUser (이메일 가입자만)
  * 탈퇴: delete_my_account RPC (본인 계정+개인정보 완전 삭제)
  */
@@ -39,9 +39,6 @@
     const m = profile.phone.match(/^(\d{2,3})-(\d{3,4})-(\d{4})$/);
     if (m) { $('phone1').value = m[1]; $('phone2').value = m[2]; $('phone3').value = m[3]; }
   }
-  if (profile.zipcode)        $('zipcode').value        = profile.zipcode;
-  if (profile.address)        $('address').value        = profile.address;
-  if (profile.address_detail) $('address-detail').value = profile.address_detail;
   $('marketing').checked = !!profile.marketing_consent;
 
   // ─── 비밀번호 섹션: 가입 방식별 ───
@@ -67,25 +64,6 @@
   setupPhone('phone2', 'phone3', 4);
   setupPhone('phone3', null, 4);
 
-  // ─── 우편번호 검색 ───
-  $('btn-zipcode').addEventListener('click', () => {
-    if (typeof daum === 'undefined' || !daum.Postcode) {
-      showMsg('우편번호 검색 스크립트 로드 실패. 잠시 후 다시 시도해주세요.', 'err');
-      return;
-    }
-    new daum.Postcode({
-      oncomplete: (data) => {
-        const addr = data.roadAddress || data.jibunAddress || '';
-        let extra = '';
-        if (data.bname)        extra += data.bname;
-        if (data.buildingName) extra += (extra ? ', ' : '') + data.buildingName;
-        $('zipcode').value = data.zonecode || '';
-        $('address').value = extra ? `${addr} (${extra})` : addr;
-        $('address-detail').focus();
-      },
-    }).open();
-  });
-
   // ─── 정보 저장 ───
   $('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -107,9 +85,9 @@
       const { error } = await sb.rpc('update_my_account', {
         p_name:              name,
         p_phone:             phone,
-        p_zipcode:           $('zipcode').value.trim()        || null,
-        p_address:           $('address').value.trim()        || null,
-        p_address_detail:    $('address-detail').value.trim() || null,
+        p_zipcode:           null,
+        p_address:           null,
+        p_address_detail:    null,
         p_marketing_consent: $('marketing').checked,
       });
       if (error) throw error;

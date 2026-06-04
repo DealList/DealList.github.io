@@ -8,8 +8,6 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="../deallist.css?v=20260601f" />
   <link rel="stylesheet" href="../auth.css?v=20260602j" />
-  <!-- 카카오(다음) 우편번호 검색 — 키 없이 무료 -->
-  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
   <style>
     .auth-wrap.signup-wrap { max-width: 520px; }
     .form-hint {
@@ -132,16 +130,6 @@
           <input id="phone3" type="text" maxlength="4" placeholder="5678" inputmode="numeric" />
         </div>
 
-        <label>주소 <span class="lbl-opt">(선택)</span></label>
-        <div class="addr-group">
-          <div class="addr-zip-line">
-            <input id="zipcode" type="text" placeholder="우편번호" readonly />
-            <button type="button" class="btn-zip" id="btn-zipcode">우편번호 검색</button>
-          </div>
-          <input id="address" class="addr-main" type="text" placeholder="기본 주소" readonly />
-          <input id="address-detail" type="text" placeholder="상세 주소 (예: 미라클빌딩 11층)" />
-        </div>
-
         <!-- honeypot: 사람은 안 보이지만 봇은 채울 가능성 → 채워지면 차단 -->
         <input type="text" id="hp-website" name="website" tabindex="-1" autocomplete="off" class="hp-field" />
 
@@ -165,6 +153,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js?v=20260602g"></script>
   <script src="../auth-helper.js?v=20260603a"></script>
-  <script src="app.js?v=20260603d"></script>
+  <script src="app.js?v=20260604a"></script>
 </body>
 </html>

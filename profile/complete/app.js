@@ -32,7 +32,7 @@
   const next = (new URL(location.href).searchParams.get('next')) || '/main/';
 
   // 안내 문구 + skip 링크는 항상 보임
-  $('welcome-sub').textContent = '연락처와 주소 정보를 추가하실 수 있습니다. (선택)';
+  $('welcome-sub').textContent = '연락처를 추가하실 수 있습니다. (선택)';
   $('skip-link').hidden = false;
   $('btn-save').textContent = '저장하고 시작';
 
@@ -41,9 +41,6 @@
     const m = profile.phone.match(/^(\d{2,3})-(\d{3,4})-(\d{4})$/);
     if (m) { $('phone1').value = m[1]; $('phone2').value = m[2]; $('phone3').value = m[3]; }
   }
-  if (profile.zipcode)        $('zipcode').value         = profile.zipcode;
-  if (profile.address)        $('address').value         = profile.address;
-  if (profile.address_detail) $('address-detail').value  = profile.address_detail;
 
   // ─── 연락처 자동 포커스 + 숫자만 ───
   function setupPhone(curId, nextId, len) {
@@ -61,26 +58,6 @@
   setupPhone('phone2', 'phone3', 4);
   setupPhone('phone3', null, 4);
 
-  // ─── 우편번호 검색 ───
-  $('btn-zipcode').addEventListener('click', () => {
-    if (typeof daum === 'undefined' || !daum.Postcode) {
-      showMsg('우편번호 검색 스크립트 로드 실패. 잠시 후 다시 시도해주세요.', 'err');
-      return;
-    }
-    new daum.Postcode({
-      oncomplete: (data) => {
-        const addr = data.roadAddress || data.jibunAddress || '';
-        let extra = '';
-        if (data.bname)        extra += data.bname;
-        if (data.buildingName) extra += (extra ? ', ' : '') + data.buildingName;
-        const fullAddr = extra ? `${addr} (${extra})` : addr;
-        $('zipcode').value = data.zonecode || '';
-        $('address').value = fullAddr;
-        $('address-detail').focus();
-      },
-    }).open();
-  });
-
   // ─── 폼 제출 ───
   $('profile-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -95,9 +72,6 @@
       return;
     }
     const phone = (p1 && p2 && p3) ? `${p1}-${p2}-${p3}` : null;
-    const zipcode        = $('zipcode').value.trim()        || null;
-    const address        = $('address').value.trim()        || null;
-    const addressDetail  = $('address-detail').value.trim() || null;
 
     const saveBtn = $('btn-save');
     saveBtn.disabled = true;
@@ -106,9 +80,9 @@
     try {
       const { error } = await sb.rpc('update_my_profile_extras', {
         p_phone:                phone,
-        p_zipcode:              zipcode,
-        p_address:              address,
-        p_address_detail:       addressDetail,
+        p_zipcode:              null,
+        p_address:              null,
+        p_address_detail:       null,
         p_marketing_consent:    null,
         p_terms_agreed_version: null,  // 가입 시점에 이미 기록됨 (변경 불가)
       });

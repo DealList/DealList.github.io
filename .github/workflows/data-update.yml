@@ -89,6 +89,17 @@ jobs:
         run: |
           python auto/sync_to_supabase.py
 
+      # 최초 증권신고서 공시일 백필 (방식A — list API only, 본문 0건 → IP 차단 무관).
+      # disclosure_date 가 빈 신규 건만 채움. 비핵심이라 실패해도 export 는 계속.
+      - name: 최초 공시일 백필 (신규 건)
+        continue-on-error: true
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python auto/backfill_dcm_disclosure.py
+
       - name: web/*.json 빌드 + root 배치 (사이트가 fetch 할 데이터)
         run: |
           python auto/export_web.py

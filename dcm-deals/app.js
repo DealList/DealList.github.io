@@ -304,7 +304,7 @@
           sortDir = sortDir === "asc" ? "desc" : "asc";
         } else {
           sortKey = k;
-          sortDir = k === "date" ? "desc" : "asc";
+          sortDir = (k === "date" || k === "disclosure_date") ? "desc" : "asc";
         }
         groupAndSort();
         render();
@@ -685,6 +685,7 @@
         // 청약일 + 발행사 — 그룹 공통, 첫 트랜치에만 rowspan
         // 발행사명 클릭 시 DART 공시 팝업 창으로 열기 (rcept 있을 때만)
         if (isFirst) {
+          html += '<td class="group-cell" rowspan="' + N + '">' + esc(r.disclosure_date || "-") + "</td>";
           html += '<td class="group-cell" rowspan="' + N + '">' + (r.date || "") + "</td>";
           const issuerHtml = r.rcept
             ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`
@@ -823,18 +824,20 @@
     const uwCols   = [...UW_ORDER,   ...uwExtras];
 
     // 컬럼 인덱스 (0-based)
-    const C_DATE = 0, C_ISSUER = 1, C_SERIES = 2, C_TYPE = 3, C_RATING = 4,
-          C_MATURITY = 5, C_INIT = 6, C_LIMIT = 7;
-    const C_AMT_START = 8;   // 수요예측, 최종발행, 회차합산
-    const C_RATIO     = 11;  // 경쟁률
-    const C_RATE_START = 12; // 희망, 수요, 최종
-    const C_LEAD_START = 15;
+    const C_DISCLOSURE = 0;  // 최초 공시일 (그룹 공통 — 청약일 왼쪽)
+    const C_DATE = 1, C_ISSUER = 2, C_SERIES = 3, C_TYPE = 4, C_RATING = 5,
+          C_MATURITY = 6, C_INIT = 7, C_LIMIT = 8;
+    const C_AMT_START = 9;   // 수요예측, 최종발행, 회차합산
+    const C_RATIO     = 12;  // 경쟁률
+    const C_RATE_START = 13; // 희망, 수요, 최종
+    const C_LEAD_START = 16;
     const C_UW_START   = C_LEAD_START + leadCols.length;
     const TOTAL_COLS   = C_UW_START + uwCols.length;
 
     // Row 1 (top) + Row 2 (sub) 헤더 구성
     const row1 = new Array(TOTAL_COLS).fill("");
     const row2 = new Array(TOTAL_COLS).fill("");
+    row1[C_DISCLOSURE] = "최초공시일";
     row1[C_DATE]     = "청약일";
     row1[C_ISSUER]   = "발행사";
     row1[C_SERIES]   = "회차";
@@ -867,6 +870,7 @@
       g.records.forEach((r, i) => {
         const isFirst = i === 0;
         const row = new Array(TOTAL_COLS).fill(null);
+        row[C_DISCLOSURE] = isFirst ? r.disclosure_date : null;
         row[C_DATE]     = isFirst ? r.date : null;
         row[C_ISSUER]   = isFirst ? r.issuer : null;
         row[C_SERIES]   = r.series;
@@ -900,7 +904,7 @@
       if (N > 1) {
         const startR = dataRowIdx;
         const endR = dataRowIdx + N - 1;
-        for (const c of [C_DATE, C_ISSUER, C_LIMIT, C_AMT_START + 2]) {
+        for (const c of [C_DISCLOSURE, C_DATE, C_ISSUER, C_LIMIT, C_AMT_START + 2]) {
           merges.push({ s: { r: startR, c }, e: { r: endR, c } });
         }
       }
@@ -913,7 +917,7 @@
     merges.push({ s: { r: 0, c: C_LEAD_START }, e: { r: 0, c: C_UW_START - 1 } });
     merges.push({ s: { r: 0, c: C_UW_START },   e: { r: 0, c: TOTAL_COLS - 1 } });
     // 단독 컬럼은 row 0~1 수직 병합
-    for (const c of [C_DATE, C_ISSUER, C_SERIES, C_TYPE, C_RATING, C_MATURITY,
+    for (const c of [C_DISCLOSURE, C_DATE, C_ISSUER, C_SERIES, C_TYPE, C_RATING, C_MATURITY,
                      C_INIT, C_LIMIT, C_RATIO]) {
       merges.push({ s: { r: 0, c }, e: { r: 1, c } });
     }
@@ -954,6 +958,7 @@
 
     // 컬럼 너비 — broker 컬럼들은 좁게, 기본 컬럼은 가독성 있게
     const cols = new Array(TOTAL_COLS).fill({ wch: 6 });
+    cols[C_DISCLOSURE] = { wch: 11 };
     cols[C_DATE]     = { wch: 11 };
     cols[C_ISSUER]   = { wch: 14 };
     cols[C_SERIES]   = { wch: 7 };

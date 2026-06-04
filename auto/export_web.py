@@ -63,13 +63,21 @@ def compute_lead_amounts(lead_managers: list, underwriter_alloc: dict) -> dict:
     return {a: alloc.get(a, 0) + extra_per_lead for a in lead_managers}
 
 
-def _clean_record(r: dict) -> dict:
+def _disc_key(r: dict) -> tuple:
+    """records PK (issuer_alias, series, subscription_date) — disclosure_date 매칭용."""
+    return (r.get("issuer_alias") or "", r.get("series") or "",
+            str(r.get("subscription_date") or "")[:10])
+
+
+def _clean_record(r: dict, disc_map: dict | None = None) -> dict:
     """레코드를 웹 표시용으로 정리."""
     leads = r.get("lead_managers") or []
     alloc = r.get("underwriter_alloc") or {}
     # 주관사 실적 (산식: build_lead_formula 와 동일) — brokers 페이지가 합산에 사용
     lead_amt = compute_lead_amounts(leads, alloc)
     return {
+        # 최초 증권신고서 공시일 — records.disclosure_date (백필/증분 채움) 에서 주입
+        "disclosure_date": (disc_map or {}).get(_disc_key(r), ""),
         "date": r.get("subscription_date") or "",
         "issuer": r.get("issuer_alias") or "",
         "issuer_full": r.get("issuer_full") or "",
@@ -94,6 +102,34 @@ def _clean_record(r: dict) -> dict:
         "rcept": r.get("rcept_no") or "",
         "foreign": bool(r.get("is_foreign")),
     }
+
+
+def _load_disclosure_map() -> dict:
+    """records 테이블에서 disclosure_date 를 (issuer_alias, series, subscription_date) → 'YYYY-MM-DD'.
+    컬럼 미생성/연결 실패 시 빈 맵 반환 (graceful — disclosure 만 빈값, export 는 계속).
+    """
+    out = {}
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import supabase_client as sb
+        off = 0
+        while True:
+            rows = sb.select("records", "issuer_alias,series,subscription_date,disclosure_date",
+                             limit=1000, offset=off)
+            if not rows:
+                break
+            for row in rows:
+                dd = row.get("disclosure_date")
+                if dd:
+                    k = (row.get("issuer_alias") or "", row.get("series") or "",
+                         str(row.get("subscription_date") or "")[:10])
+                    out[k] = str(dd)[:10]
+            if len(rows) < 1000:
+                break
+            off += 1000
+    except Exception as e:
+        print(f"[warn] disclosure_date 로딩 실패 — 빈값 처리 (컬럼 미생성?): {e}")
+    return out
 
 
 def _compute_summary(cleaned_records: list) -> dict:
@@ -194,6 +230,10 @@ def main():
     raw = json.loads(META_PATH.read_text(encoding="utf-8"))
     records = raw.get("records", [])
 
+    # 최초 공시일 맵 (records.disclosure_date) — DB 에서 직접 로딩 (meta 흐름과 독립)
+    disc_map = _load_disclosure_map()
+    print(f"[disc] disclosure_date {len(disc_map)}건 로딩")
+
     # xlsx 의 실제 행 (issuer_alias, series) keys — 진정한 source of truth.
     # meta.json 에는 있어도 xlsx 에 없는 record (사용자가 직접 삭제) 는 web 에서 제외.
     if XLSX_PATH.exists():
@@ -217,7 +257,7 @@ def main():
         if xlsx_keys is not None and key not in xlsx_keys:
             skipped += 1
             continue
-        rec = _clean_record(r)
+        rec = _clean_record(r, disc_map)
         cleaned.append(rec)
         if rec["issuer"]:
             issuers.add(rec["issuer"])

@@ -67,34 +67,47 @@ def fetch_records(only_null: bool):
 
 
 def build_stage1_index(corp_codes, end):
-    """대상 corp 들의 증권신고서(채무증권) 최초신고 → {corp_code: sorted [rcept_dt(YYYYMMDD)]}.
+    """증권신고서(채무증권) 최초신고 → {corp_code: sorted [rcept_dt(YYYYMMDD)]}.
 
-    corp_code 지정 → 기간 제한 없이 전체기간 1회 조회 (corp 당 보통 1~2 페이지).
+    대상 corp 가 많으면(첫 전체 백필) **전체기간 1회 조회**가 압도적으로 빠름
+    (89일 청크 자동분할 ~수십 호출, ~3-5분). corp 별 개별 조회는 corp 수백 개일 때
+    수백 호출이 되어 timeout 위험 → 첫 백필은 반드시 전체 조회.
+    적으면(매일 증분) 신규 corp 만 개별 조회.
     """
+    target = {c for c in corp_codes if c}
     idx = defaultdict(list)
-    corps = sorted({c for c in corp_codes if c})
-    print(f"DART 조회: {len(corps)}개 발행사의 증권신고서(채무증권) 최초신고 ...")
-    fail = 0
-    for i, cc in enumerate(corps, 1):
-        try:
-            filings = dart_client._list_filings_chunk(START, end, corp_code=cc)
-        except Exception as e:
-            fail += 1
-            print(f"  [{i}/{len(corps)}] corp={cc} 조회 실패: {e}")
+
+    def _keep(f):
+        # 최초 증권신고서(채무증권)만: 접두어([기재정정]/[발행조건확정]) 없고 철회 아님
+        return ("증권신고서(채무증권)" in f.report_nm and f.is_initial
+                and f.rcept_dt and f.rm != "철")
+
+    if len(target) > 40:
+        # 전체기간 한 번에 (corp_code 없이) — 모든 corp 의 stage1 을 한 방에
+        print(f"전체 list 조회 (대상 corp {len(target)}개, {START}~{end}) ...")
+        filings = dart_client.list_filings(START, end, only_bond_registration=True)
+        kept = [f for f in filings if _keep(f) and f.corp_code in target]
+        print(f"  채무증권 신고 {len(filings)}건 중 대상 최초신고 {len(kept)}건")
+        for f in kept:
+            idx[f.corp_code].append(f.rcept_dt)
+    else:
+        # 증분 — 신규 corp 만 개별 조회 (corp_code 지정 시 기간제한 없이 1회)
+        corps = sorted(target)
+        print(f"개별 조회 (corp {len(corps)}개) ...")
+        for cc in corps:
+            try:
+                filings = dart_client._list_filings_chunk(START, end, corp_code=cc)
+            except Exception as e:
+                print(f"  corp={cc} 조회 실패: {e}")
+                time.sleep(config.REQUEST_SLEEP)
+                continue
+            for f in filings:
+                if _keep(f):
+                    idx[cc].append(f.rcept_dt)
             time.sleep(config.REQUEST_SLEEP)
-            continue
-        for f in filings:
-            # 최초 증권신고서(채무증권)만: 접두어([기재정정]/[발행조건확정]) 없는 것
-            if ("증권신고서(채무증권)" in f.report_nm and f.is_initial
-                    and f.rcept_dt and f.rm != "철"):
-                idx[cc].append(f.rcept_dt)
-        if i % 50 == 0:
-            print(f"  {i}/{len(corps)} ...")
-        time.sleep(config.REQUEST_SLEEP)
+
     for c in idx:
         idx[c].sort()
-    if fail:
-        print(f"  (조회 실패 corp {fail}개 — 해당 건은 미매칭으로 남음)")
     return idx
 
 

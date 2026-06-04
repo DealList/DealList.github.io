@@ -23,7 +23,7 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     permissions:
       contents: write    # web/*.json 자동 commit/push 위해 필요
     steps:

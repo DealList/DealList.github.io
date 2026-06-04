@@ -30,6 +30,23 @@
   try {
     const profile = await NP.getProfile();
     if (profile) {
+      // ── ⭐ 신규 OAuth 가입자가 가입 절차를 안 거친 경우 — 약관 페이지로 강제 이동 ──
+      // /login/ 에서 Google 버튼만 눌러 자동승인 도메인이 그대로 회원이 되는 우회 차단.
+      // 조건: OAuth 콜백 + profile 이 방금(5분 이내) 생성됨 + terms 비어있음 + signup 동의 신호 없음
+      //   → 정상 가입 흐름(/signup/terms/ → /signup/ → Google)은 sessionStorage('np-terms-agreed')='1'
+      //      을 갖고 있어 통과. /login/ 우회 흐름만 여기서 막힘.
+      if (isOauthCallback && !profile.terms_agreed_version) {
+        const createdMs = profile.created_at ? new Date(profile.created_at).getTime() : 0;
+        const justCreated = createdMs && (Date.now() - createdMs) < 5 * 60 * 1000;
+        const cameFromSignup = sessionStorage.getItem('np-terms-agreed') === '1';
+        if (justCreated && !cameFromSignup) {
+          alert('회원 가입 절차가 필요합니다. 약관 동의와 가입 정보 입력을 마쳐주세요.');
+          await NP.signOut();
+          location.replace('/signup/terms/');
+          return;
+        }
+      }
+
       // ── Google OAuth 가입자 약관 동의 기록 ──
       // Google 가입은 /signup/terms/ 의 동의가 metadata 로 안 넘어와 terms_agreed_version 이 빔.
       // 비어있으면 이 시점(= Google 버튼 클릭 = 약관 동의 간주)에 기록 (coalesce 로 1회만 반영).

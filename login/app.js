@@ -84,6 +84,14 @@
         location.href = '/pending/?denied=' + profile.status; return;
       }
       if (profile.status === 'approved') {
+        // ⭐ Google OAuth 가입자가 연락처/주소 미입력이면 보완 페이지로 안내
+        // 이메일 가입자는 /signup/ 폼에서 이미 받으므로 통상 채워져 있어 해당 없음.
+        // /profile/complete/ 는 next 파라미터로 저장(또는 건너뛰기) 후 원래 가려던 곳으로 이동.
+        if (profile.signup_method === 'google' && (!profile.phone || !profile.address)) {
+          const dest = '/profile/complete/?next=' + encodeURIComponent(nextParam || '/main/');
+          location.replace(dest);
+          return;
+        }
         // OAuth 콜백이거나 next 파라미터 있으면 즉시 이동 — 카드 안 거침
         if (isOauthCallback || nextParam) {
           location.replace(nextParam || '/main/');

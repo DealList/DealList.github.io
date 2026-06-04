@@ -61,6 +61,14 @@ def _latest_rcept(*vals):
     return max(xs) if xs else ""
 
 
+def _disclosure_date(rcept_no_stage1):
+    """최초 증권신고서 접수번호(YYYYMMDD+6자리) 앞 8자리 → 'YYYY-MM-DD' (= 최초 공시일).
+    DART 접수번호는 접수일자(8) + 일련번호(6)라 stage1(최초 신고) 접수번호 앞 8자리가 곧 최초 공시일.
+    rcept_no_stage1 이 비었으면 '' (미수집)."""
+    s = str(rcept_no_stage1 or "")
+    return f"{s[:4]}-{s[4:6]}-{s[6:8]}" if len(s) >= 8 and s[:8].isdigit() else ""
+
+
 def ipo_record(r: dict) -> dict:
     iq, ip = _n(r.get("init_qty")), _n(r.get("init_price"))
     fq, fp = _n(r.get("final_qty")), _n(r.get("final_price"))
@@ -70,6 +78,7 @@ def ipo_record(r: dict) -> dict:
     ei, ef = _n(r.get("esop_initial")), _n(r.get("esop_final"))
     return {
         "date": r.get("listing_date") or "",        # 상장일 ("" = 미정)
+        "disclosure_date": _disclosure_date(r.get("rcept_no_stage1")),  # 최초 증권신고서 공시일
         "issuer": r.get("issuer") or "",
         "market": r.get("market") or "",
         "init_qty": iq, "init_price": ip, "init_total": _eok(iq, ip),
@@ -90,6 +99,7 @@ def rights_record(r: dict) -> dict:
     k, m, o = _n(r.get("price_1")), _n(r.get("price_2")), _n(r.get("final_price"))
     return {
         "date": r.get("record_date") or "",         # 신주배정기준일
+        "disclosure_date": _disclosure_date(r.get("rcept_no_stage1")),  # 최초 증권신고서 공시일
         "issuer": r.get("issuer") or "",
         "type": r.get("offering_type") or "",
         "payment": r.get("payment_date") or "",

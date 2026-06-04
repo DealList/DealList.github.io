@@ -52,6 +52,7 @@
   // 탭별 컬럼: id(정렬키) / label / num / cell(HTML) / val(정렬값) / xls(엑셀값)
   const COLS = {
     ipo: [
+      {id:"disclosure_date",label:"최초 공시일",cell:r=>esc(r.disclosure_date||"-"),val:r=>r.disclosure_date,xls:r=>r.disclosure_date||""},
       {id:"date",label:"상장일",cell:r=>esc(r.date||"상장 예정"),val:r=>r.date,xls:r=>r.date||"상장 예정"},
       {id:"issuer",label:"발행사",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"market",label:"시장",cell:r=>esc(r.market),val:r=>r.market,xls:r=>r.market},
@@ -66,6 +67,7 @@
       {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
     ],
     rights: [
+      {id:"disclosure_date",label:"최초 공시일",cell:r=>esc(r.disclosure_date||"-"),val:r=>r.disclosure_date,xls:r=>r.disclosure_date||""},
       {id:"date",label:"신주배정기준일",cell:r=>esc(fmtDate(r.date)),val:r=>r.date,xls:r=>fmtDate(r.date)},
       {id:"issuer",label:"발행사",cls:"issuer",cell:r=>r.rcept?`<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>`:esc(r.issuer),val:r=>r.issuer,xls:r=>r.issuer},
       {id:"type",label:"유형",cell:r=>esc(r.type),val:r=>r.type,xls:r=>r.type},
@@ -299,27 +301,27 @@
       for (const k of Object.keys(r.uw||{}))    if (!uKnown.has(k)) uExtra.add(k);
     }
     const LEAD = [...leadOrder, ...lExtra], UW = [...uwOrder, ...uExtra];
-    const L0 = 16, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
+    const L0 = 17, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
 
     const row1 = new Array(TOTAL).fill(""), row2 = new Array(TOTAL).fill("");
-    row1[0]="신주배정기준일"; row1[1]="회사명"; row1[2]="구분"; row1[3]="납입일";
-    row1[4]="발행 수량"; row1[5]="기존 주식"; row1[6]="증자비율";
-    row1[7]="최초 희망 발행"; row2[7]="수량"; row2[8]="가액(원)"; row2[9]="총액(억)";
-    row1[10]="1차"; row2[10]="가액(원)"; row2[11]="총액(억)";
-    row1[12]="2차"; row2[12]="가액(원)"; row2[13]="총액(억)";
-    row1[14]="최종"; row2[14]="가액(원)"; row2[15]="총액(억)";
+    row1[0]="최초 공시일"; row1[1]="신주배정기준일"; row1[2]="회사명"; row1[3]="구분"; row1[4]="납입일";
+    row1[5]="발행 수량"; row1[6]="기존 주식"; row1[7]="증자비율";
+    row1[8]="최초 희망 발행"; row2[8]="수량"; row2[9]="가액(원)"; row2[10]="총액(억)";
+    row1[11]="1차"; row2[11]="가액(원)"; row2[12]="총액(억)";
+    row1[13]="2차"; row2[13]="가액(원)"; row2[14]="총액(억)";
+    row1[15]="최종"; row2[15]="가액(원)"; row2[16]="총액(억)";
     row1[L0]="주관"; LEAD.forEach((b,i)=>row2[L0+i]=b);
     row1[U0]="인수"; UW.forEach((b,i)=>row2[U0+i]=b);
 
     const dataRows = list.map(r => {
       const a = new Array(TOTAL).fill(null);
       const la=r.leads||{}, uwm=r.uw||{};
-      a[0]=r.date||""; a[1]=r.issuer; a[2]=r.type; a[3]=r.payment||"";
-      a[4]=r.new_qty; a[5]=r.existing_qty; a[6]=r.increase_ratio;
-      a[7]=r.init_qty; a[8]=r.init_price; a[9]=r.init_total;
-      a[10]=r.price_1; a[11]=r.total_1;
-      a[12]=r.price_2; a[13]=r.total_2;
-      a[14]=r.final_price; a[15]=r.final_total;
+      a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.type; a[4]=r.payment||"";
+      a[5]=r.new_qty; a[6]=r.existing_qty; a[7]=r.increase_ratio;
+      a[8]=r.init_qty; a[9]=r.init_price; a[10]=r.init_total;
+      a[11]=r.price_1; a[12]=r.total_1;
+      a[13]=r.price_2; a[14]=r.total_2;
+      a[15]=r.final_price; a[16]=r.final_total;
       LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
       UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
       return a;
@@ -329,8 +331,8 @@
 
     const merges = [];
     const grp=(c0,c1)=>merges.push({s:{r:0,c:c0},e:{r:0,c:c1}});
-    grp(7,9); grp(10,11); grp(12,13); grp(14,15); grp(L0,U0-1); grp(U0,TOTAL-1);
-    [0,1,2,3,4,5,6].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
+    grp(8,10); grp(11,12); grp(13,14); grp(15,16); grp(L0,U0-1); grp(U0,TOTAL-1);
+    [0,1,2,3,4,5,6,7].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
     ws["!merges"]=merges;
 
     const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
@@ -339,11 +341,11 @@
               left:{style:"thin",color:{rgb:"CBD5E1"}},right:{style:"thin",color:{rgb:"CBD5E1"}}} };
     for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
 
-    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:6}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }
+    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:7}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }
 
     const cw=new Array(TOTAL).fill({wch:6});
-    cw[0]={wch:13}; cw[1]={wch:16}; cw[2]={wch:18}; cw[3]={wch:11};
-    [4,5,7,8,9,10,11,12,13,14,15].forEach(c=>cw[c]={wch:11}); cw[6]={wch:8};
+    cw[0]={wch:13}; cw[1]={wch:13}; cw[2]={wch:16}; cw[3]={wch:18}; cw[4]={wch:11};
+    [5,6,8,9,10,11,12,13,14,15,16].forEach(c=>cw[c]={wch:11}); cw[7]={wch:8};
     ws["!cols"]=cw; ws["!rows"]=[{hpt:20},{hpt:18}];
 
     const wb=XLSX.utils.book_new();
@@ -363,29 +365,29 @@
       for (const k of Object.keys(r.uw||{}))    if (!uKnown.has(k)) uExtra.add(k);
     }
     const LEAD = [...leadOrder, ...lExtra], UW = [...uwOrder, ...uExtra];
-    const L0 = 22, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
+    const L0 = 23, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
 
     const row1 = new Array(TOTAL).fill(""), row2 = new Array(TOTAL).fill("");
-    row1[0]="상장일"; row1[1]="회사명"; row1[2]="시장";
-    row1[3]="최초 희망 발행"; row2[3]="수량"; row2[4]="가액(원)"; row2[5]="총액(억)";
-    row1[6]="최종 확정 발행"; row2[6]="수량"; row2[7]="가액(원)"; row2[8]="총액(억)";
-    row1[9]="발행 방식"; row2[9]="신주비율"; row2[10]="구주비율";
-    row1[11]="기관"; row2[11]="최초배정"; row2[12]="청약"; row2[13]="경쟁률"; row2[14]="최종배정";
-    row1[15]="일반"; row2[15]="최초배정"; row2[16]="청약"; row2[17]="경쟁률"; row2[18]="최종배정";
-    row1[19]="우리사주"; row2[19]="최초배정"; row2[20]="최종배정"; row2[21]="청약률";
+    row1[0]="최초 공시일"; row1[1]="상장일"; row1[2]="회사명"; row1[3]="시장";
+    row1[4]="최초 희망 발행"; row2[4]="수량"; row2[5]="가액(원)"; row2[6]="총액(억)";
+    row1[7]="최종 확정 발행"; row2[7]="수량"; row2[8]="가액(원)"; row2[9]="총액(억)";
+    row1[10]="발행 방식"; row2[10]="신주비율"; row2[11]="구주비율";
+    row1[12]="기관"; row2[12]="최초배정"; row2[13]="청약"; row2[14]="경쟁률"; row2[15]="최종배정";
+    row1[16]="일반"; row2[16]="최초배정"; row2[17]="청약"; row2[18]="경쟁률"; row2[19]="최종배정";
+    row1[20]="우리사주"; row2[20]="최초배정"; row2[21]="최종배정"; row2[22]="청약률";
     row1[L0]="주관"; LEAD.forEach((b,i)=>row2[L0+i]=b);
     row1[U0]="인수"; UW.forEach((b,i)=>row2[U0+i]=b);
 
     const dataRows = list.map(r => {
       const a = new Array(TOTAL).fill(null);
       const ins=r.inst||{}, gen=r.general||{}, es=r.esop||{}, la=r.leads||{}, uwm=r.uw||{};
-      a[0]=r.date||""; a[1]=r.issuer; a[2]=r.market;
-      a[3]=r.init_qty; a[4]=r.init_price; a[5]=r.init_total;
-      a[6]=r.final_qty; a[7]=r.final_price; a[8]=r.final_total;
-      a[9]=r.new_ratio; a[10]=r.old_ratio;
-      a[11]=ins.initial; a[12]=ins.subscribed; a[13]=ins.compete; a[14]=ins.final;
-      a[15]=gen.initial; a[16]=gen.subscribed; a[17]=gen.compete; a[18]=gen.final;
-      a[19]=es.initial; a[20]=es.final; a[21]=es.rate;
+      a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.market;
+      a[4]=r.init_qty; a[5]=r.init_price; a[6]=r.init_total;
+      a[7]=r.final_qty; a[8]=r.final_price; a[9]=r.final_total;
+      a[10]=r.new_ratio; a[11]=r.old_ratio;
+      a[12]=ins.initial; a[13]=ins.subscribed; a[14]=ins.compete; a[15]=ins.final;
+      a[16]=gen.initial; a[17]=gen.subscribed; a[18]=gen.compete; a[19]=gen.final;
+      a[20]=es.initial; a[21]=es.final; a[22]=es.rate;
       LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
       UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
       return a;
@@ -395,8 +397,8 @@
 
     const merges = [];
     const grp=(c0,c1)=>merges.push({s:{r:0,c:c0},e:{r:0,c:c1}});
-    grp(3,5); grp(6,8); grp(9,10); grp(11,14); grp(15,18); grp(19,21); grp(L0,U0-1); grp(U0,TOTAL-1);
-    [0,1,2].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
+    grp(4,6); grp(7,9); grp(10,11); grp(12,15); grp(16,19); grp(20,22); grp(L0,U0-1); grp(U0,TOTAL-1);
+    [0,1,2,3].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
     ws["!merges"]=merges;
 
     const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
@@ -406,13 +408,13 @@
     for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
 
     for (let i=0;i<dataRows.length;i++){ const r=i+2;
-      [9,10,21].forEach(c=>{ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; });
+      [10,11,22].forEach(c=>{ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; });
     }
 
     const cw=new Array(TOTAL).fill({wch:6});
-    cw[0]={wch:11}; cw[1]={wch:16}; cw[2]={wch:7};
-    [3,4,5,6,7,8,11,12,13,14,15,16,17,18,19,20,21].forEach(c=>cw[c]={wch:11});
-    [9,10].forEach(c=>cw[c]={wch:8});
+    cw[0]={wch:13}; cw[1]={wch:11}; cw[2]={wch:16}; cw[3]={wch:7};
+    [4,5,6,7,8,9,12,13,14,15,16,17,18,19,20,21,22].forEach(c=>cw[c]={wch:11});
+    [10,11].forEach(c=>cw[c]={wch:8});
     ws["!cols"]=cw; ws["!rows"]=[{hpt:20},{hpt:18}];
 
     const wb=XLSX.utils.book_new();

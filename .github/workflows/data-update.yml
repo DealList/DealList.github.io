@@ -101,6 +101,9 @@ jobs:
           python auto/backfill_dcm_disclosure.py
 
       - name: web/*.json 빌드 + root 배치 (사이트가 fetch 할 데이터)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python auto/export_web.py
           # export_web.py 가 web/ 에 떨어뜨린 파일을 GitHub Pages root 로 이동.

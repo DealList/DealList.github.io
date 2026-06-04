@@ -17,8 +17,8 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from pathlib import Path
 
@@ -30,7 +30,7 @@ import dart_client
 import supabase_client as sb
 
 START = date(2018, 1, 1)  # records 최古(2019~)보다 이르게
-SLEEP = 0.12  # corp별 list API 조회 간격 — list API 는 IP 차단 무관(API키 한도)이라 짧게
+WORKERS = 8  # OpenDART list API 병렬 조회 워커 수 (API키 기반 → IP 차단 무관, 분당 한도 내)
 
 
 def _compact(iso) -> str:
@@ -99,31 +99,33 @@ def resolve_corp(r, issuer_corp):
     return None
 
 
+def _fetch_corp(cc, end):
+    """한 발행사의 증권신고서(채무증권) 최초신고 rcept_dt 목록. 실패 시 None."""
+    try:
+        filings = dart_client._list_filings_chunk(START, end, corp_code=cc)
+        return cc, sorted(f.rcept_dt for f in filings if _keep(f))
+    except Exception:
+        return cc, None
+
+
 def build_corp_index(corp_codes, end):
     """대상 corp 들의 증권신고서(채무증권) 최초신고 → {corp_code: sorted [rcept_dt]}.
 
-    corp_code 지정 → 기간제한 없이 1회 조회 (corp당 보통 1~2 페이지) → 전체 목록 대비 훨씬 빠름.
+    OpenDART list API 는 API키 기반(IP 차단 무관)이라 병렬 조회 → 수백 발행사도 ~1-2분.
+    corp_code 지정 시 기간제한 없이 1회 (corp당 보통 1 페이지).
     """
-    idx = defaultdict(list)
     corps = sorted({c for c in corp_codes if c})
-    print(f"DART 조회: {len(corps)}개 발행사의 증권신고서(채무증권) 최초신고 ...")
-    fail = 0
-    for i, cc in enumerate(corps, 1):
-        try:
-            filings = dart_client._list_filings_chunk(START, end, corp_code=cc)
-        except Exception as e:
-            fail += 1
-            print(f"  corp={cc} 조회 실패: {e}")
-            time.sleep(SLEEP)
-            continue
-        for f in filings:
-            if _keep(f):
-                idx[cc].append(f.rcept_dt)
-        if i % 50 == 0:
-            print(f"  {i}/{len(corps)} ...")
-        time.sleep(config.REQUEST_SLEEP)
-    for c in idx:
-        idx[c].sort()
+    print(f"DART 병렬 조회({WORKERS} workers): {len(corps)}개 발행사 ...")
+    idx, done, fail = defaultdict(list), 0, 0
+    with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+        for cc, rcepts in ex.map(lambda c: _fetch_corp(c, end), corps):
+            done += 1
+            if rcepts is None:
+                fail += 1
+            elif rcepts:
+                idx[cc] = rcepts
+            if done % 100 == 0:
+                print(f"  {done}/{len(corps)} ...")
     if fail:
         print(f"  (조회 실패 corp {fail}개)")
     return idx

@@ -93,7 +93,7 @@ jobs:
       # disclosure_date 가 빈 신규 건만 채움. 비핵심이라 실패해도 export 는 계속.
       - name: 최초 공시일 백필 (신규 건)
         continue-on-error: true
-        timeout-minutes: 15
+        timeout-minutes: 25
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

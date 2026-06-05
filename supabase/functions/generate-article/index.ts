@@ -144,6 +144,10 @@ const SYSTEM_PROMPT = `당신은 한국 자본시장(증권) 전문 기자입니
   - 유상증자 '증자비율'은 **소수 둘째 자리까지** 제공된다("25.00%", "25.20%", "24.87%") — '25%'나 '25.2%'로 줄이지 말 것.
   - IPO '신주비율'·'구주비율'은 **정수**로 제공된다("65%") — '65.0%'로 늘리지 말 것.
   - 혹시 0~1 소수로 들어오면 ×100. **'0.x' 소수 형태 절대 금지.**
+- **숫자·단위 붙여쓰기** (공백 없이):
+  - 날짜 'N월 N일'은 붙여 쓴다: "5월18일", "7월9일" (월과 일 사이 공백 없음).
+  - 주식 수는 만/억 단위와 숫자·'주'를 붙여 쓴다: "999만1819주", "600만주", "1억2000만주".
+  - 단, **금액 '1조 700억원'의 조-억 사이 공백은 그대로 둔다**(붙이지 않음).
 - **금액 단위 변환 — 한국 표기 정확히 따를 것** (모델이 자주 틀리는 부분):
   - 데이터의 모든 '_억' 접미사 필드는 **억원 단위 정수**. 절대 임의로 0을 추가하거나 제거하지 말 것.
   - **10000억원 = 1조**.
@@ -312,10 +316,18 @@ function stripNumberCommas(s: string): string {
 function normalizeEllipsis(s: string): string {
   return String(s || "").replace(/\.{3,}/g, "…");
 }
+// 한국어 숫자·단위 붙여쓰기(사용자 표기 규칙). 금액 '1조 700억원'의 조-억 공백은 건드리지 않음.
+function joinKoreanUnits(s: string): string {
+  return String(s || "")
+    .replace(/(\d+월)\s+(\d+일)/g, "$1$2")          // 5월 18일 → 5월18일
+    .replace(/(\d+만)\s+(\d+주)/g, "$1$2")          // 999만 1819주 → 999만1819주
+    .replace(/(\d+만)\s+주/g, "$1주")               // 600만 주 → 600만주
+    .replace(/(\d+억)\s+(\d+만\d*주)/g, "$1$2");     // 1억 2000만주 → 1억2000만주 (드문 경우)
+}
 function cleanResult(r: { headline: string; article: string }) {
   return {
-    headline: normalizeEllipsis(stripNumberCommas(r.headline)).trim(),
-    article: normalizeEllipsis(stripNumberCommas(r.article)).trim(),
+    headline: joinKoreanUnits(normalizeEllipsis(stripNumberCommas(r.headline))).trim(),
+    article: joinKoreanUnits(normalizeEllipsis(stripNumberCommas(r.article))).trim(),
   };
 }
 // 정리 후에도 남는 위반을 모델에게 재요청할 피드백으로 반환

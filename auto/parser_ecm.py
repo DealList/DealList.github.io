@@ -504,7 +504,53 @@ def parse_ipo_stage1(html_sections: dict[str, str], rcept_no: str = "",
         if m:
             rec.init_qty = int(m.group(1).replace(",", ""))
 
-    # TODO: 인수단 표 파싱 (lead_managers / underwriters)
+    # 인수단 표 — 인수(주선)인(역할) / 인수인.1(증권사) / 증권의 종류 / 인수수량 ...
+    # 최초 신고서엔 인수금액이 없을 수 있음 → 역할·증권사명·수량만 추출(_underwriter_rows).
+    # 금액 없는 '주관/인수 명단'(lead_names/uw_names)은 cloud_update_ecm 이 역할로 분류해 산출.
+    import pandas as pd
+    import io
+    underwriter_rows: list[dict] = []
+    for html in html_sections.values():
+        try:
+            tables = pd.read_html(io.StringIO(html), flavor="lxml")
+        except Exception:
+            continue
+        for t in tables:
+            t = _promote_header(t)
+            cols = [str(c) for c in t.columns]
+            cols_joined = " ".join(cols)
+            if not (("인수인" in cols_joined or "인수(주선)인" in cols_joined)
+                    and "인수수량" in cols_joined):
+                continue
+            role_col = name_col = qty_col = None
+            for ci, c in enumerate(cols):
+                cs = str(c).replace(" ", "")
+                if cs in ("인수인", "인수(주선)인") and role_col is None:
+                    role_col = ci
+                elif (cs.startswith("인수인") or cs.startswith("인수(주선)인")) \
+                        and name_col is None and ci != role_col:
+                    name_col = ci
+                elif "인수수량" in cs:
+                    qty_col = ci
+            if role_col is None or name_col is None:
+                continue
+            for _, row in t.iterrows():
+                role = str(row.iloc[role_col]).replace(" ", "")
+                name = str(row.iloc[name_col]).replace(" ", "")
+                if not name or name in ("nan", "None", "계", "합계", "소계"):
+                    continue
+                qty = None
+                if qty_col is not None:
+                    try:
+                        qty = int(str(row.iloc[qty_col]).replace(",", "").split(".")[0])
+                    except (ValueError, TypeError):
+                        qty = None
+                underwriter_rows.append({"role": role, "name": name, "qty": qty})
+            if underwriter_rows:
+                break  # 첫 매칭 표 사용 (최초 신고서는 정정 전/후 구분 없음)
+        if underwriter_rows:
+            break
+    setattr(rec, "_underwriter_rows", underwriter_rows)
     return rec
 
 

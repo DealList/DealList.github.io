@@ -1028,14 +1028,18 @@
   let dartRcept = null;
   const dartUrl = (rcept) => `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`;
   function openDartWindow(rcept) {
-    const aw = screen.availWidth || window.innerWidth || 1280;
-    const ah = screen.availHeight || window.innerHeight || 800;
-    const w = Math.floor(aw / 2), h = ah;
+    // 멀티모니터 대응: 주 모니터(0,0)가 아니라 '지금 브라우저 창이 떠 있는 모니터' 기준으로 배치.
+    // window.screenX/Y = 브라우저 창의 가상데스크톱 좌표, outerWidth/Height = 그 창(≈최대화 시 모니터) 크기.
+    const bx = (typeof window.screenX === "number" ? window.screenX : window.screenLeft) || 0;
+    const by = (typeof window.screenY === "number" ? window.screenY : window.screenTop) || 0;
+    const bw = window.outerWidth || screen.availWidth || window.innerWidth || 1280;
+    const bh = window.outerHeight || screen.availHeight || window.innerHeight || 800;
+    const w = Math.max(480, Math.floor(bw / 2)), h = bh;
     // 표의 발행사 링크('dart-viewer')와 다른 전용 이름 — 기존 창 위치 재사용 방지
     dartWin = window.open(dartUrl(rcept), "np-dart-side",
-      `popup=yes,left=0,top=0,width=${w},height=${h},scrollbars=yes,resizable=yes`);
-    // 크롬이 left=0 을 무시할 때가 있어 연 직후 강제로 화면 왼쪽 절반에 스냅
-    try { if (dartWin) { dartWin.moveTo(0, 0); dartWin.resizeTo(w, h); dartWin.focus(); } } catch (_) {}
+      `popup=yes,left=${bx},top=${by},width=${w},height=${h},scrollbars=yes,resizable=yes`);
+    // 크롬이 left/top 무시할 때 대비 — 현재 모니터 왼쪽 절반에 강제 스냅
+    try { if (dartWin) { dartWin.moveTo(bx, by); dartWin.resizeTo(w, h); dartWin.focus(); } } catch (_) {}
     return dartWin;
   }
   function openDartSideBySide(rcept) {

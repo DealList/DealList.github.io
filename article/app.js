@@ -30,11 +30,16 @@
   };
   const fmtManN = (v) => (typeof v === "number" ? Math.round(v / 10000).toLocaleString() : "-");
   const fmtPctN = (v) => (typeof v === "number" ? (v * 100).toFixed(1) : "-");
-  // 비율(분수 0~1) → 퍼센트 문자열. 0.25 → "25%", 0.2506 → "25.1%". 기사 페이로드용(모델이 0.x로 쓰지 않도록).
+  // 비율(분수 0~1) → 퍼센트 문자열. 소수 2자리, 불필요한 0 제거. 0.2487 → "24.87%", 0.25 → "25%", 0.248 → "24.8%".
   const fmtPctStr = (v) => {
-    if (typeof v !== "number") return null;
-    const p = Math.round(v * 1000) / 10;
-    return (Number.isInteger(p) ? String(p) : p.toFixed(1)) + "%";
+    if (typeof v !== "number" || !isFinite(v)) return null;
+    const p = Math.round(v * 10000) / 100;            // 퍼센트, 소수 2자리
+    return p.toFixed(2).replace(/0+$/, "").replace(/\.$/, "") + "%";
+  };
+  // 비율을 '반올림된 ratio' 대신 원본 분자/분모로 정밀 계산(데이터의 round(,2) 손실 우회). 수량 없으면 ratio로 폴백.
+  const ratioPctStr = (num, den, fallbackRatio) => {
+    if (typeof num === "number" && typeof den === "number" && den) return fmtPctStr(num / den);
+    return fmtPctStr(typeof fallbackRatio === "number" ? fallbackRatio : null);
   };
 
   // dcm-deals 의 RATING_RANK / RATING_OPTIONS (동일)
@@ -907,7 +912,7 @@
     }
     return past.map(r => ({
       신주배정기준일: r.date || null, 최초공시일: r.disclosure_date || null,
-      유형: r.type, 신주_수량: r.new_qty, 증자비율: fmtPctStr(r.increase_ratio),
+      유형: r.type, 신주_수량: r.new_qty, 증자비율: ratioPctStr(r.new_qty, r.existing_qty, r.increase_ratio),
       확정가_원: r.final_price, 확정총액_억: r.final_total,
     }));
   }
@@ -1016,7 +1021,7 @@
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,
         신주배정기준일: data.date || null, 납입일: data.payment || null,
-        신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: fmtPctStr(data.increase_ratio),
+        신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: ratioPctStr(data.new_qty, data.existing_qty, data.increase_ratio),
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
         주관사: data.leads || {}, 인수사: data.uw || {},

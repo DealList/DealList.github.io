@@ -1225,6 +1225,23 @@
     return (String(refDate).slice(0, 10) <= today) ? "과거" : "미래";
   }
 
+  // 본문 날짜의 상대 표현 — 오늘 기준 월 차이로 결정(모델이 헷갈리는 부분을 코드로 계산).
+  //  같은 날 → "이날" / 같은 달 → "지난 1일"·"오는 16일" / ±1달 → "지난달 30일"·"다음달 5일"
+  //  ±2달 이상 → "지난 4월 19일"·"오는 8월 7일" (월 명시)
+  function relDate(refDate, today) {
+    const r = String(refDate || "").slice(0, 10), t = String(today || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(r) || !/^\d{4}-\d{2}-\d{2}$/.test(t)) return null;
+    if (r === t) return "이날";
+    const [ry, rm, rd] = r.split("-").map(Number);
+    const [ty, tm] = t.split("-").map(Number);
+    const dir = (r < t) ? "지난" : "오는";
+    const md = (ry * 12 + rm) - (ty * 12 + tm);  // 월 차이(음수=과거달)
+    if (md === 0) return `${dir} ${rd}일`;
+    if (md === -1) return `지난달 ${rd}일`;
+    if (md === 1) return `다음달 ${rd}일`;
+    return `${dir} ${rm}월 ${rd}일`;
+  }
+
   // 조달 규모 변화(ECM 공통) — 최초 희망 총액 vs 최종 확정 총액. 가격 변동·수량 변동이 모두 반영된
   // '조달 규모'의 증감으로, 유증/IPO 에서 가격보다 중요한 핵심 정보(제목·본문에 활용).
   function ecmRaiseChange(data) {
@@ -1305,6 +1322,7 @@
           최초공시일: rep.disclosure_date || null,
           청약일: rep.date,
           발행일: rep.date,          // 회사채는 청약일 = 발행일 (본문에 반드시 명기)
+          발행일_표현: relDate(rep.date, today),  // 상대 표현(지난 1일/오는 16일/이날/지난달.../N월 N일)
           종류: rep.type,            // 회차 공통
           신용등급: rep.rating,      // 회차 공통
           발행한도_총_억: rep.limit, // 회차 전체 한도 (트랜치별 X)
@@ -1331,6 +1349,7 @@
           시제: tense(data.date, today),  // 상장일 기준
           발행사: data.issuer, 시장: data.market,
           최초공시일: data.disclosure_date || null, 상장일: data.date || null,
+          상장일_표현: relDate(data.date, today),
           최초_수량: data.init_qty, 최초_가액_원: data.init_price, 최초_총액_억: data.init_total,
           최종_수량: data.final_qty, 최종_가액_원: data.final_price, 최종_총액_억: data.final_total,
           신주비율: fmtPct0Str(data.new_ratio), 구주비율: fmtPct0Str(data.old_ratio),
@@ -1349,7 +1368,8 @@
         시제: tense(data.date, today),  // 신주배정기준일 기준
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,
-        신주배정기준일: data.date || null, 납입일: data.payment || null,
+        신주배정기준일: data.date || null, 신주배정기준일_표현: relDate(data.date, today),
+        납입일: data.payment || null, 납입일_표현: relDate(data.payment, today),
         신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: ratioPct2Str(data.new_qty, data.existing_qty, data.increase_ratio),
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,

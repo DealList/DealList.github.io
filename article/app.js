@@ -1044,6 +1044,11 @@
     try { if (dartWin) { if (!wasOpen) { dartWin.moveTo(bx, by); dartWin.resizeTo(w, h); } dartWin.focus(); } } catch (_) {}
     return dartWin;
   }
+  function toggleDart() {  // '원본 공시 보기' 버튼 — 누를 때마다 공시 창 열기/닫기
+    if (!dartRcept) return;
+    if (dartWin && !dartWin.closed) { try { dartWin.close(); } catch (_) {} dartWin = null; }
+    else openDartWindow(dartRcept);
+  }
   function openArticleWin() {
     const wasOpen = artWin && !artWin.closed;  // 이미 열려 있으면 사용자가 조절한 크기 보존
     const { bx, by, bw, bh } = monitorBox();
@@ -1088,13 +1093,13 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
 <div class="aw-meta">${metaHtml}</div>
 <div class="aw-body" id="aw-body"><div class="aw-loading">기사 생성 중…</div></div>
 <div class="aw-foot"><small class="aw-disclaimer">⚠ AI 생성 초안 — 사실·수치 검증 후 사용해주세요.</small>
-<div class="aw-actions">${hasDart ? '<button id="aw-dart">📄 공시</button>' : ''}<button id="aw-copy">복사</button><button id="aw-regen">다시 생성</button></div>
+<div class="aw-actions">${hasDart ? '<button id="aw-dart">📄 원본 공시 보기</button>' : ''}<button id="aw-copy">복사</button><button id="aw-regen">다시 생성</button></div>
 </div></div></body></html>`);
     doc.close();
     const g = (id) => doc.getElementById(id);
     if (g('aw-copy')) g('aw-copy').onclick = copyArticleFromWin;
     if (g('aw-regen')) g('aw-regen').onclick = () => { setArtBody('<div class="aw-loading">기사 생성 중…</div>'); generateArticle(); };
-    if (g('aw-dart')) g('aw-dart').onclick = () => { if (dartRcept) openDartWindow(dartRcept); };
+    if (g('aw-dart')) g('aw-dart').onclick = toggleDart;
     try { artWin.focus(); } catch (_) {}
   }
   function setArtBody(html) {
@@ -1143,12 +1148,11 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
         `<span class="sep">·</span>${esc(data.date ? `기준일 ${data.date}` : "기준일 미정")}` +
         `<span class="sep">·</span>${fmtBig(data.final_total ?? data.total_1 ?? data.init_total)}`;
     }
-    // 기사(오른쪽)·공시(왼쪽) 각각 별도 창으로 (dcm은 rep.rcept). 기사 창을 먼저 열어 팝업차단 시 우선 보장.
+    // 기사 창만 연다(공시는 자동으로 띄우지 않고 '원본 공시 보기' 버튼으로 토글). dcm은 rep.rcept.
     const rcept = kind === "dcm" ? (data.rep && data.rep.rcept) : data.rcept;
     dartRcept = rcept || null;
     openArticleWin();
     writeArticleSkeleton(title, metaHtml, !!rcept);
-    if (rcept) openDartWindow(rcept);
 
     generateArticle();
   }

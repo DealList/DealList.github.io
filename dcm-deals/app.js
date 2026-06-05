@@ -646,17 +646,17 @@
     return Number(v).toFixed(3);
   }
 
-  function fmtUw(uw, withAmount) {
-    // uw = { "삼성": 300, "DB": 50, ... }
-    if (!uw || typeof uw !== "object") return "";
-    const entries = Object.entries(uw);
-    if (!entries.length) return "";
-    if (withAmount) {
-      // 툴팁용: "삼성 300억, DB 50억, ..."
-      return entries.map(([k, v]) => `${k} ${fmtNum(v)}억`).join(", ");
+  function fmtUw(uw, withAmount, names) {
+    // uw = { "삼성": 300, "DB": 50, ... }. 금액 있으면 그 이름·금액, 없으면 names 폴백(stage1 단계 명단).
+    if (uw && typeof uw === "object" && Object.keys(uw).length) {
+      const entries = Object.entries(uw);
+      if (withAmount) {
+        return entries.map(([k, v]) => `${k} ${fmtNum(v)}억`).join(", ");
+      }
+      return entries.map(([k]) => k).join(", ");
     }
-    // 표 표시용: 인수사 이름만 ", " join
-    return entries.map(([k]) => k).join(", ");
+    if (names && names.length) return names.join(", ");
+    return "";
   }
 
   function render() {
@@ -723,7 +723,7 @@
           '<td class="center">' + esc(r.r_demand) + "</td>" +
           '<td class="num">' + fmtRate(r.r_final) + "</td>" +
           "<td>" + esc((r.leads || []).join(", ")) + "</td>" +
-          '<td title="' + esc(fmtUw(r.uw, true)) + '">' + esc(fmtUw(r.uw, false)) + "</td>";
+          '<td title="' + esc(fmtUw(r.uw, true, r.uw_names)) + '">' + esc(fmtUw(r.uw, false, r.uw_names)) + "</td>";
 
         tr.innerHTML = html;
         frag.appendChild(tr);
@@ -890,14 +890,20 @@
         row[C_RATE_START + 1] = r.r_demand;
         row[C_RATE_START + 2] = r.r_final;
         const la = r.lead_amt || {};
+        const lns = new Set(r.leads || []);
         for (let j = 0; j < leadCols.length; j++) {
           const v = la[leadCols[j]];
-          row[C_LEAD_START + j] = (v != null && v !== 0) ? v : null;
+          if (v != null && v !== 0) row[C_LEAD_START + j] = v;
+          else if (lns.has(leadCols[j])) row[C_LEAD_START + j] = "○";
+          else row[C_LEAD_START + j] = null;
         }
         const uw = r.uw || {};
+        const uns = new Set(r.uw_names || []);
         for (let j = 0; j < uwCols.length; j++) {
           const v = uw[uwCols[j]];
-          row[C_UW_START + j] = (v != null && v !== 0) ? v : null;
+          if (v != null && v !== 0) row[C_UW_START + j] = v;
+          else if (uns.has(uwCols[j])) row[C_UW_START + j] = "○";
+          else row[C_UW_START + j] = null;
         }
         dataRows.push(row);
       });

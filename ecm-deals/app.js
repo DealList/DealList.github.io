@@ -55,7 +55,20 @@
     if (!e.length) return "-";
     return `<span class="bk">` + e.map(([a])=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)}</span>`).join(", ") + `</span>`;
   }
+  // 금액 dict 비면 이름 배열(lead_names/uw_names) 폴백. 표·엑셀 양쪽에 사용 — stage1 단계 딜의 명단 표시용.
+  function fmtSyndicate(map, names) {
+    if (map && Object.keys(map).length) return fmtBrokersNames(map);
+    if (names && names.length) {
+      return `<span class="bk">` + names.map(a=>`<span title="${esc(BROKER_FULL[a]||a)}">${esc(a)}</span>`).join(", ") + `</span>`;
+    }
+    return "-";
+  }
   const brokStr = (m) => Object.entries(m||{}).sort((a,b)=>b[1]-a[1]).map(([a,v])=>`${a} ${Math.round(v)}`).join(", ");
+  // 엑셀용 폴백: 금액 dict 있으면 "alias 금액" 형태, 없으면 이름만 ", " 으로 join.
+  const brokStrFallback = (m, names) => {
+    if (m && Object.keys(m).length) return brokStr(m);
+    return (names && names.length) ? names.join(", ") : "";
+  };
 
   // 탭별 컬럼: id(정렬키) / label / num / cell(HTML) / val(정렬값) / xls(엑셀값)
   const COLS = {
@@ -71,8 +84,8 @@
       {id:"ic",label:"기관 경쟁률(배)",num:1,cell:r=>fmtN(r.inst&&r.inst.compete),val:r=>(r.inst&&r.inst.compete)||0,xls:r=>(r.inst&&r.inst.compete)??""},
       {id:"gc",label:"일반 경쟁률(배)",num:1,cell:r=>fmtN(r.general&&r.general.compete),val:r=>(r.general&&r.general.compete)||0,xls:r=>(r.general&&r.general.compete)??""},
       {id:"ec",label:"우리사주 청약률(%)",num:1,cell:r=>fmtPctN(r.esop&&r.esop.rate),val:r=>(r.esop&&r.esop.rate)||0,xls:r=>(r.esop&&r.esop.rate)??""},
-      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
-      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
+      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtSyndicate(r.leads,r.lead_names),xls:r=>brokStrFallback(r.leads,r.lead_names)},
+      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtSyndicate(r.uw,r.uw_names),xls:r=>brokStrFallback(r.uw,r.uw_names)},
     ],
     rights: [
       {id:"disclosure_date",label:"최초 공시일",cell:r=>esc(r.disclosure_date||"-"),val:r=>r.disclosure_date,xls:r=>r.disclosure_date||""},
@@ -87,8 +100,8 @@
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
       {id:"final_price",label:"최종 가액(원)",num:1,cell:r=>fmtN(r.final_price),val:r=>r.final_price,xls:r=>r.final_price??""},
       {id:"final_total",label:"발행 총액(억원)",num:1,cell:r=>fmtN(r.final_total ?? r.total_1 ?? r.init_total),val:r=>r.final_total ?? r.total_1 ?? r.init_total,xls:r=>(r.final_total ?? r.total_1 ?? r.init_total)??""},
-      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.leads),xls:r=>brokStr(r.leads)},
-      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtBrokersNames(r.uw),xls:r=>brokStr(r.uw)},
+      {id:"leads",label:"주관사",cls:"brokers-cell",cell:r=>fmtSyndicate(r.leads,r.lead_names),xls:r=>brokStrFallback(r.leads,r.lead_names)},
+      {id:"uw",label:"인수사",cls:"brokers-cell",cell:r=>fmtSyndicate(r.uw,r.uw_names),xls:r=>brokStrFallback(r.uw,r.uw_names)},
     ],
   };
   const catCfg = { ipo:{field:"market",label:"시장"}, rights:{field:"type",label:"유형"} };
@@ -324,14 +337,16 @@
     const dataRows = list.map(r => {
       const a = new Array(TOTAL).fill(null);
       const la=r.leads||{}, uwm=r.uw||{};
+      const lns=new Set(r.lead_names||[]), uns=new Set(r.uw_names||[]);
       a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.type; a[4]=r.payment||"";
       a[5]=r.new_qty; a[6]=r.existing_qty; a[7]=ratioOf(r);
       a[8]=r.init_qty; a[9]=r.init_price; a[10]=r.init_total;
       a[11]=r.price_1; a[12]=r.total_1;
       a[13]=r.price_2; a[14]=r.total_2;
       a[15]=r.final_price; a[16]=r.final_total;
-      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
-      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      // 금액 있으면 금액, 없는데 명단에만 있으면 '○' (stage1 단계 명단 표시)
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; else if (lns.has(b)) a[L0+i]="○"; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; else if (uns.has(b)) a[U0+i]="○"; });
       return a;
     });
 
@@ -389,6 +404,7 @@
     const dataRows = list.map(r => {
       const a = new Array(TOTAL).fill(null);
       const ins=r.inst||{}, gen=r.general||{}, es=r.esop||{}, la=r.leads||{}, uwm=r.uw||{};
+      const lns=new Set(r.lead_names||[]), uns=new Set(r.uw_names||[]);
       a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.market;
       a[4]=r.init_qty; a[5]=r.init_price; a[6]=r.init_total;
       a[7]=r.final_qty; a[8]=r.final_price; a[9]=r.final_total;
@@ -396,8 +412,8 @@
       a[12]=ins.initial; a[13]=ins.subscribed; a[14]=ins.compete; a[15]=ins.final;
       a[16]=gen.initial; a[17]=gen.subscribed; a[18]=gen.compete; a[19]=gen.final;
       a[20]=es.initial; a[21]=es.final; a[22]=es.rate;
-      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
-      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; else if (lns.has(b)) a[L0+i]="○"; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; else if (uns.has(b)) a[U0+i]="○"; });
       return a;
     });
 

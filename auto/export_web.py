@@ -95,6 +95,7 @@ def _clean_record(r: dict, disc_map: dict | None = None) -> dict:
         "r_final": r.get("rate_final"),
         "leads": leads,
         "uw": {k: _to_number_or_none(v) for k, v in alloc.items()},
+        "uw_names": r.get("uw_names") or [],  # 인수사 명단(stage1 부터). uw 가 비었을 때 표시 폴백.
         # 주관사별 실적 (산식 결과). brokers 페이지에서 기간별 증권사 합산에 사용.
         # 소수점 그대로 보존 — broker 합산 후 한 번만 round (엑셀과 100% 일치).
         "lead_amt": {k: (round(v, 4) if v is not None else None)

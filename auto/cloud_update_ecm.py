@@ -88,14 +88,18 @@ def rights_rows(deal, res) -> list[dict]:
     rec = res.rights_record
     report = deal.reports[-1].rcept_no if getattr(deal, "reports", None) else None
     _ln, _un = _names_from_uw_rows(getattr(rec, "_underwriter_rows", []))
+    # 실적 금액은 [발행조건확정] 공시 이후에만 기록 (DCM·IPO 와 동일 규칙).
+    # stage1 단계의 init_price 기반 fallback 금액(예정치)은 표·엑셀에서 제외.
+    has_final = bool(rec.rcept_no_final1 or rec.rcept_no_final2)
     base = {
         "record_date": _iso(rec.record_date), "issuer": rec.issuer,
         "offering_type": rec.offering_type or None, "payment_date": _iso(rec.payment_date),
         "new_qty": rec.new_qty, "existing_qty": rec.existing_qty,
         "init_qty": rec.init_qty, "init_price": rec.init_price,
         "price_1": rec.stage1_price, "price_2": rec.stage2_price, "final_price": rec.final_price,
-        "lead_amounts": _brokers(res.lead_perf), "uw_amounts": _brokers(res.underwriter_amounts_eok),
-        "lead_names": _ln, "uw_names": _un,   # 금액 없는 주관/인수 명단(최초 신고서 단계용)
+        "lead_amounts": _brokers(res.lead_perf) if has_final else {},
+        "uw_amounts":   _brokers(res.underwriter_amounts_eok) if has_final else {},
+        "lead_names": _ln, "uw_names": _un,   # 금액 없는 주관/인수 명단(stage1 부터 채움)
         "issue_seq": 0, "corp_code": rec.corp_code or None,
         "rcept_no_stage1": rec.rcept_no_stage1 or None,
         "rcept_no_final1": rec.rcept_no_final1 or None,

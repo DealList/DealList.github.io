@@ -66,15 +66,16 @@ def _wipe_stage2_fields(rec) -> None:
     """초기 '증권신고서(채무증권)' (Stage 1) record 에서 Stage 2 이상에서만
     확정되는 필드를 제거.
 
-    유지: 청약일, 발행사, 회차, 종류, 신용등급, 만기일, 최초모집, 발행한도, 희망금리
-    제거: 수요예측, 최종발행, 회차합산, 수요금리, 최종금리, 주관단, 인수단
+    유지: 청약일, 발행사, 회차, 종류, 신용등급, 만기일, 최초모집, 발행한도, 희망금리,
+          **주관사 명단(lead_managers), 인수사 명단(uw_names)** — stage1 부터 잡음
+    제거: 수요예측, 최종발행, 회차합산, 수요금리, 최종금리, **인수단 실적 금액(underwriter_alloc)**
     """
     rec.demand_amount = None
     rec.final_amount = None
     rec.series_total = None
     rec.rate_demand = ""
     rec.rate_final = None
-    rec.lead_managers = []
+    # 명단(lead_managers, uw_names)은 그대로 보존 — stage1 부터 표/기사에 표시.
     rec.underwriter_alloc = {}
 
 
@@ -101,6 +102,8 @@ def _merge_records(old, new):
         setattr(old, f, nv)
     if new.lead_managers:
         old.lead_managers = list(new.lead_managers)
+    if new.uw_names:
+        old.uw_names = list(new.uw_names)
     if new.underwriter_alloc:
         old.underwriter_alloc = dict(new.underwriter_alloc)
     if new.is_foreign:

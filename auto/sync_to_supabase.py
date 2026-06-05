@@ -52,6 +52,7 @@ def transform_record(r: dict) -> dict:
         "rate_demand": r.get("rate_demand") or "",
         "rate_final": r.get("rate_final"),
         "lead_managers": r.get("lead_managers") or [],
+        "uw_names": r.get("uw_names") or [],
         "underwriter_alloc": r.get("underwriter_alloc") or {},
         "rcept_no": r.get("rcept_no") or "",
         "is_amendment": bool(r.get("is_amendment")),

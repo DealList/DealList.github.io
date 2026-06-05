@@ -53,8 +53,11 @@ class TrancheRecord:
     # 주관사: 공시의 인수(주선)인 표에서 '대표' 표시된 증권사 약칭 리스트.
     # P~AN 셀에는 직접 금액이 아니라 수식이 들어감 (formulas.build_lead_formula).
     lead_managers: list[str] = field(default_factory=list)
-    # 인수사 + 인수금액 (대표·공동·인수단 모두 포함, 공시 그대로)
+    # 인수사 + 인수금액 (대표·공동·인수단 모두 포함, 공시 그대로) — [발행조건확정] 이후만 채움
     underwriter_alloc: dict[str, float] = field(default_factory=dict)
+    # 인수사 명단(이름만, 금액 없음) — stage1 단계부터 채워 표·기사에 명단 표시용.
+    # [발행조건확정] 이후엔 underwriter_alloc 의 키가 사실상 동일하므로 보조 역할.
+    uw_names: list[str] = field(default_factory=list)
     rcept_no: str = ""
     is_amendment: bool = False
     is_foreign: bool = False  # 외화채(SOFR/USD 등) — 금융 데이터 컬럼 일부 빈칸 처리
@@ -1214,9 +1217,10 @@ def parse_filing(html_sections: dict[str, str], ctx: ParseContext, mappings: dic
         # 사례: CJ대한통운 104-2 — 정정 후 [회차:104-2] 표(SK 90억, 합 2190) 다음에
         # (주4) 정정 후 가. 사채의 인수 [회차:104-2] 표(SK 900억, 합 3000)가 별도 위치에
         # 등장. 후자 표가 flush 안 되는 group 에 속해도 합계 검증으로 채택 가능.
-        # — 1단계 신고서 (is_final=False) 의 인수단 표는 "예정/계획" 의미. 실제 인수는
-        #   [발행조건확정] 후 결정 → 비움. 사용자 지시: 발행조건확정 전엔 인수정보 비움.
-        chosen_underwriters = last.underwriters if ctx.is_final else []
+        # — 1단계 신고서의 인수단 표도 사용 — '명단(이름)' 은 stage1 부터 잡고,
+        #   '실적(금액)' 은 [발행조건확정] 이후에만 underwriter_alloc 에 기록(아래 분기).
+        #   사용자 지시: 발행조건확정 전엔 실적 금액 비움. 명단은 stage1 부터.
+        chosen_underwriters = last.underwriters
         # 검증식 후보: group 내 + same-series 외부 + 본문 전역 (dedup). 마지막 series 매핑이
         # 부정확한 경우 (CJ대한통운 (주4) 정정 후 섹션 등) 전역 후보로 정확한 표 발견 가능.
         if rec.final_amount:
@@ -1304,7 +1308,11 @@ def parse_filing(html_sections: dict[str, str], ctx: ParseContext, mappings: dic
             is_lead = _is_lead_role(u["role"]) or promote_sole_to_lead
             if is_lead and alias not in rec.lead_managers:
                 rec.lead_managers.append(alias)
-            rec.underwriter_alloc[alias] = rec.underwriter_alloc.get(alias, 0) + (amt_eok or 0)
+            if alias not in rec.uw_names:
+                rec.uw_names.append(alias)
+            # 실적(금액)은 [발행조건확정] 이후에만 기록 — stage1 에선 underwriter_alloc 비움.
+            if ctx.is_final:
+                rec.underwriter_alloc[alias] = rec.underwriter_alloc.get(alias, 0) + (amt_eok or 0)
 
         records.append(rec)
 

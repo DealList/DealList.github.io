@@ -59,6 +59,12 @@
     "흥국","유안타","LS","BNK","메리츠","상상인","리딩","우리","케이프",
     "산은","코리아에셋","KR","다올","디에스",
   ];
+  // ECM 주관/인수 표시 — 금액 dict 비면 lead_names/uw_names 폴백(stage1 단계 명단 표시용)
+  const syndCellText = (amounts, names) => {
+    if (amounts && Object.keys(amounts).length) return Object.keys(amounts).join(", ");
+    if (names && names.length) return names.join(", ");
+    return "-";
+  };
 
   // dcm-deals 의 RATING_RANK / RATING_OPTIONS (동일)
   const RATING_RANK = {
@@ -377,7 +383,7 @@
                 `<td class="center">${esc(r.r_demand)}</td>` +
                 `<td class="num">${fmtRate(r.r_final)}</td>` +
                 `<td>${esc((r.leads || []).join(", "))}</td>` +
-                `<td>${esc(Object.keys(r.uw || {}).join(", "))}</td>`;
+                `<td>${esc(syndCellText(r.uw, r.uw_names))}</td>`;
         tr.innerHTML = html;
         frag.appendChild(tr);
       });
@@ -469,14 +475,20 @@
         row[C_RATE_START + 1] = r.r_demand;
         row[C_RATE_START + 2] = r.r_final;
         const la = r.lead_amt || {};
+        const lns = new Set(r.leads || []);
         for (let j = 0; j < leadCols.length; j++) {
           const v = la[leadCols[j]];
-          row[C_LEAD_START + j] = (v != null && v !== 0) ? v : null;
+          if (v != null && v !== 0) row[C_LEAD_START + j] = v;
+          else if (lns.has(leadCols[j])) row[C_LEAD_START + j] = "○";
+          else row[C_LEAD_START + j] = null;
         }
         const uw = r.uw || {};
+        const uns = new Set(r.uw_names || []);
         for (let j = 0; j < uwCols.length; j++) {
           const v = uw[uwCols[j]];
-          row[C_UW_START + j] = (v != null && v !== 0) ? v : null;
+          if (v != null && v !== 0) row[C_UW_START + j] = v;
+          else if (uns.has(uwCols[j])) row[C_UW_START + j] = "○";
+          else row[C_UW_START + j] = null;
         }
         dataRows.push(row);
       });
@@ -610,8 +622,8 @@
         {id:"ic", label:"기관 경쟁률(배)", num:1, cell:r => fmtN(r.inst && r.inst.compete), val:r => (r.inst && r.inst.compete) || 0},
         {id:"gc", label:"일반 경쟁률(배)", num:1, cell:r => fmtN(r.general && r.general.compete), val:r => (r.general && r.general.compete) || 0},
         {id:"ec", label:"우리사주 청약률(%)", num:1, cell:r => fmtPctN(r.esop && r.esop.rate), val:r => (r.esop && r.esop.rate) || 0},
-        {id:"leads", label:"주관사", cell:r => esc(Object.keys(r.leads||{}).join(", ")) || "-"},
-        {id:"uw", label:"인수사", cell:r => esc(Object.keys(r.uw||{}).join(", ")) || "-"},
+        {id:"leads", label:"주관사", cell:r => esc(syndCellText(r.leads, r.lead_names))},
+        {id:"uw", label:"인수사", cell:r => esc(syndCellText(r.uw, r.uw_names))},
       ];
     }
     return [
@@ -631,8 +643,8 @@
       {id:"final_total", label:"발행 총액(억원)", num:1,
         cell:r => fmtN(r.final_total ?? r.total_1 ?? r.init_total),
         val:r => r.final_total ?? r.total_1 ?? r.init_total},
-      {id:"leads", label:"주관사", cell:r => esc(Object.keys(r.leads||{}).join(", ")) || "-"},
-      {id:"uw", label:"인수사", cell:r => esc(Object.keys(r.uw||{}).join(", ")) || "-"},
+      {id:"leads", label:"주관사", cell:r => esc(syndCellText(r.leads, r.lead_names))},
+      {id:"uw", label:"인수사", cell:r => esc(syndCellText(r.uw, r.uw_names))},
     ];
   };
 
@@ -896,8 +908,9 @@
       a[11]=r.price_1; a[12]=r.total_1;
       a[13]=r.price_2; a[14]=r.total_2;
       a[15]=r.final_price; a[16]=r.final_total;
-      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
-      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      const lns=new Set(r.lead_names||[]), uns=new Set(r.uw_names||[]);
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; else if (lns.has(b)) a[L0+i]="○"; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; else if (uns.has(b)) a[U0+i]="○"; });
       return a;
     });
 
@@ -961,8 +974,9 @@
       a[12]=ins.initial; a[13]=ins.subscribed; a[14]=ins.compete; a[15]=ins.final;
       a[16]=gen.initial; a[17]=gen.subscribed; a[18]=gen.compete; a[19]=gen.final;
       a[20]=es.initial; a[21]=es.final; a[22]=es.rate;
-      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
-      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      const lns=new Set(r.lead_names||[]), uns=new Set(r.uw_names||[]);
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; else if (lns.has(b)) a[L0+i]="○"; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; else if (uns.has(b)) a[U0+i]="○"; });
       return a;
     });
 
@@ -1262,6 +1276,9 @@
         }
       }
       const 주관사_명단 = [...new Set(data.records.flatMap(r => r.leads || []))];
+      const 인수사_명단 = [...new Set(data.records.flatMap(r => r.uw_names || []))];
+      // 실적 금액은 [발행조건확정] 이후만 채워짐(파이프라인). 금액 dict 키 유무로 판정.
+      const 실적_확정 = Object.keys(주관실적_분배_억).length > 0 || Object.keys(인수량_별_억).length > 0;
       // 회차 합산 — 최종발행액(수요예측 후 확정)이 아직 없으면 증액/감액을 계산하지 않는다(null).
       // (수요예측 전 딜은 final 이 null → '0억원 발행'으로 오인 방지)
       const _hasFinal = data.records.some(r => r.final != null);
@@ -1286,8 +1303,10 @@
           증액_총_억,                // 회차 합산 최종발행 − 최초모집. null이면 최종 미확정(증액 언급 금지)
 
           주관사_명단,                 // 본문 등장 순서
-          주관실적_분배_억,           // 주관사별 산식 분배액 (본인 인수 + 잔여 균등) — '주관 실적'
-          인수량_별_억,               // 인수사별 실제 인수 금액
+          인수사_명단,                 // stage1 단계 인수사 명단(이름만). 실적_확정 false 일 때 표시용.
+          실적_확정,                  // false면 stage1 단계: 주관/인수 실적 금액 미정 → 이름만 쓰고 금액 문장 생략
+          주관실적_분배_억: 실적_확정 ? 주관실적_분배_억 : null,
+          인수량_별_억:   실적_확정 ? 인수량_별_억   : null,
           tranches,
           history: dcmHistory(rep),  // 같은 발행사 직전 발행 (회차그룹 단위, 최대 2건)
         },

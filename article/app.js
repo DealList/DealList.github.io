@@ -834,16 +834,86 @@
     $("art-modal-body").innerHTML = html;
   }
 
+  // ── 만기 연수 계산 — 청약일과 만기일의 차이 (0.5년 단위 반올림). 회차번호 대신 N년물 표기용. ──
+  function maturityYears(subDate, maturityDate) {
+    if (!subDate || !maturityDate) return null;
+    const s = new Date(String(subDate).slice(0, 10));
+    const m = new Date(String(maturityDate).slice(0, 10));
+    if (isNaN(s.getTime()) || isNaN(m.getTime())) return null;
+    const years = (m - s) / (1000 * 60 * 60 * 24 * 365.25);
+    if (years <= 0) return null;
+    const half = Math.round(years * 2) / 2;
+    return half;  // 1, 1.5, 2, 3, 5 등
+  }
+
+  // ── 같은 발행사의 직전 발행 1~2건 (DCM) ── 회차그룹 단위, 청약일 desc 최대 2개
+  function dcmHistory(rep) {
+    if (!rep || !rep.issuer || !rep.date) return [];
+    const same = (DCM.DATA || []).filter(r =>
+      r.issuer === rep.issuer && r.date && r.date < rep.date);
+    const map = new Map();
+    for (const r of same) {
+      const k = dGroupKey(r);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
+    }
+    const groups = [];
+    for (const recs of map.values()) {
+      recs.sort((a, b) => dCompareSeries(a.series, b.series));
+      const reps = recs[0];
+      groups.push({
+        청약일: reps.date,
+        신용등급: reps.rating,
+        종류: reps.type,
+        회차합산_억: recs.reduce((s, r) => s + (r.final || 0), 0),
+        tranches: recs.map(r => ({
+          만기연수: maturityYears(r.date, r.maturity),
+          최초모집_억: r.init,
+          수요예측_억: r.demand,
+          최종발행_억: r.final,
+          최종금리: r.r_final,
+        })),
+      });
+    }
+    groups.sort((a, b) => b.청약일.localeCompare(a.청약일));
+    return groups.slice(0, 2);  // 직전 2건까지
+  }
+
+  // ── 같은 발행사의 직전 ECM 발행 (탭별로) — IPO는 거의 없음, 유증은 종종 있음 ──
+  function ecmHistory(kind, cur) {
+    if (!cur || !cur.issuer) return [];
+    const arr = (ECM.DATA && ECM.DATA[kind]) || [];
+    const curDate = cur.date || cur.disclosure_date || "";
+    const past = arr
+      .filter(r => r !== cur && r.issuer === cur.issuer && (r.date || r.disclosure_date) && (r.date || r.disclosure_date) < curDate)
+      .sort((a, b) => (b.date || b.disclosure_date).localeCompare(a.date || a.disclosure_date))
+      .slice(0, 2);
+    if (kind === "ipo") {
+      return past.map(r => ({
+        상장일: r.date || null, 최초공시일: r.disclosure_date || null,
+        시장: r.market,
+        최종_가액_원: r.final_price, 최종_총액_억: r.final_total,
+        기관경쟁률: r.inst && r.inst.compete, 일반경쟁률: r.general && r.general.compete,
+      }));
+    }
+    return past.map(r => ({
+      신주배정기준일: r.date || null, 최초공시일: r.disclosure_date || null,
+      유형: r.type, 신주_수량: r.new_qty, 증자비율: r.increase_ratio,
+      확정가_원: r.final_price, 확정총액_억: r.final_total,
+    }));
+  }
+
   // Edge Function 으로 보낼 페이로드 정리 — 모델이 사실 데이터만 보게 정형화
+  // 회차번호(series)는 본문에 쓰면 안 되므로 payload 에 노출하지 않음 — 대신 만기연수 제공.
   function buildArticlePayload(kind, data) {
     if (kind === "dcm") {
       const rep = data.rep;
       const tranches = data.records.map(r => ({
-        회차: r.series, 종류: r.type, 신용등급: r.rating, 만기: r.maturity,
+        만기연수: maturityYears(r.date, r.maturity),
+        종류: r.type, 신용등급: r.rating, 만기일: r.maturity,
         최초모집_억: r.init, 발행한도_억: r.limit,
         수요예측_억: r.demand, 최종발행_억: r.final,
         희망금리: r.r_target, 수요금리: r.r_demand, 최종금리: r.r_final,
-        주관사: r.leads || [], 인수사: r.uw || {},
       }));
       return {
         kind: "dcm",
@@ -852,7 +922,10 @@
           최초공시일: rep.disclosure_date || null,
           청약일: rep.date,
           회차합산_억: rep.series_total || tranches.reduce((s, t) => s + (t.최종발행_억 || 0), 0),
+          주관사: rep.leads || [],
+          인수사: rep.uw || {},
           tranches,
+          history: dcmHistory(rep),  // 같은 발행사 직전 발행 (회차그룹 단위, 최대 2건)
         },
       };
     }
@@ -867,6 +940,7 @@
           신주비율: data.new_ratio, 구주비율: data.old_ratio,
           기관: data.inst || null, 일반: data.general || null, 우리사주: data.esop || null,
           주관사: data.leads || {}, 인수사: data.uw || {},
+          history: ecmHistory("ipo", data),  // 보통 없음
         },
       };
     }
@@ -881,6 +955,7 @@
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
         주관사: data.leads || {}, 인수사: data.uw || {},
+        history: ecmHistory("rights", data),
       },
     };
   }

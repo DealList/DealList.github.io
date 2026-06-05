@@ -903,9 +903,21 @@
     }));
   }
 
+  // 오늘 날짜 (KST) — 기사 본문 첫 도입부의 "N일 금감원..." 또는 "...공시했다"에 사용
+  function todayKST() {
+    try {
+      return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+    } catch (e) {
+      // fallback — UTC 보정
+      const d = new Date(Date.now() + 9 * 3600 * 1000);
+      return d.toISOString().slice(0, 10);
+    }
+  }
+
   // Edge Function 으로 보낼 페이로드 정리 — 모델이 사실 데이터만 보게 정형화
   // 회차번호(series)는 본문에 쓰면 안 되므로 payload 에 노출하지 않음 — 대신 만기연수 제공.
   function buildArticlePayload(kind, data) {
+    const today = todayKST();
     if (kind === "dcm") {
       const rep = data.rep;
       const tranches = data.records.map(r => ({
@@ -918,6 +930,7 @@
       return {
         kind: "dcm",
         data: {
+          오늘날짜: today,
           발행사: rep.issuer, 발행사_정식명: rep.issuer_full || rep.issuer,
           최초공시일: rep.disclosure_date || null,
           청약일: rep.date,
@@ -933,6 +946,7 @@
       return {
         kind: "ipo",
         data: {
+          오늘날짜: today,
           발행사: data.issuer, 시장: data.market,
           최초공시일: data.disclosure_date || null, 상장일: data.date || null,
           최초_수량: data.init_qty, 최초_가액_원: data.init_price, 최초_총액_억: data.init_total,
@@ -948,6 +962,7 @@
     return {
       kind: "rights",
       data: {
+        오늘날짜: today,
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,
         신주배정기준일: data.date || null, 납입일: data.payment || null,

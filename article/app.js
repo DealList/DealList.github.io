@@ -914,6 +914,12 @@
     }
   }
 
+  // 시제 판단 — 기준일이 오늘 이전이면 과거("발행했다"), 이후면 미래("발행한다")
+  function tense(refDate, today) {
+    if (!refDate) return "미래";  // 미정 = 진행 중 = 미래로 취급
+    return (String(refDate).slice(0, 10) <= today) ? "과거" : "미래";
+  }
+
   // Edge Function 으로 보낼 페이로드 정리 — 모델이 사실 데이터만 보게 정형화
   // 회차번호(series)는 본문에 쓰면 안 되므로 payload 에 노출하지 않음 — 대신 만기연수 제공.
   function buildArticlePayload(kind, data) {
@@ -933,6 +939,7 @@
         kind: "dcm",
         data: {
           오늘날짜: today,
+          시제: tense(rep.date, today),  // 청약일 기준 — '과거'면 발행했다/확정됐다, '미래'면 발행한다/예정이다
           발행사: rep.issuer, 발행사_정식명: rep.issuer_full || rep.issuer,
           최초공시일: rep.disclosure_date || null,
           청약일: rep.date,
@@ -952,6 +959,7 @@
         kind: "ipo",
         data: {
           오늘날짜: today,
+          시제: tense(data.date, today),  // 상장일 기준
           발행사: data.issuer, 시장: data.market,
           최초공시일: data.disclosure_date || null, 상장일: data.date || null,
           최초_수량: data.init_qty, 최초_가액_원: data.init_price, 최초_총액_억: data.init_total,
@@ -968,6 +976,7 @@
       kind: "rights",
       data: {
         오늘날짜: today,
+        시제: tense(data.date, today),  // 신주배정기준일 기준
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,
         신주배정기준일: data.date || null, 납입일: data.payment || null,

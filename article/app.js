@@ -1023,46 +1023,99 @@
     </button>`;
   }
 
-  // ── DART 공시 좌우 양분 (기사 = 오른쪽 절반 모달, 공시 = 왼쪽 절반 별도 창) ──
-  let dartWin = null;
-  let dartRcept = null;
+  // ── 기사·DART 공시를 각각 별도 창으로 (공시=왼쪽, 기사=오른쪽) ──
+  let dartWin = null, artWin = null, dartRcept = null;
   const dartUrl = (rcept) => `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`;
-  const ART_SIDE_W = 540;  // .art-modal.side .art-modal-card 의 px 폭과 동일하게 유지(공시 창이 나머지를 차지)
-  function openDartWindow(rcept) {
-    // 멀티모니터 대응: 주 모니터(0,0)가 아니라 '지금 브라우저 창이 떠 있는 모니터' 기준으로 배치.
-    // window.screenX/Y = 브라우저 창의 가상데스크톱 좌표, outerWidth/Height = 그 창(≈최대화 시 모니터) 크기.
+  const ART_W = 540;  // 기사 창 폭(px). 공시 창은 모니터 폭에서 이만큼 뺀 나머지.
+  // 멀티모니터 대응: 주 모니터(0,0)가 아니라 '지금 브라우저 창이 떠 있는 모니터' 기준 좌표.
+  function monitorBox() {
     const bx = (typeof window.screenX === "number" ? window.screenX : window.screenLeft) || 0;
     const by = (typeof window.screenY === "number" ? window.screenY : window.screenTop) || 0;
     const bw = window.outerWidth || screen.availWidth || window.innerWidth || 1280;
     const bh = window.outerHeight || screen.availHeight || window.innerHeight || 800;
-    const w = Math.max(480, bw - ART_SIDE_W), h = bh;  // 공시 창 = 모니터 폭에서 기사창(540) 뺀 나머지
-    // 표의 발행사 링크('dart-viewer')와 다른 전용 이름 — 기존 창 위치 재사용 방지
+    return { bx, by, bw, bh };
+  }
+  function openDartWindow(rcept) {
+    const wasOpen = dartWin && !dartWin.closed;  // 이미 열려 있으면 사용자가 조절한 크기 보존
+    const { bx, by, bw, bh } = monitorBox();
+    const w = Math.max(480, bw - ART_W), h = bh;
     dartWin = window.open(dartUrl(rcept), "np-dart-side",
       `popup=yes,left=${bx},top=${by},width=${w},height=${h},scrollbars=yes,resizable=yes`);
-    // 크롬이 left/top 무시할 때 대비 — 현재 모니터 왼쪽 절반에 강제 스냅
-    try { if (dartWin) { dartWin.moveTo(bx, by); dartWin.resizeTo(w, h); dartWin.focus(); } } catch (_) {}
+    try { if (dartWin) { if (!wasOpen) { dartWin.moveTo(bx, by); dartWin.resizeTo(w, h); } dartWin.focus(); } } catch (_) {}
     return dartWin;
   }
-  function openDartSideBySide(rcept) {
-    const modal = $("art-modal");
-    const reBtn = $("art-dart-reopen");
-    dartRcept = rcept || null;
-    if (rcept) {
-      openDartWindow(rcept);
-      modal.classList.add("side");
-      if (reBtn) reBtn.hidden = false;
-    } else {
-      modal.classList.remove("side");
-      if (reBtn) reBtn.hidden = true;
+  function openArticleWin() {
+    const wasOpen = artWin && !artWin.closed;  // 이미 열려 있으면 사용자가 조절한 크기 보존
+    const { bx, by, bw, bh } = monitorBox();
+    const left = bx + Math.max(480, bw - ART_W);  // 공시 창 바로 오른쪽에 붙임
+    artWin = window.open("", "np-article",
+      `popup=yes,left=${left},top=${by},width=${ART_W},height=${bh},scrollbars=yes,resizable=yes`);
+    if (!wasOpen) { try { if (artWin) { artWin.moveTo(left, by); artWin.resizeTo(ART_W, bh); } } catch (_) {} }
+    return artWin;
+  }
+  function themeColors() {
+    const cs = getComputedStyle(document.documentElement);
+    const g = (n, fb) => (cs.getPropertyValue(n).trim() || fb);
+    return { bg:g('--bg','#0b1220'), surface:g('--surface','#131b2c'), border:g('--border','#2a3950'),
+      soft:g('--border-soft','#1f2a3f'), text:g('--text','#e6edf6'), muted:g('--muted','#6b7c97') };
+  }
+  function artWinCss(c) {
+    return `*{box-sizing:border-box}html,body{margin:0;height:100%}
+body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px}
+.aw-wrap{display:flex;flex-direction:column;height:100vh}
+.aw-head{padding:14px 18px;border-bottom:1px solid ${c.border}}
+.aw-head h3{margin:0;font-size:15px;font-weight:700}
+.aw-meta{padding:10px 18px;font-size:12px;color:${c.muted};background:${c.bg};border-bottom:1px solid ${c.soft}}
+.aw-meta strong{color:${c.text};font-weight:700}.aw-meta .sep{margin:0 7px;opacity:.5}
+.aw-body{flex:1;overflow-y:auto;padding:18px;line-height:1.85;white-space:pre-wrap;word-break:keep-all}
+.aw-body p{margin:0 0 14px}.aw-body p:last-child{margin-bottom:0}
+.aw-headline{font-size:17px;font-weight:700;margin:0 0 18px;line-height:1.45}
+.aw-loading{color:${c.muted};padding:6px 0}.aw-error{color:#e5534b;padding:6px 0}
+.aw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid ${c.border}}
+.aw-disclaimer{font-size:11px;color:${c.muted}}.aw-actions{display:flex;gap:7px}
+.aw-actions button{padding:7px 13px;font-size:12.5px;border:1px solid ${c.border};border-radius:7px;background:${c.bg};color:${c.text};cursor:pointer}
+.aw-actions button:hover{border-color:${c.muted}}
+.aw-copied{background:#16a34a !important;color:#fff !important;border-color:#16a34a !important}`;
+  }
+  function writeArticleSkeleton(title, metaHtml, hasDart) {
+    if (!artWin || artWin.closed) return;
+    const doc = artWin.document;
+    doc.open();
+    doc.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>${esc(title)} — 기사 초안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>${artWinCss(themeColors())}</style></head><body><div class="aw-wrap">
+<div class="aw-head"><h3>${esc(title)}</h3></div>
+<div class="aw-meta">${metaHtml}</div>
+<div class="aw-body" id="aw-body"><div class="aw-loading">기사 생성 중…</div></div>
+<div class="aw-foot"><small class="aw-disclaimer">⚠ AI 생성 초안 — 사실·수치 검증 후 사용해주세요.</small>
+<div class="aw-actions">${hasDart ? '<button id="aw-dart">📄 공시</button>' : ''}<button id="aw-copy">복사</button><button id="aw-regen">다시 생성</button></div>
+</div></div></body></html>`);
+    doc.close();
+    const g = (id) => doc.getElementById(id);
+    if (g('aw-copy')) g('aw-copy').onclick = copyArticleFromWin;
+    if (g('aw-regen')) g('aw-regen').onclick = () => { setArtBody('<div class="aw-loading">기사 생성 중…</div>'); generateArticle(); };
+    if (g('aw-dart')) g('aw-dart').onclick = () => { if (dartRcept) openDartWindow(dartRcept); };
+    try { artWin.focus(); } catch (_) {}
+  }
+  function setArtBody(html) {
+    if (artWin && !artWin.closed && artWin.document) {
+      const el = artWin.document.getElementById('aw-body');
+      if (el) el.innerHTML = html;
     }
   }
-  { const rb = $("art-dart-reopen"); if (rb) rb.addEventListener("click", () => { if (dartRcept) openDartWindow(dartRcept); }); }
+  function copyArticleFromWin() {
+    if (!artWin || artWin.closed) return;
+    const d = artWin.document;
+    const el = d.getElementById('aw-body');
+    const text = el ? (el.innerText || '').trim() : '';
+    if (!text) return;
+    const done = () => { const b = d.getElementById('aw-copy'); if (b) { b.textContent = '✓ 복사됨'; b.classList.add('aw-copied'); setTimeout(() => { b.textContent = '복사'; b.classList.remove('aw-copied'); }, 1800); } };
+    const fallback = () => { try { const ta = d.createElement('textarea'); ta.value = text; d.body.appendChild(ta); ta.select(); d.execCommand('copy'); ta.remove(); done(); } catch (_) { try { artWin.alert('복사 실패 — 직접 선택해 복사해주세요.'); } catch (e) {} } };
+    try { artWin.navigator.clipboard.writeText(text).then(done).catch(fallback); } catch (_) { fallback(); }
+  }
 
   function openArticleModal(kind, data) {
     currentArticleCtx = { kind, data };
-    const modal = $("art-modal");
-    modal.hidden = false;
-    document.body.style.overflow = "hidden";
 
     // 메타 라인
     let title = "기사 초안";
@@ -1090,49 +1143,16 @@
         `<span class="sep">·</span>${esc(data.date ? `기준일 ${data.date}` : "기준일 미정")}` +
         `<span class="sep">·</span>${fmtBig(data.final_total ?? data.total_1 ?? data.init_total)}`;
     }
-    $("art-modal-title").textContent = title;
-    $("art-modal-meta").innerHTML = metaHtml;
-    $("art-modal-body").innerHTML = `<div class="art-loading"><span class="spinner"></span> 기사 생성 중…</div>`;
-    $("art-btn-copy").classList.remove("art-btn-copied");
-    $("art-btn-copy").textContent = "복사";
-
-    // DART 공시를 왼쪽 절반 별도 창으로, 기사 모달을 오른쪽 절반으로 (dcm은 rep.rcept)
+    // 기사(오른쪽)·공시(왼쪽) 각각 별도 창으로 (dcm은 rep.rcept). 기사 창을 먼저 열어 팝업차단 시 우선 보장.
     const rcept = kind === "dcm" ? (data.rep && data.rep.rcept) : data.rcept;
-    openDartSideBySide(rcept);
+    dartRcept = rcept || null;
+    openArticleWin();
+    writeArticleSkeleton(title, metaHtml, !!rcept);
+    if (rcept) openDartWindow(rcept);
 
     generateArticle();
   }
-  function closeArticleModal() {
-    const modal = $("art-modal");
-    modal.hidden = true;
-    modal.classList.remove("side");
-    try { if (dartWin && !dartWin.closed) dartWin.close(); } catch (_) {}
-    dartWin = null;
-    document.body.style.overflow = "";
-    currentArticleCtx = null;
-  }
-  $("art-modal-close").addEventListener("click", closeArticleModal);
-  $("art-modal").addEventListener("click", (e) => {
-    if (e.target.classList.contains("art-modal-back")) closeArticleModal();
-  });
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !$("art-modal").hidden) closeArticleModal();
-  });
-
-  $("art-btn-regen").addEventListener("click", () => {
-    if (!currentArticleCtx) return;
-    $("art-modal-body").innerHTML = `<div class="art-loading"><span class="spinner"></span> 기사 생성 중…</div>`;
-    generateArticle();
-  });
-
-  $("art-btn-copy").addEventListener("click", () => {
-    const text = $("art-modal-body").innerText.trim();
-    if (!text) return;
-    navigator.clipboard.writeText(text).then(() => {
-      const b = $("art-btn-copy"); b.textContent = "✓ 복사됨"; b.classList.add("art-btn-copied");
-      setTimeout(() => { b.textContent = "복사"; b.classList.remove("art-btn-copied"); }, 1800);
-    }).catch(() => alert("복사 실패 — 직접 선택해 복사해주세요."));
-  });
+  // (기사·공시는 각자 별도 창 — 창의 X로 닫음. 복사·다시 생성·공시 버튼은 기사 창 안에서 처리.)
 
   async function generateArticle() {
     if (!currentArticleCtx) return;
@@ -1172,15 +1192,14 @@
       const headline = json.headline || "";
       renderArticle(headline, article);
     } catch (e) {
-      $("art-modal-body").innerHTML =
-        `<div class="art-error">${esc(e.message || String(e))}</div>`;
+      setArtBody(`<div class="aw-error">${esc(e.message || String(e))}</div>`);
     }
   }
 
   function renderArticle(headline, body) {
-    const html = (headline ? `<div class="art-headline">${esc(headline)}</div>` : "") +
+    const html = (headline ? `<div class="aw-headline">${esc(headline)}</div>` : "") +
       body.split(/\n\n+/).map(p => `<p>${esc(p)}</p>`).join("");
-    $("art-modal-body").innerHTML = html;
+    setArtBody(html);
   }
 
   // ── 만기 연수 계산 — 청약일과 만기일의 차이 (0.5년 단위 반올림). 회차번호 대신 N년물 표기용. ──

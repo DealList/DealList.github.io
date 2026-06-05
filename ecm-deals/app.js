@@ -42,6 +42,8 @@
   };
   // 증자비율 — 반올림된 increase_ratio 대신 원본 신주수량/기존주식수로 정밀 계산(데이터 round 손실 우회).
   const ratioOf = (r) => (typeof r.new_qty==="number" && typeof r.existing_qty==="number" && r.existing_qty) ? r.new_qty/r.existing_qty : r.increase_ratio;
+  const fmtPct0 = (v) => (typeof v==="number" && isFinite(v)) ? String(Math.round(v*100)) : "-";  // 정수 % — IPO 신주비율 ("65")
+  const fmtPct2 = (v) => (typeof v==="number" && isFinite(v)) ? (v*100).toFixed(2) : "-";          // 소수 2자리 고정 — 유증 증자비율 ("25.00")
   const fmtDate = (s) => s || "미정";
   function fmtBrokers(map) {
     const e = Object.entries(map||{}).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);
@@ -65,7 +67,7 @@
       {id:"qty",label:"발행 수량(만주)",num:1,cell:r=>fmtManN(r.final_qty??r.init_qty),val:r=>r.final_qty??r.init_qty,xls:r=>r.final_qty??r.init_qty??""},
       {id:"price",label:"1주당 모집 가액(원)",num:1,cell:r=>fmtN(r.final_price??r.init_price),val:r=>r.final_price??r.init_price,xls:r=>r.final_price??r.init_price??""},
       {id:"total",label:"발행 총액(억원)",num:1,cell:r=>fmtN(r.final_total??r.init_total),val:r=>r.final_total??r.init_total,xls:r=>r.final_total??r.init_total??""},
-      {id:"new_ratio",label:"신주 비율(%)",num:1,cell:r=>fmtPctN(r.new_ratio),val:r=>r.new_ratio,xls:r=>r.new_ratio??""},
+      {id:"new_ratio",label:"신주 비율(%)",num:1,cell:r=>fmtPct0(r.new_ratio),val:r=>r.new_ratio,xls:r=>r.new_ratio??""},
       {id:"ic",label:"기관 경쟁률(배)",num:1,cell:r=>fmtN(r.inst&&r.inst.compete),val:r=>(r.inst&&r.inst.compete)||0,xls:r=>(r.inst&&r.inst.compete)??""},
       {id:"gc",label:"일반 경쟁률(배)",num:1,cell:r=>fmtN(r.general&&r.general.compete),val:r=>(r.general&&r.general.compete)||0,xls:r=>(r.general&&r.general.compete)??""},
       {id:"ec",label:"우리사주 청약률(%)",num:1,cell:r=>fmtPctN(r.esop&&r.esop.rate),val:r=>(r.esop&&r.esop.rate)||0,xls:r=>(r.esop&&r.esop.rate)??""},
@@ -79,7 +81,7 @@
       {id:"type",label:"유형",cell:r=>esc(r.type),val:r=>r.type,xls:r=>r.type},
       {id:"payment",label:"납입일",cell:r=>esc(r.payment||"-"),val:r=>r.payment,xls:r=>r.payment||""},
       {id:"new_qty",label:"발행 수량(만주)",num:1,cell:r=>fmtManN(r.new_qty),val:r=>r.new_qty,xls:r=>r.new_qty??""},
-      {id:"increase_ratio",label:"증자 비율(%)",num:1,cell:r=>fmtPctN(ratioOf(r)),val:r=>ratioOf(r),xls:r=>ratioOf(r)??""},
+      {id:"increase_ratio",label:"증자 비율(%)",num:1,cell:r=>fmtPct2(ratioOf(r)),val:r=>ratioOf(r),xls:r=>ratioOf(r)??""},
       {id:"init_price",label:"1주당 희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},
       {id:"price_1",label:"1차 가액(원)",num:1,cell:r=>fmtN(r.price_1),val:r=>r.price_1,xls:r=>r.price_1??""},
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
@@ -347,7 +349,7 @@
               left:{style:"thin",color:{rgb:"CBD5E1"}},right:{style:"thin",color:{rgb:"CBD5E1"}}} };
     for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
 
-    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:7}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }
+    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:7}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.00%"; }  // 증자비율 2자리 고정
 
     const cw=new Array(TOTAL).fill({wch:6});
     cw[0]={wch:13}; cw[1]={wch:13}; cw[2]={wch:16}; cw[3]={wch:18}; cw[4]={wch:11};
@@ -414,7 +416,8 @@
     for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
 
     for (let i=0;i<dataRows.length;i++){ const r=i+2;
-      [10,11,22].forEach(c=>{ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; });
+      [10,11].forEach(c=>{ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0%"; });   // 신주/구주비율 정수
+      { const ref=XLSX.utils.encode_cell({r,c:22}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }                  // 우리사주청약률
     }
 
     const cw=new Array(TOTAL).fill({wch:6});

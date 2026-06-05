@@ -62,6 +62,7 @@
   // ════════════════════════════════════════════════════════════════════
   let topTab = "dcm";
   function switchTop(t) {
+    if (!t) return;
     if (t === topTab) return;
     topTab = t;
     document.querySelectorAll(".art-tab").forEach(b =>
@@ -72,8 +73,14 @@
     if (t === "dcm" && !DCM.inited) DCM.init();
     if (t === "ecm" && !ECM.inited) ECM.init();
   }
-  document.querySelectorAll(".art-tab").forEach(b =>
-    b.addEventListener("click", () => switchTop(b.dataset.top)));
+  // 이벤트 위임 — 직접 핸들러 미연결 케이스 안전망 (script timing 등)
+  const topTabsBar = document.querySelector(".art-top-tabs");
+  if (topTabsBar) {
+    topTabsBar.addEventListener("click", (e) => {
+      const b = e.target.closest(".art-tab");
+      if (b && b.dataset.top) switchTop(b.dataset.top);
+    });
+  }
 
   // ════════════════════════════════════════════════════════════════════
   // DCM 섹션 — dcm-deals/app.js 의 핵심 로직을 차용해 prefix 'd-' 로 옮김
@@ -959,5 +966,10 @@
     window.NP_SUPABASE_URL = window.sb.supabaseUrl;
   }
 
-  document.addEventListener("DOMContentLoaded", () => DCM.init());
+  // dcm-deals / ecm-deals 패턴 — IIFE 끝에서 즉시 호출 (script 가 body 끝이라 DOM 이미 완성)
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => DCM.init());
+  } else {
+    DCM.init();
+  }
 })();

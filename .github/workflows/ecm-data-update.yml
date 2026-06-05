@@ -13,6 +13,10 @@ on:
         description: '조회 종료일 (YYYY-MM-DD) — 비우면 어제(KST)'
         required: false
         default: ''
+      force:
+        description: '이미 처리된 딜도 재처리 (백로그 명단 백필용. true 로 두면 구간 전체 재처리)'
+        required: false
+        default: 'false'
   schedule:
     # 매일 한국시간 05:53 = UTC 20:53. DCM(06:17 KST)보다 24분 이르고, UTC 21시대 글로벌
     # 혼잡 윈도우를 피해 cron 미스파이어 확률을 낮춤. 빈 날짜 → 어제(KST) 1일치.
@@ -68,8 +72,10 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
+          FORCE=""
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then FORCE="--force"; fi
           python -X utf8 auto/cloud_update_ecm.py \
-            "${{ steps.dates.outputs.start }}" "${{ steps.dates.outputs.end }}"
+            "${{ steps.dates.outputs.start }}" "${{ steps.dates.outputs.end }}" $FORCE
 
       - name: IPO 보고서 follow-up + KIND 재확인
         env:

@@ -79,6 +79,18 @@ jobs:
         run: |
           python -X utf8 auto/cloud_finalize_ecm.py
 
+      # 발행조건확정 전(step1-only) IPO 딜의 주관/인수 '명단' 백필.
+      # 완료 딜은 lead_amounts 키로 이미 명단 있음 → 제외. 비핵심이라 실패해도 export 계속.
+      - name: IPO 주관/인수 명단 백필 (step1-only)
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python -X utf8 auto/backfill_ecm_names.py --kind ipo
+
       - name: Supabase → web JSON 빌드 + root 배치
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

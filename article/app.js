@@ -1077,8 +1077,8 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
 .aw-headline{font-size:17px;font-weight:700;margin:0 0 18px;line-height:1.45}
 .aw-loading{color:${c.muted};padding:6px 0}.aw-error{color:#e5534b;padding:6px 0}
 .aw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;border-top:1px solid ${c.border}}
-.aw-disclaimer{font-size:11px;color:${c.muted}}.aw-actions{display:flex;gap:7px}
-.aw-actions button{padding:7px 13px;font-size:12.5px;border:1px solid ${c.border};border-radius:7px;background:${c.bg};color:${c.text};cursor:pointer}
+.aw-disclaimer{font-size:11px;color:${c.muted};flex:1 1 auto;min-width:0}.aw-actions{display:flex;gap:6px;flex-shrink:0}
+.aw-actions button{padding:7px 12px;font-size:12.5px;white-space:nowrap;border:1px solid ${c.border};border-radius:7px;background:${c.bg};color:${c.text};cursor:pointer}
 .aw-actions button:hover{border-color:${c.muted}}
 .aw-copied{background:#16a34a !important;color:#fff !important;border-color:#16a34a !important}`;
   }
@@ -1092,8 +1092,8 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
 <div class="aw-head"><h3>${esc(title)}</h3></div>
 <div class="aw-meta">${metaHtml}</div>
 <div class="aw-body" id="aw-body"><div class="aw-loading">기사 생성 중…</div></div>
-<div class="aw-foot"><small class="aw-disclaimer">⚠ AI 생성 초안 — 사실·수치 검증 후 사용해주세요.</small>
-<div class="aw-actions">${hasDart ? '<button id="aw-dart">📄 원본 공시 보기</button>' : ''}<button id="aw-copy">복사</button><button id="aw-regen">다시 생성</button></div>
+<div class="aw-foot"><small class="aw-disclaimer">⚠ AI 생성 초안 — 검증 후 사용해주세요.</small>
+<div class="aw-actions">${hasDart ? '<button id="aw-dart">📄 공시 보기</button>' : ''}<button id="aw-copy">복사</button><button id="aw-regen">다시 생성</button></div>
 </div></div></body></html>`);
     doc.close();
     const g = (id) => doc.getElementById(id);

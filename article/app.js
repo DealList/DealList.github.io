@@ -1372,7 +1372,7 @@
       kind: "rights",
       data: {
         오늘날짜: today, 오늘일,
-        시제: tense(data.date, today),  // 신주배정기준일 기준
+        시제: tense(data.payment, today),  // 납입일 기준(유증은 납입일이 완료 시점 — 신주배정기준일 아님). 납입일 전/미정이면 미래('한다').
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,
         신주배정기준일: data.date || null, 신주배정기준일_표현: relDate(data.date, today),

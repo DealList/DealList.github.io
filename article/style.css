@@ -1,0 +1,153 @@
+/* Numbers Pool — 기사 생성 페이지 */
+
+/* dcm-deals / ecm-deals 의 표·필터 스타일은 deallist.css 의 토큰 기반이라
+   대부분 inherit 되지만, 페이지 고유 스타일 + 모달만 여기서 정의. */
+
+.v1-subheader .sub {
+  margin-top: 5px; font-size: 12.5px; color: var(--muted); line-height: 1.55;
+}
+
+/* ── 1차 탭 (DCM / ECM) ── */
+.art-top-tabs {
+  display: flex; gap: 4px; padding: 0 40px;
+  margin: 14px 0 12px; border-bottom: 1px solid var(--border);
+}
+.art-tab {
+  padding: 11px 22px;
+  background: transparent; border: 0;
+  font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+}
+.art-tab:hover { color: var(--text); }
+.art-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── 섹션 전환 ── */
+.art-section { padding: 0; }
+
+/* ── 표의 "기사 쓰기" 컬럼 ── */
+th.art-col, td.art-col {
+  text-align: center; white-space: nowrap; padding: 6px 8px;
+}
+.art-btn-write {
+  padding: 5px 11px; border-radius: 6px;
+  background: var(--accent); color: #fff;
+  border: 0; font-size: 12px; font-weight: 700;
+  cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: opacity .15s;
+}
+.art-btn-write:hover { opacity: .9; }
+.art-btn-write svg { width: 12px; height: 12px; }
+.art-btn-write:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── 모달 ── */
+.art-modal {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.art-modal[hidden] { display: none; }
+.art-modal-back {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(2px);
+}
+.art-modal-card {
+  position: relative;
+  width: min(680px, calc(100% - 32px));
+  max-height: calc(100vh - 60px);
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.art-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.art-modal-head h3 {
+  margin: 0; font-size: 15.5px; font-weight: 700; color: var(--text);
+}
+.art-modal-x {
+  background: none; border: 0; cursor: pointer;
+  font-size: 24px; line-height: 1; color: var(--muted);
+  padding: 0 4px; transition: color .15s;
+}
+.art-modal-x:hover { color: var(--text); }
+
+.art-modal-meta {
+  padding: 11px 22px;
+  font-size: 12px; color: var(--muted);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border-soft);
+  line-height: 1.6;
+}
+.art-modal-meta strong { color: var(--text); font-weight: 700; }
+.art-modal-meta .sep { margin: 0 7px; opacity: .5; }
+
+.art-modal-body {
+  flex: 1; overflow-y: auto;
+  padding: 22px;
+  font-size: 14px; line-height: 1.85; color: var(--text);
+  white-space: pre-wrap; word-break: keep-all;
+}
+.art-modal-body p { margin: 0 0 14px; }
+.art-modal-body p:last-child { margin-bottom: 0; }
+.art-modal-body .art-headline {
+  font-size: 17px; font-weight: 700; color: var(--text);
+  margin: 0 0 18px; line-height: 1.45;
+}
+
+.art-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 40px 20px;
+  color: var(--muted); font-size: 13px;
+}
+.art-loading .spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: art-spin .8s linear infinite;
+  display: inline-block;
+}
+@keyframes art-spin { to { transform: rotate(360deg); } }
+
+.art-error {
+  padding: 30px 20px; text-align: center;
+  color: #b91c1c; font-size: 13.5px; line-height: 1.6;
+}
+:root[data-theme="dark"] .art-error { color: #fca5a5; }
+
+.art-modal-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px;
+  padding: 13px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+.art-disclaimer {
+  font-size: 11px; color: var(--muted);
+  flex: 1; min-width: 0; line-height: 1.5;
+}
+.art-modal-actions { display: flex; gap: 7px; flex-shrink: 0; }
+.art-modal-actions .btn {
+  padding: 7px 14px; font-size: 12.5px;
+}
+.art-btn-copied {
+  background: #16a34a !important; color: #fff !important; border-color: #16a34a !important;
+}
+
+/* 모바일 */
+@media (max-width: 720px) {
+  .art-top-tabs { padding: 0 14px; gap: 0; }
+  .art-tab { padding: 10px 14px; font-size: 13px; }
+  .art-modal-card { max-height: calc(100vh - 30px); }
+  .art-modal-head, .art-modal-meta, .art-modal-body, .art-modal-foot {
+    padding-left: 16px; padding-right: 16px;
+  }
+  .art-modal-foot { flex-direction: column; align-items: stretch; }
+  .art-modal-actions { justify-content: flex-end; }
+}

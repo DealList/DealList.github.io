@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Numbers Pool — 기사 생성</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+  <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
+  <script src="../np-loading.js?v=20260602a"></script>
+  <link rel="stylesheet" href="../deallist.css?v=20260601e" />
+  <link rel="stylesheet" href="style.css?v=20260604a" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-client.js?v=20260602g"></script>
+  <script src="../auth-helper.js?v=20260603a"></script>
+  <script src="../data-loader.js?v=20260602g"></script>
+</head>
+<body>
+
+  <!-- Nav -->
+  <div id="nav-mount" data-active="article" data-root=".."></div>
+  <script src="../nav.js?v=20260604g"></script>
+
+  <!-- Sub-header -->
+  <header class="v1-subheader">
+    <div class="row">
+      <div>
+        <div class="kicker">Article Writer</div>
+        <h1>기사 생성</h1>
+        <div class="sub">발행 정보를 선택해 자동으로 스트레이트 기사 초안을 만들어 드립니다.</div>
+      </div>
+      <span id="nav-updated-mirror" hidden></span>
+    </div>
+  </header>
+
+  <!-- 1차 탭: DCM / ECM -->
+  <div class="art-top-tabs">
+    <button class="art-tab active" data-top="dcm">DCM · 회사채</button>
+    <button class="art-tab" data-top="ecm">ECM · 주식</button>
+  </div>
+
+  <!-- ════════════ DCM 섹션 ════════════ -->
+  <section class="art-section" data-section="dcm">
+    <!-- Filters -->
+    <section class="filters">
+      <div class="filter-row">
+        <label>기간 (청약일 기준)
+          <div class="date-range">
+            <input type="date" id="d-f-date-start" />
+            <span class="dash">~</span>
+            <input type="date" id="d-f-date-end" />
+          </div>
+          <div class="date-presets">
+            <button type="button" data-d-preset="3m">최근 3개월</button>
+            <button type="button" data-d-preset="6m">최근 6개월</button>
+            <button type="button" data-d-preset="1y">최근 1년</button>
+            <button type="button" data-d-preset="all">전체</button>
+          </div>
+        </label>
+        <label>발행사 검색
+          <input id="d-f-issuer" type="search" list="d-issuers-datalist"
+                 placeholder="예: 미래에셋증권 (엔터로 추가)" autocomplete="off" />
+          <datalist id="d-issuers-datalist"></datalist>
+          <div class="issuer-chips" id="d-f-issuer-chips"></div>
+          <div class="filter-hint">최대 10개까지 추가 가능</div>
+        </label>
+        <div class="filter-col">
+          <label>종류
+            <select id="d-f-type"></select>
+          </label>
+          <label>신용등급
+            <div class="rating-range">
+              <select id="d-f-rating-min"></select>
+              <span class="dash">~</span>
+              <select id="d-f-rating-max"></select>
+            </div>
+          </label>
+        </div>
+        <div class="filter-col">
+          <label>주관사
+            <select id="d-f-lead-select"></select>
+            <div class="issuer-chips" id="d-f-lead-chips"></div>
+          </label>
+          <label>인수사
+            <select id="d-f-uw-select"></select>
+            <div class="issuer-chips" id="d-f-uw-chips"></div>
+            <div class="filter-hint">각각 최대 5개까지 추가 가능</div>
+          </label>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button id="d-btn-search" class="btn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          조회
+        </button>
+        <button id="d-btn-reset" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          검색 조건 초기화
+        </button>
+        <button id="d-btn-download" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel로 다운로드
+        </button>
+        <span id="d-result-count" class="result-count"></span>
+      </div>
+    </section>
+
+    <!-- DCM Table -->
+    <section class="table-wrap">
+      <table id="d-grid">
+        <thead>
+          <tr>
+            <th class="art-col">기사</th>
+            <th data-sort="disclosure_date">최초 공시일</th>
+            <th data-sort="date">청약일</th>
+            <th data-sort="issuer">발행사</th>
+            <th data-sort="series">회차</th>
+            <th data-sort="type">종류</th>
+            <th data-sort="rating">신용등급</th>
+            <th data-sort="maturity">만기일</th>
+            <th data-sort="init" class="num">최초 모집(억원)</th>
+            <th data-sort="limit" class="num">발행 한도(억원)</th>
+            <th data-sort="demand" class="num">수요 예측(억원)</th>
+            <th data-sort="final" class="num">최종 발행(억원)</th>
+            <th data-sort="series_total" class="num">회차 합산(억원)</th>
+            <th data-sort="ratio" class="num">경쟁률</th>
+            <th data-sort="r_target">희망 금리</th>
+            <th data-sort="r_demand">수요 금리</th>
+            <th data-sort="r_final" class="num">최종 금리(%)</th>
+            <th>주관사</th>
+            <th>인수사</th>
+          </tr>
+        </thead>
+        <tbody id="d-rows"></tbody>
+      </table>
+      <div id="d-empty" class="empty hidden">조건에 맞는 발행 건이 없습니다.</div>
+    </section>
+    <nav id="d-pager" class="pager"></nav>
+  </section>
+
+  <!-- ════════════ ECM 섹션 ════════════ -->
+  <section class="art-section" data-section="ecm" hidden>
+    <!-- ECM 하위 탭: IPO / 유상증자 -->
+    <div class="ecm-tabs">
+      <button class="ecm-tab active" data-tab="ipo">IPO</button>
+      <button class="ecm-tab" data-tab="rights">유상증자</button>
+    </div>
+
+    <!-- Filters -->
+    <section class="filters">
+      <div class="filter-row">
+        <label><span class="lbl-title">기간 (<span id="e-date-basis">상장일</span> 기준)</span>
+          <div class="date-range">
+            <input type="date" id="e-f-date-start" />
+            <span class="dash">~</span>
+            <input type="date" id="e-f-date-end" />
+          </div>
+          <div class="date-presets">
+            <button type="button" data-e-preset="3m">최근 3개월</button>
+            <button type="button" data-e-preset="6m">최근 6개월</button>
+            <button type="button" data-e-preset="1y">최근 1년</button>
+            <button type="button" data-e-preset="all">전체</button>
+          </div>
+        </label>
+        <label>발행사 검색
+          <input id="e-f-issuer" type="search" list="e-issuers-datalist"
+                 placeholder="예: 에코프로 (엔터로 추가)" autocomplete="off" />
+          <datalist id="e-issuers-datalist"></datalist>
+          <div class="issuer-chips" id="e-f-issuer-chips"></div>
+          <div class="filter-hint">최대 10개까지 추가 가능</div>
+        </label>
+        <div class="filter-col">
+          <label><span id="e-cat-name">시장</span>
+            <select id="e-f-cat"></select>
+          </label>
+          <label id="e-total-filter">발행 총액(억원)
+            <div class="rating-range">
+              <select id="e-f-total-min"></select>
+              <span class="dash">~</span>
+              <select id="e-f-total-max"></select>
+            </div>
+          </label>
+        </div>
+        <div class="filter-col">
+          <label>주관사
+            <select id="e-f-lead"></select>
+            <div class="issuer-chips" id="e-f-lead-chips"></div>
+          </label>
+          <label>인수사
+            <select id="e-f-uw"></select>
+            <div class="issuer-chips" id="e-f-uw-chips"></div>
+            <div class="filter-hint">최대 5개까지 추가</div>
+          </label>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button id="e-btn-search" class="btn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          조회
+        </button>
+        <button id="e-btn-reset" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          초기화
+        </button>
+        <button id="e-btn-download" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel로 다운로드
+        </button>
+        <span id="e-result-count" class="result-count"></span>
+      </div>
+    </section>
+
+    <!-- ECM Table (탭별 재렌더) -->
+    <section class="table-wrap">
+      <table class="grid" id="e-grid">
+        <thead id="e-ghead"></thead>
+        <tbody id="e-rows"></tbody>
+      </table>
+      <div id="e-empty" class="empty hidden">조건에 맞는 건이 없습니다.</div>
+    </section>
+    <nav id="e-pager" class="pager"></nav>
+  </section>
+
+  <!-- ════════════ 기사 모달 ════════════ -->
+  <div id="art-modal" class="art-modal" hidden>
+    <div class="art-modal-back"></div>
+    <div class="art-modal-card">
+      <div class="art-modal-head">
+        <h3 id="art-modal-title">기사 초안</h3>
+        <button class="art-modal-x" id="art-modal-close" aria-label="닫기">×</button>
+      </div>
+      <div class="art-modal-meta" id="art-modal-meta"></div>
+      <div class="art-modal-body" id="art-modal-body">
+        <div class="art-loading"><span class="spinner"></span> 기사 생성 중…</div>
+      </div>
+      <div class="art-modal-foot">
+        <small class="art-disclaimer">⚠ AI 생성 초안 — 사실·수치 검증 후 사용해주세요.</small>
+        <div class="art-modal-actions">
+          <button class="btn" id="art-btn-copy">복사</button>
+          <button class="btn" id="art-btn-regen">다시 생성</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="v1-foot">
+    <div style="display:flex; flex-direction:column; gap:11px; width:100%;">
+      <p style="margin:0; max-width:1080px; font-size:11px; line-height:1.75; color:var(--muted);">
+        Numbers Pool이 제공하는 정보는 금융감독원 전자공시시스템(DART) 등 신뢰할 수 있는 공개 자료를 기초로 하나, 그 정확성이나 완전성을 보장하지 않으며 시간의 경과에 따라 변경될 수 있습니다. 정보의 오류·지연·누락 또는 이를 근거로 한 판단 및 투자 결과에 대하여 Numbers Pool은 어떠한 법적·경제적 책임도 지지 않으므로, 정보 이용 시 각별히 유의하시기 바랍니다. 본 사이트의 모든 콘텐츠에 대한 권리는 Numbers Pool에 있으며, 사전 동의 없이 이를 무단으로 복제·배포하거나 데이터베이스화할 경우 민·형사상 책임을 물을 수 있습니다. 본 페이지의 기사 초안은 AI로 자동 생성된 참고용 자료이며, 사용 결과에 대한 책임은 이용자에게 있습니다.
+      </p>
+      <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; font-size:11.5px; padding-top:11px; border-top:1px solid var(--border-soft);">
+        <span>출처: 금융감독원 DART · 문의 <a href="mailto:master@numberspool.co.kr">master@numberspool.co.kr</a> · <a href="../about/">데이터 안내</a></span>
+        <span>© 2026 Numbers Pool. All rights reserved.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js?v=20260604a"></script>
+</body>
+</html>

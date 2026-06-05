@@ -920,10 +920,12 @@
     const today = todayKST();
     if (kind === "dcm") {
       const rep = data.rep;
+      // 트랜치마다 같은 값이 중복돼 모델이 "트랜치별 한도"로 오인할 수 있는 발행한도·신용등급·종류는
+      // rep 레벨로만 노출 (트랜치에서 제거).
       const tranches = data.records.map(r => ({
         만기연수: maturityYears(r.date, r.maturity),
-        종류: r.type, 신용등급: r.rating, 만기일: r.maturity,
-        최초모집_억: r.init, 발행한도_억: r.limit,
+        만기일: r.maturity,
+        최초모집_억: r.init,
         수요예측_억: r.demand, 최종발행_억: r.final,
         희망금리: r.r_target, 수요금리: r.r_demand, 최종금리: r.r_final,
       }));
@@ -934,6 +936,9 @@
           발행사: rep.issuer, 발행사_정식명: rep.issuer_full || rep.issuer,
           최초공시일: rep.disclosure_date || null,
           청약일: rep.date,
+          종류: rep.type,            // 회차 공통
+          신용등급: rep.rating,      // 회차 공통
+          발행한도_총_억: rep.limit, // 회차 전체 한도 (트랜치별 X)
           회차합산_억: rep.series_total || tranches.reduce((s, t) => s + (t.최종발행_억 || 0), 0),
           주관사: rep.leads || [],
           인수사: rep.uw || {},

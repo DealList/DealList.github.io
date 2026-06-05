@@ -27,7 +27,7 @@ from cloud_update_ecm import _names_from_uw_rows  # noqa: E402
 
 def _fetch_targets(table: str, final_cols: list[str]) -> list[dict]:
     """final 컬럼이 모두 비어있는(=step1-only) row 만 추린다."""
-    cols = "id,issuer,rcept_no_stage1,lead_names," + ",".join(final_cols)
+    cols = "id,issuer,corp_code,rcept_no_stage1,lead_names," + ",".join(final_cols)
     out, off = [], 0
     while True:
         chunk = sb.select(table, cols, limit=1000, offset=off)
@@ -42,22 +42,22 @@ def _fetch_targets(table: str, final_cols: list[str]) -> list[dict]:
     return out
 
 
-def _names_for_stage1(s1: str):
-    """stage1 rcept 로 딜을 재구성해 (lead_names, uw_names) 산출. 실패 시 None."""
-    filings = dart_client.fetch_deal_filings(s1)
-    if not filings:
+def _names_for_stage1(table: str, s1: str, issuer: str, corp_code: str):
+    """stage1 문서 섹션을 OpenDART API(=정상 수집과 동일 경로, 스크래핑 X)로 가져와
+    인수단 표를 파싱 → (lead_names, uw_names) 산출. 실패 시 None.
+    GitHub 클라우드 IP 에서도 동작(드롭다운 스크래핑 fetch_deal_filings 미사용)."""
+    secs = dart_client.fetch_ecm_stage1_document(s1)
+    if not secs:
         return None
-    for deal in M.group_into_deals(filings):
-        res = M.process_deal(deal)
-        if res is None:
-            continue
-        rec = (res.rights_record if res.kind == "rights"
-               else res.ipo_record if res.kind == "ipo" else None)
-        if rec is None:
-            continue
-        if (getattr(rec, "rcept_no_stage1", "") or "") == s1:
-            return _names_from_uw_rows(getattr(rec, "_underwriter_rows", []))
-    return None
+    if table == "ecm_ipo":
+        rec = parser_ecm.parse_ipo_stage1(
+            secs, rcept_no=s1, corp_name=issuer or "", corp_code=corp_code or "")
+    else:
+        rec = parser_ecm.parse_rights_stage1(
+            secs, rcept_no=s1, corp_name=issuer or "", corp_code=corp_code or "")
+    if rec is None:
+        return None
+    return _names_from_uw_rows(getattr(rec, "_underwriter_rows", []))
 
 
 def backfill(table: str, final_cols: list[str], dry: bool) -> int:
@@ -67,7 +67,7 @@ def backfill(table: str, final_cols: list[str], dry: bool) -> int:
     for r in targets:
         s1 = r["rcept_no_stage1"]
         try:
-            names = _names_for_stage1(s1)
+            names = _names_for_stage1(table, s1, r.get("issuer"), r.get("corp_code"))
         except Exception as e:
             print(f"  [WARN] {r.get('issuer')} ({s1}) 실패: {e}")
             continue

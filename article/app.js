@@ -932,9 +932,23 @@
         만기연수: maturityYears(r.date, r.maturity),
         만기일: r.maturity,
         최초모집_억: r.init,
-        수요예측_억: r.demand, 최종발행_억: r.final,
+        수요예측_억: r.demand,
+        경쟁률: (r.demand && r.init) ? Math.round(r.demand / r.init * 100) / 100 : null,
+        최종발행_억: r.final,
         희망금리: r.r_target, 수요금리: r.r_demand, 최종금리: r.r_final,
       }));
+      // 회차 전체 합산: 주관사별 주관실적(산식 분배) + 인수사별 인수량
+      const 주관실적_분배_억 = {};
+      const 인수량_별_억 = {};
+      for (const r of data.records) {
+        for (const [a, v] of Object.entries(r.lead_amt || {})) {
+          주관실적_분배_억[a] = Math.round(((주관실적_분배_억[a] || 0) + (v || 0)) * 100) / 100;
+        }
+        for (const [a, v] of Object.entries(r.uw || {})) {
+          인수량_별_억[a] = (인수량_별_억[a] || 0) + (v || 0);
+        }
+      }
+      const 주관사_명단 = [...new Set(data.records.flatMap(r => r.leads || []))];
       return {
         kind: "dcm",
         data: {
@@ -947,8 +961,9 @@
           신용등급: rep.rating,      // 회차 공통
           발행한도_총_억: rep.limit, // 회차 전체 한도 (트랜치별 X)
           회차합산_억: rep.series_total || tranches.reduce((s, t) => s + (t.최종발행_억 || 0), 0),
-          주관사: rep.leads || [],
-          인수사: rep.uw || {},
+          주관사_명단,                 // 본문 등장 순서
+          주관실적_분배_억,           // 주관사별 산식 분배액 (본인 인수 + 잔여 균등) — '주관 실적'
+          인수량_별_억,               // 인수사별 실제 인수 금액
           tranches,
           history: dcmHistory(rep),  // 같은 발행사 직전 발행 (회차그룹 단위, 최대 2건)
         },

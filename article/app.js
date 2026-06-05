@@ -1367,7 +1367,15 @@
         },
       };
     }
-    // rights
+    // rights — 발행가 단계(미확정/1차/2차/최종) + 최신 확정가·총액 + 최초 대비 증감.
+    const _rPrice = data.final_price ?? data.price_2 ?? data.price_1 ?? null;  // 최신 확정 발행가(원); 없으면 미확정
+    const _rTotal = data.final_total ?? data.total_2 ?? data.total_1 ?? null;  // 최신 확정 총액(억)
+    const _rStage = data.final_price != null ? "최종"
+                  : data.price_2 != null ? "2차"
+                  : data.price_1 != null ? "1차" : "미확정";
+    const _rRaise = (typeof data.init_total === "number" && typeof _rTotal === "number")
+      ? { 최초희망_억: data.init_total, 최종_억: _rTotal, 증감_억: Math.round((_rTotal - data.init_total) * 100) / 100 }
+      : null;
     return {
       kind: "rights",
       data: {
@@ -1380,7 +1388,8 @@
         신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: ratioPct2Str(data.new_qty, data.existing_qty, data.increase_ratio),
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
-        ...ecmRaiseChange(data),
+        발행가_단계: _rStage, 최신_확정가_원: _rPrice, 최신_확정총액_억: _rTotal,
+        조달규모_변화: _rRaise,  // 유증: 최신확정총액 − 최초희망총액 (1차/2차/최종 단계 모두). 미확정이면 null.
         ...ecmSyndicate("rights", data),
         history: ecmHistory("rights", data),
       },

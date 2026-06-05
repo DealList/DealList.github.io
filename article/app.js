@@ -1023,39 +1023,33 @@
     </button>`;
   }
 
-  // ── DART 공시 임베드 / 좌우 분할 폴백 ──
+  // ── DART 공시 좌우 양분 (기사 = 오른쪽 절반 모달, 공시 = 왼쪽 절반 별도 창) ──
   let dartWin = null;
+  let dartRcept = null;
   const dartUrl = (rcept) => `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`;
-  function setupDartPane(rcept) {
-    const modal = $("art-modal");
-    const card = modal.querySelector(".art-modal-card");
-    const frame = $("art-dart-frame");
-    modal.classList.remove("side");
-    if (rcept) {
-      card.classList.remove("no-dart");
-      card.dataset.rcept = rcept;
-      if (frame) frame.src = dartUrl(rcept);
-    } else {
-      card.classList.add("no-dart");
-      delete card.dataset.rcept;
-      if (frame) frame.removeAttribute("src");
-    }
-  }
-  // 임베드가 막혔을 때: 공시를 화면 왼쪽 절반 별도 창으로, 기사 모달을 오른쪽 절반으로
-  function dartSplitView() {
-    const modal = $("art-modal");
-    const card = modal.querySelector(".art-modal-card");
-    const rcept = card.dataset.rcept;
-    if (!rcept) return;
+  function openDartWindow(rcept) {
     const w = Math.floor((screen.availWidth || window.innerWidth) / 2);
     const h = (screen.availHeight || window.innerHeight);
-    try { if (dartWin && !dartWin.closed) dartWin.close(); } catch (_) {}
+    // 이름 "dart-viewer" 재사용 — 같은 창을 새 공시로 이동
     dartWin = window.open(dartUrl(rcept), "dart-viewer",
       `left=0,top=0,width=${w},height=${h},scrollbars=yes,resizable=yes`);
-    const frame = $("art-dart-frame"); if (frame) frame.removeAttribute("src");  // 임베드 로딩 중단
-    modal.classList.add("side");
+    try { if (dartWin) dartWin.focus(); } catch (_) {}
+    return dartWin;
   }
-  { const sb = $("art-dart-split"); if (sb) sb.addEventListener("click", dartSplitView); }
+  function openDartSideBySide(rcept) {
+    const modal = $("art-modal");
+    const reBtn = $("art-dart-reopen");
+    dartRcept = rcept || null;
+    if (rcept) {
+      openDartWindow(rcept);
+      modal.classList.add("side");
+      if (reBtn) reBtn.hidden = false;
+    } else {
+      modal.classList.remove("side");
+      if (reBtn) reBtn.hidden = true;
+    }
+  }
+  { const rb = $("art-dart-reopen"); if (rb) rb.addEventListener("click", () => { if (dartRcept) openDartWindow(dartRcept); }); }
 
   function openArticleModal(kind, data) {
     currentArticleCtx = { kind, data };
@@ -1095,9 +1089,9 @@
     $("art-btn-copy").classList.remove("art-btn-copied");
     $("art-btn-copy").textContent = "복사";
 
-    // 왼쪽 칸에 DART 공시 임베드 (rcept 있을 때만; dcm은 rep.rcept)
+    // DART 공시를 왼쪽 절반 별도 창으로, 기사 모달을 오른쪽 절반으로 (dcm은 rep.rcept)
     const rcept = kind === "dcm" ? (data.rep && data.rep.rcept) : data.rcept;
-    setupDartPane(rcept);
+    openDartSideBySide(rcept);
 
     generateArticle();
   }
@@ -1105,7 +1099,6 @@
     const modal = $("art-modal");
     modal.hidden = true;
     modal.classList.remove("side");
-    const frame = $("art-dart-frame"); if (frame) frame.removeAttribute("src");
     try { if (dartWin && !dartWin.closed) dartWin.close(); } catch (_) {}
     dartWin = null;
     document.body.style.overflow = "";

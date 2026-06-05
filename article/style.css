@@ -65,7 +65,7 @@ th.art-col, td.art-col {
 /* 공시 좌우 양분: 기사 모달을 화면 오른쪽 절반, DART는 별도 창(왼쪽 절반) */
 .art-modal.side { justify-content: flex-end; align-items: stretch; }
 .art-modal.side .art-modal-back { background: rgba(0,0,0,.14); backdrop-filter: none; }
-.art-modal.side .art-modal-card { width: 50vw; max-width: 50vw; height: 100vh; max-height: 100vh; border-radius: 0; }
+.art-modal.side .art-modal-card { width: 540px; max-width: 92vw; height: 100vh; max-height: 100vh; border-radius: 0; }
 @media (max-width: 880px) {
   .art-modal.side .art-modal-card { width: 100%; max-width: 100%; }
 }

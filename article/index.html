@@ -8,7 +8,9 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <script src="../np-loading.js?v=20260602a"></script>
   <link rel="stylesheet" href="../deallist.css?v=20260601e" />
-  <link rel="stylesheet" href="style.css?v=20260604a" />
+  <!-- 필터·표·페이저 스타일은 ecm-deals 의 .grid 기반 스타일 재활용 -->
+  <link rel="stylesheet" href="../ecm-deals/style.css?v=20260526104243" />
+  <link rel="stylesheet" href="style.css?v=20260604b" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -108,7 +110,7 @@
 
     <!-- DCM Table -->
     <section class="table-wrap">
-      <table id="d-grid">
+      <table class="grid" id="d-grid">
         <thead>
           <tr>
             <th class="art-col">기사</th>

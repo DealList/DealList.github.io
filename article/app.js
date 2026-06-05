@@ -1023,6 +1023,40 @@
     </button>`;
   }
 
+  // ── DART 공시 임베드 / 좌우 분할 폴백 ──
+  let dartWin = null;
+  const dartUrl = (rcept) => `https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${rcept}`;
+  function setupDartPane(rcept) {
+    const modal = $("art-modal");
+    const card = modal.querySelector(".art-modal-card");
+    const frame = $("art-dart-frame");
+    modal.classList.remove("side");
+    if (rcept) {
+      card.classList.remove("no-dart");
+      card.dataset.rcept = rcept;
+      if (frame) frame.src = dartUrl(rcept);
+    } else {
+      card.classList.add("no-dart");
+      delete card.dataset.rcept;
+      if (frame) frame.removeAttribute("src");
+    }
+  }
+  // 임베드가 막혔을 때: 공시를 화면 왼쪽 절반 별도 창으로, 기사 모달을 오른쪽 절반으로
+  function dartSplitView() {
+    const modal = $("art-modal");
+    const card = modal.querySelector(".art-modal-card");
+    const rcept = card.dataset.rcept;
+    if (!rcept) return;
+    const w = Math.floor((screen.availWidth || window.innerWidth) / 2);
+    const h = (screen.availHeight || window.innerHeight);
+    try { if (dartWin && !dartWin.closed) dartWin.close(); } catch (_) {}
+    dartWin = window.open(dartUrl(rcept), "dart-viewer",
+      `left=0,top=0,width=${w},height=${h},scrollbars=yes,resizable=yes`);
+    const frame = $("art-dart-frame"); if (frame) frame.removeAttribute("src");  // 임베드 로딩 중단
+    modal.classList.add("side");
+  }
+  { const sb = $("art-dart-split"); if (sb) sb.addEventListener("click", dartSplitView); }
+
   function openArticleModal(kind, data) {
     currentArticleCtx = { kind, data };
     const modal = $("art-modal");
@@ -1061,10 +1095,19 @@
     $("art-btn-copy").classList.remove("art-btn-copied");
     $("art-btn-copy").textContent = "복사";
 
+    // 왼쪽 칸에 DART 공시 임베드 (rcept 있을 때만; dcm은 rep.rcept)
+    const rcept = kind === "dcm" ? (data.rep && data.rep.rcept) : data.rcept;
+    setupDartPane(rcept);
+
     generateArticle();
   }
   function closeArticleModal() {
-    $("art-modal").hidden = true;
+    const modal = $("art-modal");
+    modal.hidden = true;
+    modal.classList.remove("side");
+    const frame = $("art-dart-frame"); if (frame) frame.removeAttribute("src");
+    try { if (dartWin && !dartWin.closed) dartWin.close(); } catch (_) {}
+    dartWin = null;
     document.body.style.overflow = "";
     currentArticleCtx = null;
   }

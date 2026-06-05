@@ -181,6 +181,7 @@ const SYSTEM_PROMPT = `당신은 한국 자본시장(증권) 전문 기자입니
 
 ═══ 잉여·중복 제거 ═══
 - **리드 문단과 본문에서 같은 정보(특히 신용등급, 총 발행규모)를 두 번 반복하지 않는다.** 리드에 신용등급을 썼으면 본문에서는 생략하거나 다른 맥락에서만 언급.
+- **발행 규모를 반복하는 잉여 마무리 문장 금지**: 마지막에 "이번 [발행/증자]을 통해 X원을 조달할 계획이다"처럼 앞에서 이미 밝힌 총액을 되풀이하지 말 것. 자금 용도(시설·운영·채무상환 등) 데이터가 있을 때만 용도를 쓴다(없으면 그런 마무리 문장 자체를 넣지 않는다).
 - **'발행한도_총_억'은 회차 전체의 발행 한도**다. 트랜치별 한도가 아니므로 "각 만기별 발행 한도는…" 같은 표현 금지. 사실 발행한도 자체는 자주 쓰이지 않으므로 회차합산이 한도 미만이면 굳이 본문에 안 써도 됨.
 - **최초공시일을 별도 단락으로 적지 않는다.** "이번 발행의 최초 공시일은 X일이다" 같은 잉여 단락 금지. 도입부의 'N일' 표기로 이미 시점이 명시됐으므로 별도 언급 불필요.
 - history 의 직전 발행 비교는 1~2문단으로 충분. 트랜치별 수치를 모두 나열하지 말고 핵심(총 발행 규모, 만기 구조 요약, 최종 금리 정도)만.
@@ -190,7 +191,7 @@ const SYSTEM_PROMPT = `당신은 한국 자본시장(증권) 전문 기자입니
   - "[발행사]는 [지난 N월/지난해 N월]에도 [총 X억원]의 공모채를 찍었다. 당시 [만기 구조] 발행됐고, 최종 금리는 [n.nnn%]였다."
   - "직전 발행에서는 [수요예측 수치]을 기록했다." 같은 단순 비교
   - 비교하면서 해석·평가는 금지 (예: "수요가 늘었다"는 OK, "투심이 개선됐다"는 금지)
-- history 가 빈 배열이면 비교 단락 생략.
+- history 가 빈 배열이면 비교 단락을 **통째로 생략**한다. ⚠️ "직전 발행 내역은 없다", "과거 발행 내역을 공시하지 않았다" 같이 **과거 이력이 없음을 알리는 문장을 절대 쓰지 말 것**(침묵하고 끝낸다). 과거 사실은 history 데이터가 있을 때만 쓴다(DCM·ECM 공통).
 
 ═══ 출력 ═══
 반드시 다음 JSON 형식. 다른 텍스트 일체 금지.
@@ -331,10 +332,26 @@ function joinKoreanUnits(s: string): string {
     .replace(/(\d+만)\s+주/g, "$1주")               // 600만 주 → 600만주
     .replace(/(\d+억)\s+(\d+만\d*주)/g, "$1$2");     // 1억 2000만주 → 1억2000만주 (드문 경우)
 }
+// '미정/부재 안내' 문장 제거(문장 단위, 결정적). 모델이 규칙을 어기고 넣는
+// "실적은 아직 확정되지 않았다", "과거 발행 내역을 공시하지 않았다", "직전 발행 내역은 없다" 등.
+const ABSENCE_RE =
+  /(확정되지\s*않았|공개되지\s*않았|정해지지\s*않았|결정되지\s*않았|미정이[다며])|((내역|이력|사례)[은는이가을를]?\s*(아직\s*)?(없(다|음|었|으)|공시하지\s*않))/;
+function stripAbsenceSentences(s: string): string {
+  return String(s || "")
+    .split(/\n{2,}/)
+    .map((para) => {
+      const sents = para.split(/(?<=다\.)\s+/);          // '…다. ' 경계로 문장 분리(소수점은 영향 없음)
+      return sents.filter((x) => !ABSENCE_RE.test(x)).join(" ").trim();
+    })
+    .filter((p) => p.length > 0)
+    .join("\n\n");
+}
 function cleanResult(r: { headline: string; article: string }) {
   return {
     headline: joinKoreanUnits(normalizeEllipsis(stripNumberCommas(r.headline))).trim(),
-    article: joinKoreanUnits(normalizeEllipsis(stripNumberCommas(r.article))).trim(),
+    article: stripAbsenceSentences(
+      joinKoreanUnits(normalizeEllipsis(stripNumberCommas(r.article))),
+    ).trim(),
   };
 }
 // 정리 후에도 남는 위반을 모델에게 재요청할 피드백으로 반환

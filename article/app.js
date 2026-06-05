@@ -1258,6 +1258,7 @@
 
   function buildArticlePayload(kind, data) {
     const today = todayKST();
+    const 오늘일 = Number(String(today).slice(8, 10));  // 도입부 'N일' = 오늘 날짜의 일(day). 최초공시일과 혼동 금지.
     if (kind === "dcm") {
       const rep = data.rep;
       // 트랜치마다 같은 값이 중복돼 모델이 "트랜치별 한도"로 오인할 수 있는 발행한도·신용등급·종류는
@@ -1298,7 +1299,7 @@
       return {
         kind: "dcm",
         data: {
-          오늘날짜: today,
+          오늘날짜: today, 오늘일,
           시제: tense(rep.date, today),  // 청약일 기준 — '과거'면 발행했다/확정됐다, '미래'면 발행한다/예정이다
           발행사: rep.issuer, 발행사_정식명: rep.issuer_full || rep.issuer,
           최초공시일: rep.disclosure_date || null,
@@ -1326,7 +1327,7 @@
       return {
         kind: "ipo",
         data: {
-          오늘날짜: today,
+          오늘날짜: today, 오늘일,
           시제: tense(data.date, today),  // 상장일 기준
           발행사: data.issuer, 시장: data.market,
           최초공시일: data.disclosure_date || null, 상장일: data.date || null,
@@ -1344,7 +1345,7 @@
     return {
       kind: "rights",
       data: {
-        오늘날짜: today,
+        오늘날짜: today, 오늘일,
         시제: tense(data.date, today),  // 신주배정기준일 기준
         발행사: data.issuer, 유형: data.type,
         최초공시일: data.disclosure_date || null,

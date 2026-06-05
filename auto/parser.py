@@ -1296,6 +1296,10 @@ def parse_filing(html_sections: dict[str, str], ctx: ParseContext, mappings: dic
         promote_sole_to_lead = (not has_any_lead and len(unique_firms) == 1
                                 and len(chosen_underwriters) >= 1)
         for u in chosen_underwriters:
+            u_role = u.get("role", "") or ""
+            # '주선'(주관·인수 아닌 단순 주선 — 주주배정/주주우선공모 등)은 명단·실적 제외.
+            if "주선" in u_role and "주관" not in u_role:
+                continue
             alias = map_broker(u["firm"], mappings)
             if not alias:
                 role_for_reg = "대표" if (_is_lead_role(u["role"]) or promote_sole_to_lead) else u["role"]

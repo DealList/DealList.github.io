@@ -42,15 +42,19 @@ def _brokers(m):
 def _names_from_uw_rows(uw_rows):
     """stage1 인수단(_underwriter_rows) → (lead_names, uw_names) alias 리스트.
     금액 없이 이름만. 역할에 '대표'/'주관' 포함 시 주관사(lead)로 분류.
+    '주선'(주관·인수 아닌 단순 주선 — 주주배정/주주우선공모에 多)은 명단에서 제외.
     최초 증권신고서 단계 딜의 주관/인수 '명단'을 실적과 무관하게 표시하기 위함."""
     leads, uws = [], []
     for row in uw_rows or []:
+        role = row.get("role", "") or ""
+        # '주선'만 있고 '주관' 표기가 없으면 주관도 인수도 아님 → 명단 제외.
+        if "주선" in role and "주관" not in role:
+            continue
         alias = parser_ecm.broker_alias(row.get("name", ""))
         if not alias:
             continue
         if alias not in uws:
             uws.append(alias)
-        role = row.get("role", "") or ""
         if ("대표" in role or "주관" in role) and alias not in leads:
             leads.append(alias)
     return leads, uws

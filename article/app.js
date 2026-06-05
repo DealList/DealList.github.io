@@ -1285,8 +1285,10 @@
       }
       const 주관사_명단 = [...new Set(data.records.flatMap(r => r.leads || []))];
       const 인수사_명단 = [...new Set(data.records.flatMap(r => r.uw_names || []))];
-      // 실적 금액은 [발행조건확정] 이후만 채워짐(파이프라인). 금액 dict 키 유무로 판정.
-      const 실적_확정 = Object.keys(주관실적_분배_억).length > 0 || Object.keys(인수량_별_억).length > 0;
+      // 실적 금액은 [발행조건확정] 이후만 채워짐. stage1 딜은 lead_managers(이름)만 있고 금액은 0
+      // (compute_lead_amounts 가 alloc 비면 주관사들에 0 배분) → 키 유무가 아니라 '실제 금액>0'으로 판정.
+      const 실적_확정 = Object.values(주관실적_분배_억).some(v => v > 0)
+                     || Object.values(인수량_별_억).some(v => v > 0);
       // 회차 합산 — 최종발행액(수요예측 후 확정)이 아직 없으면 증액/감액을 계산하지 않는다(null).
       // (수요예측 전 딜은 final 이 null → '0억원 발행'으로 오인 방지)
       const _hasFinal = data.records.some(r => r.final != null);

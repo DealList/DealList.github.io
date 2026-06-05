@@ -39,8 +39,26 @@ def _brokers(m):
     return {a: round(v) for a, v in (m or {}).items() if v and v > 0}
 
 
+def _names_from_uw_rows(uw_rows):
+    """stage1 인수단(_underwriter_rows) → (lead_names, uw_names) alias 리스트.
+    금액 없이 이름만. 역할에 '대표'/'주관' 포함 시 주관사(lead)로 분류.
+    최초 증권신고서 단계 딜의 주관/인수 '명단'을 실적과 무관하게 표시하기 위함."""
+    leads, uws = [], []
+    for row in uw_rows or []:
+        alias = parser_ecm.broker_alias(row.get("name", ""))
+        if not alias:
+            continue
+        if alias not in uws:
+            uws.append(alias)
+        role = row.get("role", "") or ""
+        if ("대표" in role or "주관" in role) and alias not in leads:
+            leads.append(alias)
+    return leads, uws
+
+
 def ipo_row(deal, res) -> dict:
     rec = res.ipo_record
+    _ln, _un = _names_from_uw_rows(getattr(rec, "_underwriter_rows", []))
     report = deal.reports[-1].rcept_no if getattr(deal, "reports", None) else None
     has_final = bool(rec.rcept_no_final)
     ld = getattr(rec, "_listing_date", None) or res.listing_date_planned
@@ -58,6 +76,7 @@ def ipo_row(deal, res) -> dict:
         "esop_initial": rec.esop_initial, "esop_final": rec.esop_final,
         "lead_amounts": _brokers(res.lead_perf),
         "uw_amounts": _brokers(res.underwriter_amounts_eok),
+        "lead_names": _ln, "uw_names": _un,   # 금액 없는 주관/인수 명단(최초 신고서 단계용)
         "corp_code": rec.corp_code or None,
         "rcept_no_stage1": rec.rcept_no_stage1 or None,
         "rcept_no_final": rec.rcept_no_final or None,
@@ -68,6 +87,7 @@ def ipo_row(deal, res) -> dict:
 def rights_rows(deal, res) -> list[dict]:
     rec = res.rights_record
     report = deal.reports[-1].rcept_no if getattr(deal, "reports", None) else None
+    _ln, _un = _names_from_uw_rows(getattr(rec, "_underwriter_rows", []))
     base = {
         "record_date": _iso(rec.record_date), "issuer": rec.issuer,
         "offering_type": rec.offering_type or None, "payment_date": _iso(rec.payment_date),
@@ -75,6 +95,7 @@ def rights_rows(deal, res) -> list[dict]:
         "init_qty": rec.init_qty, "init_price": rec.init_price,
         "price_1": rec.stage1_price, "price_2": rec.stage2_price, "final_price": rec.final_price,
         "lead_amounts": _brokers(res.lead_perf), "uw_amounts": _brokers(res.underwriter_amounts_eok),
+        "lead_names": _ln, "uw_names": _un,   # 금액 없는 주관/인수 명단(최초 신고서 단계용)
         "issue_seq": 0, "corp_code": rec.corp_code or None,
         "rcept_no_stage1": rec.rcept_no_stage1 or None,
         "rcept_no_final1": rec.rcept_no_final1 or None,
@@ -88,7 +109,7 @@ def rights_rows(deal, res) -> list[dict]:
             "new_qty": extra.get("qty"), "existing_qty": None,
             "init_qty": extra.get("qty"), "init_price": extra.get("init_price"),
             "price_1": None, "price_2": None, "final_price": None,
-            "lead_amounts": {}, "uw_amounts": {}, "issue_seq": i,
+            "lead_amounts": {}, "uw_amounts": {}, "lead_names": [], "uw_names": [], "issue_seq": i,
             "corp_code": rec.corp_code or None,
             "rcept_no_stage1": rec.rcept_no_stage1 or None,
             "rcept_no_final1": None, "rcept_no_final2": None, "rcept_no_report": None,

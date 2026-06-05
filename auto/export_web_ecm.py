@@ -96,6 +96,8 @@ def ipo_record(r: dict) -> dict:
         "esop": {"initial": ei, "final": ef, "rate": _ratio(ef, ei)},
         "leads": r.get("lead_amounts") or {},
         "uw": r.get("uw_amounts") or {},
+        "lead_names": r.get("lead_names") or [],   # 금액 없는 주관사 명단(최초 신고서 단계)
+        "uw_names": r.get("uw_names") or [],        # 금액 없는 인수사 명단
         "rcept": _latest_rcept(r.get("rcept_no_stage1"), r.get("rcept_no_final")),
     }
 
@@ -118,6 +120,8 @@ def rights_record(r: dict) -> dict:
         "final_price": o, "final_total": _eok(e, o),
         "leads": r.get("lead_amounts") or {},
         "uw": r.get("uw_amounts") or {},
+        "lead_names": r.get("lead_names") or [],   # 금액 없는 주관사 명단(최초 신고서 단계)
+        "uw_names": r.get("uw_names") or [],        # 금액 없는 인수사 명단
         "seq": r.get("issue_seq") or 0,
         "rcept": _latest_rcept(r.get("rcept_no_stage1"), r.get("rcept_no_final1"), r.get("rcept_no_final2")),
     }

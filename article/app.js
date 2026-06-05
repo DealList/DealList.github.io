@@ -1213,6 +1213,22 @@
 
   // Edge Function 으로 보낼 페이로드 정리 — 모델이 사실 데이터만 보게 정형화
   // 회차번호(series)는 본문에 쓰면 안 되므로 payload 에 노출하지 않음 — 대신 만기연수 제공.
+  // ECM 주관사/인수사 — 금액(실적)이 있으면 dict 키가 명단, 없으면(최초 신고서 단계) lead_names/uw_names 사용.
+  // 실적_확정=false 면 기사에서 이름만 쓰고 금액 문장은 생략.
+  function ecmSyndicate(data) {
+    const leadAmt = data.leads || {}, uwAmt = data.uw || {};
+    const hasAmt = Object.keys(leadAmt).length > 0 || Object.keys(uwAmt).length > 0;
+    const leadNames = Object.keys(leadAmt).length ? Object.keys(leadAmt) : (data.lead_names || []);
+    const uwNames = Object.keys(uwAmt).length ? Object.keys(uwAmt) : (data.uw_names || []);
+    return {
+      주관사_명단: leadNames,
+      인수사_명단: uwNames,
+      실적_확정: hasAmt,
+      주관_실적_억: hasAmt ? leadAmt : null,
+      인수_금액_억: hasAmt ? uwAmt : null,
+    };
+  }
+
   function buildArticlePayload(kind, data) {
     const today = todayKST();
     if (kind === "dcm") {
@@ -1284,7 +1300,7 @@
           최종_수량: data.final_qty, 최종_가액_원: data.final_price, 최종_총액_억: data.final_total,
           신주비율: fmtPct0Str(data.new_ratio), 구주비율: fmtPct0Str(data.old_ratio),
           기관: data.inst || null, 일반: data.general || null, 우리사주: data.esop || null,
-          주관사: data.leads || {}, 인수사: data.uw || {},
+          ...ecmSyndicate(data),
           history: ecmHistory("ipo", data),  // 보통 없음
         },
       };
@@ -1301,7 +1317,7 @@
         신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: ratioPct2Str(data.new_qty, data.existing_qty, data.increase_ratio),
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
-        주관사: data.leads || {}, 인수사: data.uw || {},
+        ...ecmSyndicate(data),
         history: ecmHistory("rights", data),
       },
     };

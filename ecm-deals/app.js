@@ -35,7 +35,13 @@
   };
   const fmtMan = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString()+"만" : "-");  // 만 단위 반올림 표시
   const fmtManN = (v) => (typeof v==="number" ? Math.round(v/10000).toLocaleString() : "-");  // 만 단위 숫자만 (단위는 헤더)
-  const fmtPctN = (v) => (typeof v==="number" ? (v*100).toFixed(1) : "-");  // % 숫자만 (단위는 헤더)
+  const fmtPctN = (v) => {  // % 숫자만 (단위는 헤더). 소수 2자리 + 불필요한 0 제거.
+    if (typeof v !== "number" || !isFinite(v)) return "-";
+    const p = Math.round(v*10000)/100;
+    return p.toFixed(2).replace(/0+$/,"").replace(/\.$/,"");
+  };
+  // 증자비율 — 반올림된 increase_ratio 대신 원본 신주수량/기존주식수로 정밀 계산(데이터 round 손실 우회).
+  const ratioOf = (r) => (typeof r.new_qty==="number" && typeof r.existing_qty==="number" && r.existing_qty) ? r.new_qty/r.existing_qty : r.increase_ratio;
   const fmtDate = (s) => s || "미정";
   function fmtBrokers(map) {
     const e = Object.entries(map||{}).filter(([,v])=>v).sort((a,b)=>b[1]-a[1]);
@@ -73,7 +79,7 @@
       {id:"type",label:"유형",cell:r=>esc(r.type),val:r=>r.type,xls:r=>r.type},
       {id:"payment",label:"납입일",cell:r=>esc(r.payment||"-"),val:r=>r.payment,xls:r=>r.payment||""},
       {id:"new_qty",label:"발행 수량(만주)",num:1,cell:r=>fmtManN(r.new_qty),val:r=>r.new_qty,xls:r=>r.new_qty??""},
-      {id:"increase_ratio",label:"증자 비율(%)",num:1,cell:r=>fmtPctN(r.increase_ratio),val:r=>r.increase_ratio,xls:r=>r.increase_ratio??""},
+      {id:"increase_ratio",label:"증자 비율(%)",num:1,cell:r=>fmtPctN(ratioOf(r)),val:r=>ratioOf(r),xls:r=>ratioOf(r)??""},
       {id:"init_price",label:"1주당 희망 가액(원)",num:1,cell:r=>fmtN(r.init_price),val:r=>r.init_price,xls:r=>r.init_price??""},
       {id:"price_1",label:"1차 가액(원)",num:1,cell:r=>fmtN(r.price_1),val:r=>r.price_1,xls:r=>r.price_1??""},
       {id:"price_2",label:"2차 가액(원)",num:1,cell:r=>fmtN(r.price_2),val:r=>r.price_2,xls:r=>r.price_2??""},
@@ -317,7 +323,7 @@
       const a = new Array(TOTAL).fill(null);
       const la=r.leads||{}, uwm=r.uw||{};
       a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.type; a[4]=r.payment||"";
-      a[5]=r.new_qty; a[6]=r.existing_qty; a[7]=r.increase_ratio;
+      a[5]=r.new_qty; a[6]=r.existing_qty; a[7]=ratioOf(r);
       a[8]=r.init_qty; a[9]=r.init_price; a[10]=r.init_total;
       a[11]=r.price_1; a[12]=r.total_1;
       a[13]=r.price_2; a[14]=r.total_2;

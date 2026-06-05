@@ -54,6 +54,13 @@ def _ratio(num, den):
     return None
 
 
+def _ratio6(num, den):
+    # 증자비율 등 퍼센트 소수 정밀 보존용 (분수 6자리 = 퍼센트 4자리). round(,2)의 정수 % 손실 방지.
+    if isinstance(num, (int, float)) and isinstance(den, (int, float)) and den:
+        return round(num / den, 6)
+    return None
+
+
 def _latest_rcept(*vals):
     """묶음(증권신고서 + 정정신고서 체인) 중 최신 접수번호 = 가장 큰 rcpNo.
     rcpNo 는 'YYYYMMDD + 6자리' 14자리 → 사전순 max == 최신. 실적보고서는 별개 묶음이라 제외."""
@@ -104,7 +111,7 @@ def rights_record(r: dict) -> dict:
         "type": r.get("offering_type") or "",
         "payment": r.get("payment_date") or "",
         "new_qty": e, "existing_qty": f,
-        "increase_ratio": _ratio(e, f),
+        "increase_ratio": _ratio6(e, f),
         "init_qty": iq, "init_price": ip, "init_total": _eok(iq, ip),
         "price_1": k, "total_1": _eok(e, k),
         "price_2": m, "total_2": _eok(e, m),

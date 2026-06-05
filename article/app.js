@@ -29,7 +29,13 @@
     return `${Math.round(eok).toLocaleString()}억`;
   };
   const fmtManN = (v) => (typeof v === "number" ? Math.round(v / 10000).toLocaleString() : "-");
-  const fmtPctN = (v) => (typeof v === "number" ? (v * 100).toFixed(1) : "-");
+  const fmtPctN = (v) => {  // 표 셀용 % 숫자만 (단위는 헤더). 소수 2자리 + 불필요한 0 제거.
+    if (typeof v !== "number" || !isFinite(v)) return "-";
+    const p = Math.round(v * 10000) / 100;
+    return p.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  };
+  // 증자비율 — 반올림된 increase_ratio 대신 원본 신주수량/기존주식수로 정밀 계산.
+  const ratioOf = (r) => (typeof r.new_qty === "number" && typeof r.existing_qty === "number" && r.existing_qty) ? r.new_qty / r.existing_qty : r.increase_ratio;
   // 비율(분수 0~1) → 퍼센트 문자열. 소수 2자리, 불필요한 0 제거. 0.2487 → "24.87%", 0.25 → "25%", 0.248 → "24.8%".
   const fmtPctStr = (v) => {
     if (typeof v !== "number" || !isFinite(v)) return null;
@@ -457,7 +463,7 @@
       {id:"type", label:"유형", cell:r => esc(r.type), val:r => r.type},
       {id:"payment", label:"납입일", cell:r => esc(r.payment || "-"), val:r => r.payment},
       {id:"new_qty", label:"발행 수량(만주)", num:1, cell:r => fmtManN(r.new_qty), val:r => r.new_qty},
-      {id:"increase_ratio", label:"증자 비율(%)", num:1, cell:r => fmtPctN(r.increase_ratio), val:r => r.increase_ratio},
+      {id:"increase_ratio", label:"증자 비율(%)", num:1, cell:r => fmtPctN(ratioOf(r)), val:r => ratioOf(r)},
       {id:"init_price", label:"1주당 희망 가액(원)", num:1, cell:r => fmtN(r.init_price), val:r => r.init_price},
       {id:"price_1", label:"1차 가액(원)", num:1, cell:r => fmtN(r.price_1), val:r => r.price_1},
       {id:"price_2", label:"2차 가액(원)", num:1, cell:r => fmtN(r.price_2), val:r => r.price_2},
@@ -708,7 +714,7 @@
           Object.keys(r.leads || {}).join(", "), Object.keys(r.uw || {}).join(", ")]);
       } else {
         rows.push([r.disclosure_date || "", r.date || "", r.issuer, r.type, r.payment || "",
-          r.new_qty, r.increase_ratio, r.init_price, r.price_1, r.price_2, r.final_price,
+          r.new_qty, ratioOf(r), r.init_price, r.price_1, r.price_2, r.final_price,
           r.final_total ?? r.total_1 ?? r.init_total,
           Object.keys(r.leads || {}).join(", "), Object.keys(r.uw || {}).join(", ")]);
       }

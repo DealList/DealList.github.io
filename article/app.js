@@ -1225,6 +1225,14 @@
     return (String(refDate).slice(0, 10) <= today) ? "과거" : "미래";
   }
 
+  // 조달 규모 변화(ECM 공통) — 최초 희망 총액 vs 최종 확정 총액. 가격 변동·수량 변동이 모두 반영된
+  // '조달 규모'의 증감으로, 유증/IPO 에서 가격보다 중요한 핵심 정보(제목·본문에 활용).
+  function ecmRaiseChange(data) {
+    const i = data.init_total, f = data.final_total;
+    if (typeof i !== "number" || typeof f !== "number") return { 조달규모_변화: null };
+    return { 조달규모_변화: { 최초희망_억: i, 최종_억: f, 증감_억: Math.round((f - i) * 100) / 100 } };
+  }
+
   // Edge Function 으로 보낼 페이로드 정리 — 모델이 사실 데이터만 보게 정형화
   // 회차번호(series)는 본문에 쓰면 안 되므로 payload 에 노출하지 않음 — 대신 만기연수 제공.
   // ECM 주관사/인수사 — 이름은 항상(금액 dict 키 또는 lead_names/uw_names),
@@ -1324,6 +1332,7 @@
           최종_수량: data.final_qty, 최종_가액_원: data.final_price, 최종_총액_억: data.final_total,
           신주비율: fmtPct0Str(data.new_ratio), 구주비율: fmtPct0Str(data.old_ratio),
           기관: data.inst || null, 일반: data.general || null, 우리사주: data.esop || null,
+          ...ecmRaiseChange(data),
           ...ecmSyndicate("ipo", data),
           history: ecmHistory("ipo", data),  // 보통 없음
         },
@@ -1341,6 +1350,7 @@
         신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: ratioPct2Str(data.new_qty, data.existing_qty, data.increase_ratio),
         최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
         최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
+        ...ecmRaiseChange(data),
         ...ecmSyndicate("rights", data),
         history: ecmHistory("rights", data),
       },

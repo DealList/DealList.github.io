@@ -953,10 +953,12 @@
         }
       }
       const 주관사_명단 = [...new Set(data.records.flatMap(r => r.leads || []))];
-      // 회차 합산 기준 증액 — 트랜치별 증액을 헤드라인에 잘못 쓰지 않도록 총액을 미리 계산해 전달
+      // 회차 합산 — 최종발행액(수요예측 후 확정)이 아직 없으면 증액/감액을 계산하지 않는다(null).
+      // (수요예측 전 딜은 final 이 null → '0억원 발행'으로 오인 방지)
+      const _hasFinal = data.records.some(r => r.final != null);
       const _sumInit = tranches.reduce((s, t) => s + (t.최초모집_억 || 0), 0);
-      const _sumFinal = tranches.reduce((s, t) => s + (t.최종발행_억 || 0), 0);
-      const 증액_총_억 = Math.round((_sumFinal - _sumInit) * 100) / 100;
+      const _sumFinal = _hasFinal ? tranches.reduce((s, t) => s + (t.최종발행_억 || 0), 0) : null;
+      const 증액_총_억 = _hasFinal ? Math.round((_sumFinal - _sumInit) * 100) / 100 : null;
       return {
         kind: "dcm",
         data: {
@@ -969,9 +971,10 @@
           종류: rep.type,            // 회차 공통
           신용등급: rep.rating,      // 회차 공통
           발행한도_총_억: rep.limit, // 회차 전체 한도 (트랜치별 X)
+          최종발행_확정: _hasFinal,  // false면 수요예측 전 — 최종규모·증액·경쟁률·최종금리 미정
           회차합산_최초모집_억: Math.round(_sumInit * 100) / 100,
-          회차합산_억: rep.series_total || _sumFinal,
-          증액_총_억,                // 회차 합산 최종발행 − 최초모집 (>0 이면 증액). 헤드라인·본문 증액 표현은 이 값 사용
+          회차합산_억: _hasFinal ? (rep.series_total || _sumFinal) : Math.round(_sumInit * 100) / 100,
+          증액_총_억,                // 회차 합산 최종발행 − 최초모집. null이면 최종 미확정(증액 언급 금지)
 
           주관사_명단,                 // 본문 등장 순서
           주관실적_분배_억,           // 주관사별 산식 분배액 (본인 인수 + 잔여 균등) — '주관 실적'

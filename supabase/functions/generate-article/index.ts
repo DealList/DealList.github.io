@@ -3,13 +3,13 @@
 // 클라이언트(/article/) 가 호출. 흐름:
 //   1. JWT 검증 (Supabase auth) + approved 회원만
 //   2. 일일 한도 체크 (increment_article_usage RPC, 기본 30/일)
-//   3. Gemini 2.5 Flash 호출 — 스트레이트 기사 프롬프트
+//   3. Groq (Llama 3.3 70B) 호출 — 스트레이트 기사 프롬프트
 //   4. JSON 응답: { headline, article, model, usage_count }
 //
 // 환경변수 (Supabase Dashboard → Edge Functions → Secrets):
-//   - GEMINI_API_KEY        : Google AI Studio 발급 키 (필수)
+//   - GROQ_API_KEY          : console.groq.com 발급 키 (필수)
 //   - DAILY_LIMIT           : 일일 한도 (선택, 기본 30)
-//   - GEMINI_MODEL          : 모델명 (선택, 기본 gemini-2.5-flash)
+//   - GROQ_MODEL            : 모델명 (선택, 기본 llama-3.3-70b-versatile)
 //   - SUPABASE_URL          : (자동 주입)
 //   - SUPABASE_SERVICE_ROLE_KEY : (자동 주입, RPC 호출용)
 //
@@ -20,9 +20,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GEMINI_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
 const DAILY_LIMIT = parseInt(Deno.env.get("DAILY_LIMIT") ?? "30", 10);
-const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+const MODEL = Deno.env.get("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -171,51 +171,80 @@ ${JSON.stringify(data, null, 2)}
 }
 
 // ════════════════════════════════════════════════════════════════════
-// Gemini 호출
+// Groq 호출 (OpenAI 호환 Chat Completions)
 // ════════════════════════════════════════════════════════════════════
-async function callGemini(prompt: string): Promise<{ headline: string; article: string }> {
-  if (!GEMINI_KEY) throw new Error("GEMINI_API_KEY 미설정 — Supabase Edge Function secret 확인 필요");
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_KEY}`;
+// 429(rate limit)·5xx 는 짧게 재시도. RateLimitError 는 분당/분 단위라
+// 1~2회 백오프로 대부분 통과. 일일 토큰 한도(TPD) 초과는 재시도해도 안 풀림.
+class GroqRateLimit extends Error {
+  constructor(public retryAfter: number) {
+    super("Groq rate limit");
+    this.name = "GroqRateLimit";
+  }
+}
+
+async function callGroq(prompt: string): Promise<{ headline: string; article: string }> {
+  if (!GROQ_KEY) throw new Error("GROQ_API_KEY 미설정 — Supabase Edge Function secret 확인 필요");
+
+  const url = "https://api.groq.com/openai/v1/chat/completions";
   const body = {
-    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-    contents: [{ role: "user", parts: [{ text: prompt }] }],
-    generationConfig: {
-      temperature: 0.4,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          headline: { type: "string" },
-          article: { type: "string" },
-        },
-        required: ["headline", "article"],
-      },
-    },
+    model: MODEL,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.4,
+    max_tokens: 1600,
+    response_format: { type: "json_object" },
   };
 
-  const resp = await fetch(url, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!resp.ok) {
+  const MAX_TRIES = 3;
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_TRIES; attempt++) {
+    let resp: Response;
+    try {
+      resp = await fetch(url, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "authorization": `Bearer ${GROQ_KEY}`,
+        },
+        body: JSON.stringify(body),
+      });
+    } catch (e) {
+      lastErr = e;
+      if (attempt < MAX_TRIES) { await sleep(600 * attempt); continue; }
+      throw new Error("Groq 연결 실패: " + (e as Error).message);
+    }
+
+    if (resp.ok) {
+      const data = await resp.json();
+      const text = data?.choices?.[0]?.message?.content;
+      if (!text) throw new Error("Groq 응답에서 텍스트 추출 실패");
+
+      let parsed: any;
+      try { parsed = JSON.parse(text); }
+      catch { throw new Error("Groq 응답이 JSON 형식이 아님: " + String(text).slice(0, 200)); }
+
+      const headline = String(parsed.headline || "").trim();
+      const article = String(parsed.article || "").trim();
+      if (!headline || !article) throw new Error("Groq 응답에 headline/article 비어있음");
+      return { headline, article };
+    }
+
+    // 에러 응답
     const txt = await resp.text();
-    throw new Error(`Gemini ${resp.status}: ${txt.slice(0, 300)}`);
+    if (resp.status === 429 || resp.status >= 500) {
+      // Retry-After 헤더(초) 존중, 없으면 점증 백오프
+      const ra = parseFloat(resp.headers.get("retry-after") || "") || (0.8 * attempt);
+      lastErr = new GroqRateLimit(ra);
+      if (attempt < MAX_TRIES && ra <= 8) { await sleep(ra * 1000); continue; }
+      throw new GroqRateLimit(ra);
+    }
+    throw new Error(`Groq ${resp.status}: ${txt.slice(0, 300)}`);
   }
-  const data = await resp.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error("Gemini 응답에서 텍스트 추출 실패");
-
-  let parsed: any;
-  try { parsed = JSON.parse(text); }
-  catch { throw new Error("Gemini 응답이 JSON 형식이 아님: " + text.slice(0, 200)); }
-
-  const headline = String(parsed.headline || "").trim();
-  const article = String(parsed.article || "").trim();
-  if (!headline || !article) throw new Error("Gemini 응답에 headline/article 비어있음");
-
-  return { headline, article };
+  throw (lastErr instanceof Error ? lastErr : new Error("Groq 호출 실패"));
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -269,10 +298,10 @@ serve(async (req) => {
     return json({ error: "kind 는 dcm/ipo/rights 중 하나여야 합니다." }, 400);
   }
 
-  // 5) Gemini 호출
+  // 5) Groq 호출
   try {
     const prompt = buildPrompt(payload);
-    const { headline, article } = await callGemini(prompt);
+    const { headline, article } = await callGroq(prompt);
     return json({
       headline, article,
       model: MODEL,
@@ -280,7 +309,15 @@ serve(async (req) => {
       daily_limit: DAILY_LIMIT,
     });
   } catch (e) {
-    console.error("Gemini error", e);
+    if (e instanceof GroqRateLimit) {
+      const wait = Math.max(10, Math.ceil(e.retryAfter));
+      console.warn("Groq rate limit", e.retryAfter);
+      return json(
+        { error: `지금 생성 요청이 몰려 있습니다. 약 ${wait}초 후 다시 시도해주세요.`, retry_after: wait },
+        429,
+      );
+    }
+    console.error("Groq error", e);
     return json({ error: "기사 생성 실패: " + (e as Error).message }, 500);
   }
 });

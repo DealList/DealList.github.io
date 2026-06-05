@@ -810,13 +810,16 @@
       });
       if (!resp.ok) {
         const txt = await resp.text();
+        // 서버가 내려준 메시지를 우선 사용 (일일 한도 / 일시적 혼잡 구분)
+        let serverMsg = "";
+        try { serverMsg = (JSON.parse(txt) || {}).error || ""; } catch (_) {}
         if (resp.status === 404) {
           throw new Error("기사 생성 기능이 아직 활성화되지 않았습니다. (관리자에게 문의)");
         }
         if (resp.status === 429) {
-          throw new Error("일일 생성 한도를 초과했습니다.");
+          throw new Error(serverMsg || "지금 요청이 몰려 있습니다. 잠시 후 다시 시도해주세요.");
         }
-        throw new Error(`기사 생성 실패 (${resp.status}): ${txt.slice(0,200)}`);
+        throw new Error(serverMsg || `기사 생성 실패 (${resp.status}): ${txt.slice(0, 200)}`);
       }
       const json = await resp.json();
       const article = json.article || "";

@@ -42,6 +42,7 @@
   // 기사 페이로드용 비율(% 포함):
   const fmtPct0Str = (v) => (typeof v === "number" && isFinite(v)) ? Math.round(v * 100) + "%" : null;  // "65%"
   const fmtPct2Str = (v) => (typeof v === "number" && isFinite(v)) ? (v * 100).toFixed(2) + "%" : null; // "24.87%", "25.00%", "25.20%"
+  const fmtPct1Str = (v) => (typeof v === "number" && isFinite(v)) ? (v * 100).toFixed(1) + "%" : null; // "43.3%" — 우리사주 청약률
   // 증자비율 — 원본 신주수량/기존주식수로 정밀 계산 후 2자리 고정 문자열(데이터 round 손실 우회). 수량 없으면 ratio 폴백.
   const ratioPct2Str = (num, den, fb) =>
     (typeof num === "number" && typeof den === "number" && den) ? fmtPct2Str(num / den)
@@ -1353,7 +1354,13 @@
           최초_수량: data.init_qty, 최초_가액_원: data.init_price, 최초_총액_억: data.init_total,
           최종_수량: data.final_qty, 최종_가액_원: data.final_price, 최종_총액_억: data.final_total,
           신주비율: fmtPct0Str(data.new_ratio), 구주비율: fmtPct0Str(data.old_ratio),
-          기관: data.inst || null, 일반: data.general || null, 우리사주: data.esop || null,
+          기관: data.inst || null, 일반: data.general || null,
+          // 우리사주는 '경쟁률(배)'이 아니라 '청약률(%)' — 배정물량 대비 실제 직원 청약물량. 청약률은 미리 "%" 문자열로.
+          우리사주: data.esop ? {
+            배정물량: data.esop.initial,   // 우리사주조합 배정(모집) 주식 수
+            청약물량: data.esop.final,     // 실제 직원 청약 주식 수
+            청약률: fmtPct1Str(data.esop.rate),  // "43.3%" (배 아님). 그대로 쓸 것.
+          } : null,
           ...ecmRaiseChange(data),
           ...ecmSyndicate("ipo", data),
           history: ecmHistory("ipo", data),  // 보통 없음

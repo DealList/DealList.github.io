@@ -878,8 +878,8 @@
         최초공시일: data.disclosure_date || null,
         신주배정기준일: data.date || null, 납입일: data.payment || null,
         신주_수량: data.new_qty, 기존_수량: data.existing_qty, 증자비율: data.increase_ratio,
-        최초가_원: data.init_price, 1차가_원: data.price_1, 2차가_원: data.price_2, 확정가_원: data.final_price,
-        최초총액_억: data.init_total, 1차총액_억: data.total_1, 2차총액_억: data.total_2, 확정총액_억: data.final_total,
+        최초가_원: data.init_price, "1차가_원": data.price_1, "2차가_원": data.price_2, 확정가_원: data.final_price,
+        최초총액_억: data.init_total, "1차총액_억": data.total_1, "2차총액_억": data.total_2, 확정총액_억: data.final_total,
         주관사: data.leads || {}, 인수사: data.uw || {},
       },
     };

@@ -48,6 +48,19 @@
     return fmtPctStr(typeof fallbackRatio === "number" ? fallbackRatio : null);
   };
 
+  // Excel(DCM) broker 컬럼 순서 — dcm-deals/app.js 와 동일. 데이터에 새 broker 나오면 끝에 자동 추가.
+  const LEAD_ORDER = [
+    "KB","NH","한투","신한","SK","삼성","키움","미래","하나","한화",
+    "iM","대신","교보","한양","DB","IBK","부국","신영","유진","흥국",
+    "유안타","BNK","우리","메리츠","코리아에셋","산은","현차","KR",
+  ];
+  const UW_ORDER = [
+    "KB","NH","한투","신한","SK","삼성","키움","미래","하나","한화",
+    "iM","대신","교보","한양","DB","현차","IBK","부국","신영","유진",
+    "흥국","유안타","LS","BNK","메리츠","상상인","리딩","우리","케이프",
+    "산은","코리아에셋","KR","다올","디에스",
+  ];
+
   // dcm-deals 의 RATING_RANK / RATING_OPTIONS (동일)
   const RATING_RANK = {
     "AAA": 1, "AA+": 2, "AA": 3, "AA-": 4, "A+": 5, "A": 6, "A-": 7,
@@ -377,24 +390,172 @@
     renderPager("d-pager", totalPages, DCM.page, n => { DCM.page = n; DCM.render(); });
   };
 
-  // DCM Excel: dcm-deals/app.js 의 downloadExcel 과 동일 구조 (단순화 — 핵심만)
+  // DCM Excel — dcm-deals/app.js 의 downloadExcel 과 동일(원본 데이터 형식: 2행 헤더 + 주관/인수 broker별 컬럼 + 그룹 병합).
   DCM.downloadExcel = function () {
     if (!DCM.grouped.length) { alert("다운로드할 데이터가 없습니다."); return; }
-    // 핵심 컬럼만 포함한 간단 export (heavy multi-row 헤더는 dcm-deals 페이지에서 사용)
-    const rows = [["최초공시일","청약일","발행사","회차","종류","신용등급","만기일",
-                   "최초모집(억)","발행한도(억)","수요예측(억)","최종발행(억)","회차합산(억)",
-                   "경쟁률","희망금리","수요금리","최종금리(%)","주관사","인수사"]];
-    for (const g of DCM.grouped) for (const r of g.records) {
-      const ratio = (r.demand && r.init) ? Number((r.demand / r.init).toFixed(2)) : null;
-      rows.push([r.disclosure_date || "", r.date || "", r.issuer, r.series, r.type, r.rating,
-                 r.maturity, r.init, r.limit, r.demand, r.final, r.series_total,
-                 ratio, r.r_target, r.r_demand, r.r_final,
-                 (r.leads || []).join(", "), Object.keys(r.uw || {}).join(", ")]);
+
+    const leadKnown = new Set(LEAD_ORDER);
+    const uwKnown = new Set(UW_ORDER);
+    const leadExtras = new Set();
+    const uwExtras = new Set();
+    for (const g of DCM.grouped) {
+      for (const r of g.records) {
+        for (const k of Object.keys(r.lead_amt || {})) if (!leadKnown.has(k)) leadExtras.add(k);
+        for (const k of Object.keys(r.uw || {}))       if (!uwKnown.has(k))   uwExtras.add(k);
+      }
     }
-    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const leadCols = [...LEAD_ORDER, ...leadExtras];
+    const uwCols   = [...UW_ORDER,   ...uwExtras];
+
+    const C_DISCLOSURE = 0;
+    const C_DATE = 1, C_ISSUER = 2, C_SERIES = 3, C_TYPE = 4, C_RATING = 5,
+          C_MATURITY = 6, C_INIT = 7, C_LIMIT = 8;
+    const C_AMT_START = 9;
+    const C_RATIO     = 12;
+    const C_RATE_START = 13;
+    const C_LEAD_START = 16;
+    const C_UW_START   = C_LEAD_START + leadCols.length;
+    const TOTAL_COLS   = C_UW_START + uwCols.length;
+
+    const row1 = new Array(TOTAL_COLS).fill("");
+    const row2 = new Array(TOTAL_COLS).fill("");
+    row1[C_DISCLOSURE] = "최초공시일";
+    row1[C_DATE]     = "청약일";
+    row1[C_ISSUER]   = "발행사";
+    row1[C_SERIES]   = "회차";
+    row1[C_TYPE]     = "종류";
+    row1[C_RATING]   = "신용등급";
+    row1[C_MATURITY] = "만기일";
+    row1[C_INIT]     = "최초모집(억)";
+    row1[C_LIMIT]    = "발행한도(억)";
+    row1[C_AMT_START] = "금액";
+    row2[C_AMT_START]     = "수요예측(억)";
+    row2[C_AMT_START + 1] = "최종발행(억)";
+    row2[C_AMT_START + 2] = "회차합산(억)";
+    row1[C_RATIO] = "경쟁률";
+    row1[C_RATE_START] = "금리";
+    row2[C_RATE_START]     = "희망";
+    row2[C_RATE_START + 1] = "수요";
+    row2[C_RATE_START + 2] = "최종(%)";
+    row1[C_LEAD_START] = "주관";
+    for (let i = 0; i < leadCols.length; i++) row2[C_LEAD_START + i] = leadCols[i];
+    row1[C_UW_START] = "인수";
+    for (let i = 0; i < uwCols.length; i++)   row2[C_UW_START + i]   = uwCols[i];
+
+    const dataRows = [];
+    const merges = [];
+    let dataRowIdx = 2;
+
+    for (const g of DCM.grouped) {
+      const N = g.records.length;
+      g.records.forEach((r, i) => {
+        const isFirst = i === 0;
+        const row = new Array(TOTAL_COLS).fill(null);
+        row[C_DISCLOSURE] = isFirst ? r.disclosure_date : null;
+        row[C_DATE]     = isFirst ? r.date : null;
+        row[C_ISSUER]   = isFirst ? r.issuer : null;
+        row[C_SERIES]   = r.series;
+        row[C_TYPE]     = r.type;
+        row[C_RATING]   = r.rating;
+        row[C_MATURITY] = r.maturity;
+        row[C_INIT]     = r.init;
+        row[C_LIMIT]    = isFirst ? r.limit : null;
+        row[C_AMT_START]     = r.demand;
+        row[C_AMT_START + 1] = r.final;
+        row[C_AMT_START + 2] = isFirst ? r.series_total : null;
+        row[C_RATIO] = (r.demand && r.init)
+          ? Number((r.demand / r.init).toFixed(2))
+          : null;
+        row[C_RATE_START]     = r.r_target;
+        row[C_RATE_START + 1] = r.r_demand;
+        row[C_RATE_START + 2] = r.r_final;
+        const la = r.lead_amt || {};
+        for (let j = 0; j < leadCols.length; j++) {
+          const v = la[leadCols[j]];
+          row[C_LEAD_START + j] = (v != null && v !== 0) ? v : null;
+        }
+        const uw = r.uw || {};
+        for (let j = 0; j < uwCols.length; j++) {
+          const v = uw[uwCols[j]];
+          row[C_UW_START + j] = (v != null && v !== 0) ? v : null;
+        }
+        dataRows.push(row);
+      });
+      if (N > 1) {
+        const startR = dataRowIdx;
+        const endR = dataRowIdx + N - 1;
+        for (const c of [C_DISCLOSURE, C_DATE, C_ISSUER, C_LIMIT, C_AMT_START + 2]) {
+          merges.push({ s: { r: startR, c }, e: { r: endR, c } });
+        }
+      }
+      dataRowIdx += N;
+    }
+
+    merges.push({ s: { r: 0, c: C_AMT_START },  e: { r: 0, c: C_AMT_START + 2 } });
+    merges.push({ s: { r: 0, c: C_RATE_START }, e: { r: 0, c: C_RATE_START + 2 } });
+    merges.push({ s: { r: 0, c: C_LEAD_START }, e: { r: 0, c: C_UW_START - 1 } });
+    merges.push({ s: { r: 0, c: C_UW_START },   e: { r: 0, c: TOTAL_COLS - 1 } });
+    for (const c of [C_DISCLOSURE, C_DATE, C_ISSUER, C_SERIES, C_TYPE, C_RATING, C_MATURITY,
+                     C_INIT, C_LIMIT, C_RATIO]) {
+      merges.push({ s: { r: 0, c }, e: { r: 1, c } });
+    }
+
+    const aoa = [row1, row2, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws["!merges"] = merges;
+
+    const headerStyle = {
+      font: { bold: true },
+      alignment: { horizontal: "center", vertical: "center", wrapText: false },
+      fill: { fgColor: { rgb: "F1F5F9" }, patternType: "solid" },
+      border: {
+        top:    { style: "thin", color: { rgb: "CBD5E1" } },
+        bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+        left:   { style: "thin", color: { rgb: "CBD5E1" } },
+        right:  { style: "thin", color: { rgb: "CBD5E1" } },
+      },
+    };
+    for (let r = 0; r < 2; r++) {
+      for (let c = 0; c < TOTAL_COLS; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (ws[ref]) ws[ref].s = headerStyle;
+      }
+    }
+
+    for (const m of merges) {
+      if (m.s.r < 2) continue;
+      const ref = XLSX.utils.encode_cell({ r: m.s.r, c: m.s.c });
+      if (ws[ref]) {
+        ws[ref].s = ws[ref].s || {};
+        ws[ref].s.alignment = { vertical: "center" };
+      }
+    }
+
+    const cols = new Array(TOTAL_COLS).fill({ wch: 6 });
+    cols[C_DISCLOSURE] = { wch: 11 };
+    cols[C_DATE]     = { wch: 11 };
+    cols[C_ISSUER]   = { wch: 14 };
+    cols[C_SERIES]   = { wch: 7 };
+    cols[C_TYPE]     = { wch: 8 };
+    cols[C_RATING]   = { wch: 8 };
+    cols[C_MATURITY] = { wch: 11 };
+    cols[C_INIT]     = { wch: 9 };
+    cols[C_LIMIT]    = { wch: 9 };
+    cols[C_AMT_START]     = { wch: 10 };
+    cols[C_AMT_START + 1] = { wch: 10 };
+    cols[C_AMT_START + 2] = { wch: 10 };
+    cols[C_RATIO] = { wch: 7 };
+    cols[C_RATE_START]     = { wch: 11 };
+    cols[C_RATE_START + 1] = { wch: 8 };
+    cols[C_RATE_START + 2] = { wch: 8 };
+    ws["!cols"] = cols;
+
+    ws["!rows"] = [{ hpt: 22 }, { hpt: 22 }];
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "DCM");
-    XLSX.writeFile(wb, `NumbersPool_DCM_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "NumbersPool");
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `NumbersPool_DCM_${today}.xlsx`);
   };
 
   // ════════════════════════════════════════════════════════════════════
@@ -700,30 +861,140 @@
   ECM.downloadExcel = function () {
     const list = ECM.filtered();
     if (!list.length) { alert("다운로드할 데이터가 없습니다."); return; }
-    const head = ECM.tab === "ipo"
-      ? ["최초공시일","상장일","발행사","시장","발행수량(만주)","1주당가액(원)","발행총액(억)",
-         "신주비율(%)","기관경쟁률","일반경쟁률","우리사주청약률(%)","주관사","인수사"]
-      : ["최초공시일","신주배정기준일","발행사","유형","납입일","발행수량(만주)","증자비율(%)",
-         "1주당희망가액(원)","1차가액(원)","2차가액(원)","최종가액(원)","발행총액(억)","주관사","인수사"];
-    const rows = [head];
-    for (const r of list) {
-      if (ECM.tab === "ipo") {
-        rows.push([r.disclosure_date || "", r.date || "", r.issuer, r.market,
-          r.final_qty ?? r.init_qty, r.final_price ?? r.init_price, r.final_total ?? r.init_total,
-          r.new_ratio, r.inst && r.inst.compete, r.general && r.general.compete, r.esop && r.esop.rate,
-          Object.keys(r.leads || {}).join(", "), Object.keys(r.uw || {}).join(", ")]);
-      } else {
-        rows.push([r.disclosure_date || "", r.date || "", r.issuer, r.type, r.payment || "",
-          r.new_qty, ratioOf(r), r.init_price, r.price_1, r.price_2, r.final_price,
-          r.final_total ?? r.total_1 ?? r.init_total,
-          Object.keys(r.leads || {}).join(", "), Object.keys(r.uw || {}).join(", ")]);
-      }
-    }
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, ECM.tab === "ipo" ? "IPO" : "유상증자");
-    XLSX.writeFile(wb, `NumbersPool_ECM_${ECM.tab === "ipo" ? "IPO" : "유상증자"}_${new Date().toISOString().slice(0,10)}.xlsx`);
+    if (ECM.tab === "ipo") ecmDownloadIpoFull(list);
+    else ecmDownloadRightsFull(list);
   };
+
+  // 유상증자 — ecm-deals/app.js 의 downloadRightsFull 과 동일(원본 ECM Table.xlsx 형태: 2행 헤더 + 최초/1차/2차/최종 + 주관/인수 broker별 컬럼)
+  function ecmDownloadRightsFull(list) {
+    const leadOrder = (ECM.META && ECM.META.lead_order) || [];
+    const uwOrder   = (ECM.META && ECM.META.uw_order)   || [];
+    const lKnown = new Set(leadOrder), uKnown = new Set(uwOrder);
+    const lExtra = new Set(), uExtra = new Set();
+    for (const r of list) {
+      for (const k of Object.keys(r.leads||{})) if (!lKnown.has(k)) lExtra.add(k);
+      for (const k of Object.keys(r.uw||{}))    if (!uKnown.has(k)) uExtra.add(k);
+    }
+    const LEAD = [...leadOrder, ...lExtra], UW = [...uwOrder, ...uExtra];
+    const L0 = 17, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
+
+    const row1 = new Array(TOTAL).fill(""), row2 = new Array(TOTAL).fill("");
+    row1[0]="최초 공시일"; row1[1]="신주배정기준일"; row1[2]="회사명"; row1[3]="구분"; row1[4]="납입일";
+    row1[5]="발행 수량"; row1[6]="기존 주식"; row1[7]="증자비율";
+    row1[8]="최초 희망 발행"; row2[8]="수량"; row2[9]="가액(원)"; row2[10]="총액(억)";
+    row1[11]="1차"; row2[11]="가액(원)"; row2[12]="총액(억)";
+    row1[13]="2차"; row2[13]="가액(원)"; row2[14]="총액(억)";
+    row1[15]="최종"; row2[15]="가액(원)"; row2[16]="총액(억)";
+    row1[L0]="주관"; LEAD.forEach((b,i)=>row2[L0+i]=b);
+    row1[U0]="인수"; UW.forEach((b,i)=>row2[U0+i]=b);
+
+    const dataRows = list.map(r => {
+      const a = new Array(TOTAL).fill(null);
+      const la=r.leads||{}, uwm=r.uw||{};
+      a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.type; a[4]=r.payment||"";
+      a[5]=r.new_qty; a[6]=r.existing_qty; a[7]=ratioOf(r);
+      a[8]=r.init_qty; a[9]=r.init_price; a[10]=r.init_total;
+      a[11]=r.price_1; a[12]=r.total_1;
+      a[13]=r.price_2; a[14]=r.total_2;
+      a[15]=r.final_price; a[16]=r.final_total;
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      return a;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([row1, row2, ...dataRows]);
+
+    const merges = [];
+    const grp=(c0,c1)=>merges.push({s:{r:0,c:c0},e:{r:0,c:c1}});
+    grp(8,10); grp(11,12); grp(13,14); grp(15,16); grp(L0,U0-1); grp(U0,TOTAL-1);
+    [0,1,2,3,4,5,6,7].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
+    ws["!merges"]=merges;
+
+    const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
+      fill:{fgColor:{rgb:"F1F5F9"},patternType:"solid"},
+      border:{top:{style:"thin",color:{rgb:"CBD5E1"}},bottom:{style:"thin",color:{rgb:"CBD5E1"}},
+              left:{style:"thin",color:{rgb:"CBD5E1"}},right:{style:"thin",color:{rgb:"CBD5E1"}}} };
+    for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
+
+    for (let i=0;i<dataRows.length;i++){ const r=i+2; const ref=XLSX.utils.encode_cell({r,c:7}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; }
+
+    const cw=new Array(TOTAL).fill({wch:6});
+    cw[0]={wch:13}; cw[1]={wch:13}; cw[2]={wch:16}; cw[3]={wch:18}; cw[4]={wch:11};
+    [5,6,8,9,10,11,12,13,14,15,16].forEach(c=>cw[c]={wch:11}); cw[7]={wch:8};
+    ws["!cols"]=cw; ws["!rows"]=[{hpt:20},{hpt:18}];
+
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "유상증자");
+    XLSX.writeFile(wb, `NumbersPool_ECM_유상증자_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  // IPO — ecm-deals/app.js 의 downloadIpoFull 과 동일(원본 ECM Table.xlsx 형태: 2행 헤더 + 최초/최종/청약 세부 + 주관/인수 broker별 컬럼)
+  function ecmDownloadIpoFull(list) {
+    const leadOrder = (ECM.META && ECM.META.lead_order) || [];
+    const uwOrder   = (ECM.META && ECM.META.uw_order)   || [];
+    const lKnown = new Set(leadOrder), uKnown = new Set(uwOrder);
+    const lExtra = new Set(), uExtra = new Set();
+    for (const r of list) {
+      for (const k of Object.keys(r.leads||{})) if (!lKnown.has(k)) lExtra.add(k);
+      for (const k of Object.keys(r.uw||{}))    if (!uKnown.has(k)) uExtra.add(k);
+    }
+    const LEAD = [...leadOrder, ...lExtra], UW = [...uwOrder, ...uExtra];
+    const L0 = 23, U0 = L0 + LEAD.length, TOTAL = U0 + UW.length;
+
+    const row1 = new Array(TOTAL).fill(""), row2 = new Array(TOTAL).fill("");
+    row1[0]="최초 공시일"; row1[1]="상장일"; row1[2]="회사명"; row1[3]="시장";
+    row1[4]="최초 희망 발행"; row2[4]="수량"; row2[5]="가액(원)"; row2[6]="총액(억)";
+    row1[7]="최종 확정 발행"; row2[7]="수량"; row2[8]="가액(원)"; row2[9]="총액(억)";
+    row1[10]="발행 방식"; row2[10]="신주비율"; row2[11]="구주비율";
+    row1[12]="기관"; row2[12]="최초배정"; row2[13]="청약"; row2[14]="경쟁률"; row2[15]="최종배정";
+    row1[16]="일반"; row2[16]="최초배정"; row2[17]="청약"; row2[18]="경쟁률"; row2[19]="최종배정";
+    row1[20]="우리사주"; row2[20]="최초배정"; row2[21]="최종배정"; row2[22]="청약률";
+    row1[L0]="주관"; LEAD.forEach((b,i)=>row2[L0+i]=b);
+    row1[U0]="인수"; UW.forEach((b,i)=>row2[U0+i]=b);
+
+    const dataRows = list.map(r => {
+      const a = new Array(TOTAL).fill(null);
+      const ins=r.inst||{}, gen=r.general||{}, es=r.esop||{}, la=r.leads||{}, uwm=r.uw||{};
+      a[0]=r.disclosure_date||""; a[1]=r.date||""; a[2]=r.issuer; a[3]=r.market;
+      a[4]=r.init_qty; a[5]=r.init_price; a[6]=r.init_total;
+      a[7]=r.final_qty; a[8]=r.final_price; a[9]=r.final_total;
+      a[10]=r.new_ratio; a[11]=r.old_ratio;
+      a[12]=ins.initial; a[13]=ins.subscribed; a[14]=ins.compete; a[15]=ins.final;
+      a[16]=gen.initial; a[17]=gen.subscribed; a[18]=gen.compete; a[19]=gen.final;
+      a[20]=es.initial; a[21]=es.final; a[22]=es.rate;
+      LEAD.forEach((b,i)=>{ const v=la[b]; if (v) a[L0+i]=v; });
+      UW.forEach((b,i)=>{ const v=uwm[b]; if (v) a[U0+i]=v; });
+      return a;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([row1, row2, ...dataRows]);
+
+    const merges = [];
+    const grp=(c0,c1)=>merges.push({s:{r:0,c:c0},e:{r:0,c:c1}});
+    grp(4,6); grp(7,9); grp(10,11); grp(12,15); grp(16,19); grp(20,22); grp(L0,U0-1); grp(U0,TOTAL-1);
+    [0,1,2,3].forEach(c=>merges.push({s:{r:0,c},e:{r:1,c}}));
+    ws["!merges"]=merges;
+
+    const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
+      fill:{fgColor:{rgb:"F1F5F9"},patternType:"solid"},
+      border:{top:{style:"thin",color:{rgb:"CBD5E1"}},bottom:{style:"thin",color:{rgb:"CBD5E1"}},
+              left:{style:"thin",color:{rgb:"CBD5E1"}},right:{style:"thin",color:{rgb:"CBD5E1"}}} };
+    for (let c=0;c<TOTAL;c++) for (let r=0;r<2;r++){ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s=hs; }
+
+    for (let i=0;i<dataRows.length;i++){ const r=i+2;
+      [10,11,22].forEach(c=>{ const ref=XLSX.utils.encode_cell({r,c}); if(ws[ref]&&typeof ws[ref].v==="number") ws[ref].z="0.0%"; });
+    }
+
+    const cw=new Array(TOTAL).fill({wch:6});
+    cw[0]={wch:13}; cw[1]={wch:11}; cw[2]={wch:16}; cw[3]={wch:7};
+    [4,5,6,7,8,9,12,13,14,15,16,17,18,19,20,21,22].forEach(c=>cw[c]={wch:11});
+    [10,11].forEach(c=>cw[c]={wch:8});
+    ws["!cols"]=cw; ws["!rows"]=[{hpt:20},{hpt:18}];
+
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "IPO");
+    XLSX.writeFile(wb, `NumbersPool_ECM_IPO_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
 
   // ════════════════════════════════════════════════════════════════════
   // 기사 모달 — Edge Function (generate-article) 연동

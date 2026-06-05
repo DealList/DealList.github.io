@@ -3,13 +3,15 @@
 // 클라이언트(/article/) 가 호출. 흐름:
 //   1. JWT 검증 (Supabase auth) + approved 회원만
 //   2. 일일 한도 체크 (increment_article_usage RPC, 기본 30/일)
-//   3. Groq (Llama 3.3 70B) 호출 — 스트레이트 기사 프롬프트
-//   4. JSON 응답: { headline, article, model, usage_count }
+//   3. OpenAI (gpt-4.1-mini) 호출 — 스트레이트 기사 프롬프트
+//   4. 검증-재생성 루프 (헤드라인 39자 / 천단위 쉼표 등 — 모델이 못 지키는 규칙을 코드로 강제)
+//   5. JSON 응답: { headline, article, model, usage_count }
 //
 // 환경변수 (Supabase Dashboard → Edge Functions → Secrets):
-//   - GROQ_API_KEY          : console.groq.com 발급 키 (필수)
+//   - OPENAI_API_KEY        : platform.openai.com 발급 키 (필수)
 //   - DAILY_LIMIT           : 일일 한도 (선택, 기본 30)
-//   - GROQ_MODEL            : 모델명 (선택, 기본 llama-3.3-70b-versatile)
+//   - OPENAI_MODEL          : 모델명 (선택, 기본 gpt-4.1-mini)
+//   - HEADLINE_MAX          : 헤드라인 최대 글자수 (선택, 기본 39)
 //   - SUPABASE_URL          : (자동 주입)
 //   - SUPABASE_SERVICE_ROLE_KEY : (자동 주입, RPC 호출용)
 //
@@ -20,9 +22,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? "";
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const DAILY_LIMIT = parseInt(Deno.env.get("DAILY_LIMIT") ?? "30", 10);
-const MODEL = Deno.env.get("GROQ_MODEL") ?? "llama-3.3-70b-versatile";
+const MODEL = Deno.env.get("OPENAI_MODEL") ?? "gpt-4.1-mini";
+const HEADLINE_MAX = parseInt(Deno.env.get("HEADLINE_MAX") ?? "39", 10);
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -171,32 +174,47 @@ ${JSON.stringify(data, null, 2)}
 }
 
 // ════════════════════════════════════════════════════════════════════
-// Groq 호출 (OpenAI 호환 Chat Completions)
+// OpenAI 호출 (Chat Completions, Structured Outputs)
 // ════════════════════════════════════════════════════════════════════
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// 429(rate limit)·5xx 는 짧게 재시도. RateLimitError 는 분당/분 단위라
-// 1~2회 백오프로 대부분 통과. 일일 토큰 한도(TPD) 초과는 재시도해도 안 풀림.
-class GroqRateLimit extends Error {
+// 429(rate limit)·5xx 는 짧게 재시도. RPM 한도는 분 단위라 1~2회 백오프로 대부분 통과.
+class RateLimitError extends Error {
   constructor(public retryAfter: number) {
-    super("Groq rate limit");
-    this.name = "GroqRateLimit";
+    super("rate limit");
+    this.name = "RateLimitError";
   }
 }
 
-async function callGroq(prompt: string): Promise<{ headline: string; article: string }> {
-  if (!GROQ_KEY) throw new Error("GROQ_API_KEY 미설정 — Supabase Edge Function secret 확인 필요");
+async function callOpenAI(userPrompt: string): Promise<{ headline: string; article: string }> {
+  if (!OPENAI_KEY) throw new Error("OPENAI_API_KEY 미설정 — Supabase Edge Function secret 확인 필요");
 
-  const url = "https://api.groq.com/openai/v1/chat/completions";
+  const url = "https://api.openai.com/v1/chat/completions";
   const body = {
     model: MODEL,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: prompt },
+      { role: "user", content: userPrompt },
     ],
     temperature: 0.4,
     max_tokens: 1600,
-    response_format: { type: "json_object" },
+    // Structured Outputs — {headline, article} 스키마 강제
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "article",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            headline: { type: "string" },
+            article: { type: "string" },
+          },
+          required: ["headline", "article"],
+          additionalProperties: false,
+        },
+      },
+    },
   };
 
   const MAX_TRIES = 3;
@@ -208,28 +226,28 @@ async function callGroq(prompt: string): Promise<{ headline: string; article: st
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "authorization": `Bearer ${GROQ_KEY}`,
+          "authorization": `Bearer ${OPENAI_KEY}`,
         },
         body: JSON.stringify(body),
       });
     } catch (e) {
       lastErr = e;
       if (attempt < MAX_TRIES) { await sleep(600 * attempt); continue; }
-      throw new Error("Groq 연결 실패: " + (e as Error).message);
+      throw new Error("OpenAI 연결 실패: " + (e as Error).message);
     }
 
     if (resp.ok) {
       const data = await resp.json();
       const text = data?.choices?.[0]?.message?.content;
-      if (!text) throw new Error("Groq 응답에서 텍스트 추출 실패");
+      if (!text) throw new Error("OpenAI 응답에서 텍스트 추출 실패");
 
       let parsed: any;
       try { parsed = JSON.parse(text); }
-      catch { throw new Error("Groq 응답이 JSON 형식이 아님: " + String(text).slice(0, 200)); }
+      catch { throw new Error("OpenAI 응답이 JSON 형식이 아님: " + String(text).slice(0, 200)); }
 
       const headline = String(parsed.headline || "").trim();
       const article = String(parsed.article || "").trim();
-      if (!headline || !article) throw new Error("Groq 응답에 headline/article 비어있음");
+      if (!headline || !article) throw new Error("OpenAI 응답에 headline/article 비어있음");
       return { headline, article };
     }
 
@@ -238,13 +256,71 @@ async function callGroq(prompt: string): Promise<{ headline: string; article: st
     if (resp.status === 429 || resp.status >= 500) {
       // Retry-After 헤더(초) 존중, 없으면 점증 백오프
       const ra = parseFloat(resp.headers.get("retry-after") || "") || (0.8 * attempt);
-      lastErr = new GroqRateLimit(ra);
+      lastErr = new RateLimitError(ra);
       if (attempt < MAX_TRIES && ra <= 8) { await sleep(ra * 1000); continue; }
-      throw new GroqRateLimit(ra);
+      throw new RateLimitError(ra);
     }
-    throw new Error(`Groq ${resp.status}: ${txt.slice(0, 300)}`);
+    throw new Error(`OpenAI ${resp.status}: ${txt.slice(0, 300)}`);
   }
-  throw (lastErr instanceof Error ? lastErr : new Error("Groq 호출 실패"));
+  throw (lastErr instanceof Error ? lastErr : new Error("OpenAI 호출 실패"));
+}
+
+// ════════════════════════════════════════════════════════════════════
+// 검증 & 정리 — 모델이 못 지키는 규칙을 코드로 강제
+// ════════════════════════════════════════════════════════════════════
+// 글자수 — 유니코드 코드포인트 기준(한글 1자 = 1)
+function charLen(s: string): number {
+  return [...String(s || "")].length;
+}
+// 천단위 쉼표 제거 — "3,000" → "3000", "1,234,567" → "1234567" (결정적)
+function stripNumberCommas(s: string): string {
+  return String(s || "").replace(/(\d),(?=\d)/g, "$1");
+}
+function cleanResult(r: { headline: string; article: string }) {
+  return {
+    headline: stripNumberCommas(r.headline).trim(),
+    article: stripNumberCommas(r.article).trim(),
+  };
+}
+// 정리 후에도 남는 위반(헤드라인 길이)을 모델에게 재요청할 피드백으로 반환
+function validateResult(r: { headline: string; article: string }): string[] {
+  const problems: string[] = [];
+  const hl = charLen(r.headline);
+  if (hl > HEADLINE_MAX) {
+    problems.push(
+      `- 헤드라인이 ${hl}자입니다. 띄어쓰기·쉼표·특수문자 포함 ${HEADLINE_MAX}자 이내로 더 줄이세요. ` +
+      `현재 헤드라인: "${r.headline}"`,
+    );
+  }
+  return problems;
+}
+
+// 생성 → 결정적 정리 → 검증 → (위반 시) 피드백 재생성. 최대 MAX_GEN 회.
+async function generateValidatedArticle(
+  basePrompt: string,
+): Promise<{ headline: string; article: string; attempts: number; ok: boolean }> {
+  const MAX_GEN = 3;
+  let feedback = "";
+  let best: { headline: string; article: string } | null = null;
+
+  for (let attempt = 1; attempt <= MAX_GEN; attempt++) {
+    const userPrompt = feedback
+      ? `${basePrompt}\n\n[직전 출력이 규칙을 위반했습니다 — 반드시 고쳐서 다시 작성하세요]\n${feedback}`
+      : basePrompt;
+
+    const raw = await callOpenAI(userPrompt);
+    const r = cleanResult(raw); // 천단위 쉼표 등 결정적 정리
+    const problems = validateResult(r);
+    if (problems.length === 0) {
+      return { ...r, attempts: attempt, ok: true };
+    }
+    // 완벽하진 않아도 헤드라인이 가장 짧은(제한에 근접) 후보를 보관
+    if (!best || charLen(r.headline) < charLen(best.headline)) best = r;
+    feedback = problems.join("\n");
+  }
+
+  // 끝까지 39자를 못 맞춘 경우 — 최선본 반환(천단위 쉼표는 이미 제거됨)
+  return { ...(best as { headline: string; article: string }), attempts: MAX_GEN, ok: false };
 }
 
 // ════════════════════════════════════════════════════════════════════
@@ -298,26 +374,28 @@ serve(async (req) => {
     return json({ error: "kind 는 dcm/ipo/rights 중 하나여야 합니다." }, 400);
   }
 
-  // 5) Groq 호출
+  // 5) OpenAI 호출 + 검증-재생성 루프
   try {
     const prompt = buildPrompt(payload);
-    const { headline, article } = await callGroq(prompt);
+    const { headline, article, attempts, ok } = await generateValidatedArticle(prompt);
     return json({
       headline, article,
       model: MODEL,
       usage_count: limitRes,
       daily_limit: DAILY_LIMIT,
+      attempts,          // 디버그용 — 검증 통과까지 시도 횟수
+      headline_ok: ok,   // false 면 39자 제한을 끝내 못 맞춘 최선본
     });
   } catch (e) {
-    if (e instanceof GroqRateLimit) {
+    if (e instanceof RateLimitError) {
       const wait = Math.max(10, Math.ceil(e.retryAfter));
-      console.warn("Groq rate limit", e.retryAfter);
+      console.warn("OpenAI rate limit", e.retryAfter);
       return json(
         { error: `지금 생성 요청이 몰려 있습니다. 약 ${wait}초 후 다시 시도해주세요.`, retry_after: wait },
         429,
       );
     }
-    console.error("Groq error", e);
+    console.error("OpenAI error", e);
     return json({ error: "기사 생성 실패: " + (e as Error).message }, 500);
   }
 });

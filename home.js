@@ -728,8 +728,8 @@ async function loadMezz() {
   const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
   const monthAmt = (arr, ym) => arr.filter(r => (r.pymd || '').startsWith(ym)).reduce((s, r) => s + (r.bd_fta_eok || 0), 0);
 
-  // 위젯 3칸: CB / BW / EB 지난달 발행총액
-  $$('mezz-kpi-grid').innerHTML = MEZZ_TYPES.map(([t, lbl]) => {
+  // 위젯 1행: CB / BW / EB 지난달 발행총액 (전년 동월 대비)
+  const row1 = MEZZ_TYPES.map(([t, lbl]) => {
     const cur = monthAmt(buckets[t], prevYM), prev = monthAmt(buckets[t], yoyYM);
     return `
     <a class="v1-kpi" href="mezz-deals/">
@@ -738,6 +738,31 @@ async function loadMezz() {
       <div class="sub">${fmtPct(pct(cur, prev))} <span class="sub-text">전년 동월 대비</span></div>
     </a>`;
   }).join('');
+
+  // 위젯 2행: 올해 최대 CB / BW / EB (이사회결의일 기준 연도, 권면총액 최대) — ECM '최대 IPO/유증'과 동일 형태
+  const _yr = _t.getFullYear(), _mo = _t.getMonth() + 1;
+  const mezzYr = String(_mo === 1 ? _yr - 1 : _yr);  // 1월은 작년 유지 (DCM/ECM 동일 룰)
+  const bigOf = (arr) => {
+    let big = null;
+    for (const r of arr) {
+      if (!r.bddd || !String(r.bddd).startsWith(mezzYr)) continue;
+      const a = r.bd_fta_eok;
+      if (typeof a !== 'number') continue;
+      if (!big || a > big.amount) big = { issuer: r.issuer, amount: a };
+    }
+    return big;
+  };
+  const row2 = MEZZ_TYPES.map(([t, lbl]) => {
+    const big = bigOf(buckets[t]);
+    return `
+    <a class="v1-kpi" href="mezz-deals/">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${mezzYr} 최대 ${lbl}</div>
+      <div class="value compact">${big ? big.issuer : '—'}</div>
+      <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${big ? fmtAmt(big.amount) : ''}</span></div>
+    </a>`;
+  }).join('');
+
+  $$('mezz-kpi-grid').innerHTML = row1 + row2;
 
   // 각 유형: 최근 발행(납입일<오늘, 최신순) / 다가오는(납입일>=오늘, 임박순)
   for (const [t] of MEZZ_TYPES) {

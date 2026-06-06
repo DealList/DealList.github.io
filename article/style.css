@@ -8,9 +8,10 @@
 }
 
 /* ── 1차 탭 (DCM / ECM) ── */
+/* '기사 생성' 제목 아래 하위 섹션 탭 (v1-subheader 안쪽 — 좌측 패딩은 헤더가 가짐) */
 .art-top-tabs {
-  display: flex; gap: 4px; padding: 0 40px;
-  margin: 14px 0 12px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 4px;
+  margin: 14px 0 0;
 }
 .art-tab {
   padding: 11px 22px;
@@ -169,7 +170,7 @@ th.art-col, td.art-col {
 
 /* 모바일 */
 @media (max-width: 720px) {
-  .art-top-tabs { padding: 0 14px; gap: 0; }
+  .art-top-tabs { gap: 0; margin-top: 10px; flex-wrap: wrap; }
   .art-tab { padding: 10px 14px; font-size: 13px; }
   .art-modal-card { max-height: calc(100vh - 30px); }
   .art-modal-head, .art-modal-meta, .art-modal-body, .art-modal-foot {

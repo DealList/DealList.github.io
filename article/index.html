@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../deallist.css?v=20260601e" />
   <!-- 필터·표·페이저 스타일은 ecm-deals 의 .grid 기반 스타일 재활용 -->
   <link rel="stylesheet" href="../ecm-deals/style.css?v=20260526104243" />
-  <link rel="stylesheet" href="style.css?v=20260606d" />
+  <link rel="stylesheet" href="style.css?v=20260606e" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -24,24 +24,23 @@
   <div id="nav-mount" data-active="article" data-root=".."></div>
   <script src="../nav.js?v=20260606d"></script>
 
-  <!-- Sub-header -->
+  <!-- Sub-header (DCM/ECM/메자닌 1차 탭을 '기사 생성' 하위 섹션으로 포함) -->
   <header class="v1-subheader">
     <div class="row">
       <div>
         <div class="kicker">Article Writer</div>
         <h1>기사 생성</h1>
         <div class="sub">발행 정보를 선택해 자동으로 스트레이트 기사 초안을 만들어 드립니다.</div>
+        <!-- 1차 탭: DCM / ECM / 메자닌 -->
+        <div class="art-top-tabs">
+          <button class="art-tab active" data-top="dcm">DCM · 회사채</button>
+          <button class="art-tab" data-top="ecm">ECM · 주식</button>
+          <button class="art-tab" data-top="mezz">메자닌 · CB/BW/EB</button>
+        </div>
       </div>
       <span id="nav-updated-mirror" hidden></span>
     </div>
   </header>
-
-  <!-- 1차 탭: DCM / ECM / 메자닌 -->
-  <div class="art-top-tabs">
-    <button class="art-tab active" data-top="dcm">DCM · 회사채</button>
-    <button class="art-tab" data-top="ecm">ECM · 주식</button>
-    <button class="art-tab" data-top="mezz">메자닌 · CB/BW/EB</button>
-  </div>
 
   <!-- ════════════ DCM 섹션 ════════════ -->
   <section class="art-section" data-section="dcm">

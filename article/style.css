@@ -25,6 +25,25 @@
 /* ── 섹션 전환 ── */
 .art-section { padding: 0; }
 
+/* ── 메자닌 하위 탭 (CB/BW/EB) — ecm-deals 의 .ecm-tab 과 동일 룩이나 JS 충돌 방지 위해 별도 클래스 ── */
+.mezz-tabs {
+  display: flex; gap: 6px; padding: 14px 40px 0;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.mezz-tab {
+  font: inherit; font-size: 14px; font-weight: 600;
+  padding: 9px 22px; cursor: pointer;
+  background: transparent; color: var(--muted);
+  border: 1px solid transparent; border-bottom: none;
+  border-radius: 8px 8px 0 0; margin-bottom: -1px;
+}
+.mezz-tab:hover { color: var(--text); }
+.mezz-tab.active {
+  background: var(--bg); color: var(--accent);
+  border-color: var(--border); border-bottom: 1px solid var(--bg);
+}
+@media (max-width: 720px) { .mezz-tabs { padding: 12px 16px 0; } }
+
 /* ── 표의 "기사 쓰기" 컬럼 ── */
 th.art-col, td.art-col {
   text-align: center; white-space: nowrap; padding: 6px 8px;

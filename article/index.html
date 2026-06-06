@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../deallist.css?v=20260601e" />
   <!-- 필터·표·페이저 스타일은 ecm-deals 의 .grid 기반 스타일 재활용 -->
   <link rel="stylesheet" href="../ecm-deals/style.css?v=20260526104243" />
-  <link rel="stylesheet" href="style.css?v=20260606c" />
+  <link rel="stylesheet" href="style.css?v=20260606d" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
   <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -36,10 +36,11 @@
     </div>
   </header>
 
-  <!-- 1차 탭: DCM / ECM -->
+  <!-- 1차 탭: DCM / ECM / 메자닌 -->
   <div class="art-top-tabs">
     <button class="art-tab active" data-top="dcm">DCM · 회사채</button>
     <button class="art-tab" data-top="ecm">ECM · 주식</button>
+    <button class="art-tab" data-top="mezz">메자닌 · CB/BW/EB</button>
   </div>
 
   <!-- ════════════ DCM 섹션 ════════════ -->
@@ -224,6 +225,75 @@
     <nav id="e-pager" class="pager"></nav>
   </section>
 
+  <!-- ════════════ 메자닌 섹션 ════════════ -->
+  <section class="art-section" data-section="mezz" hidden>
+    <!-- 메자닌 하위 탭: CB / BW / EB (ECM 탭과 클래스 분리 — JS 충돌 방지) -->
+    <div class="mezz-tabs">
+      <button class="mezz-tab active" data-mtab="cb">CB · 전환사채</button>
+      <button class="mezz-tab" data-mtab="bw">BW · 신주인수권부사채</button>
+      <button class="mezz-tab" data-mtab="eb">EB · 교환사채</button>
+    </div>
+
+    <!-- Filters -->
+    <section class="filters">
+      <div class="filter-row">
+        <label>기간 (이사회결의일 기준)
+          <div class="date-range">
+            <input type="date" id="m-f-date-start" />
+            <span class="dash">~</span>
+            <input type="date" id="m-f-date-end" />
+          </div>
+          <div class="date-presets">
+            <button type="button" data-m-preset="3m">최근 3개월</button>
+            <button type="button" data-m-preset="6m">최근 6개월</button>
+            <button type="button" data-m-preset="1y">최근 1년</button>
+            <button type="button" data-m-preset="all">전체</button>
+          </div>
+        </label>
+        <label>발행사 검색
+          <input id="m-f-issuer" type="search" list="m-issuers-datalist"
+                 placeholder="예: 아리바이오 (엔터로 추가)" autocomplete="off" />
+          <datalist id="m-issuers-datalist"></datalist>
+          <div class="issuer-chips" id="m-f-issuer-chips"></div>
+          <div class="filter-hint">최대 10개까지 추가 가능</div>
+        </label>
+        <div class="filter-col">
+          <label>시장
+            <select id="m-f-market"></select>
+          </label>
+          <label>공모/사모
+            <select id="m-f-method"></select>
+          </label>
+        </div>
+      </div>
+      <div class="filter-actions">
+        <button id="m-btn-search" class="btn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          조회
+        </button>
+        <button id="m-btn-reset" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          초기화
+        </button>
+        <button id="m-btn-download" class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Excel로 다운로드
+        </button>
+        <span id="m-result-count" class="result-count"></span>
+      </div>
+    </section>
+
+    <!-- 메자닌 Table (탭별 재렌더) -->
+    <section class="table-wrap">
+      <table class="grid" id="m-grid">
+        <thead id="m-ghead"></thead>
+        <tbody id="m-rows"></tbody>
+      </table>
+      <div id="m-empty" class="empty hidden">조건에 맞는 건이 없습니다.</div>
+    </section>
+    <nav id="m-pager" class="pager"></nav>
+  </section>
+
   <!-- ════════════ 기사 모달 ════════════ -->
   <div id="art-modal" class="art-modal" hidden>
     <div class="art-modal-back"></div>
@@ -259,6 +329,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=20260606p"></script>
+  <script src="app.js?v=20260606q"></script>
 </body>
 </html>

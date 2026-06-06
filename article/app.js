@@ -20,6 +20,7 @@
     /[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
   const fmtN = (v) => (typeof v === "number" ? v.toLocaleString() : "-");
   const fmtRate = (v) => (v == null ? "" : Number(v).toFixed(3));
+  const fmtRate2 = (v) => (v == null || v === "" ? "-" : Number(v).toFixed(2));  // 메자닌 표면/만기금리 2자리
   const fmtBig = (eok) => {
     if (!eok || eok < 0) return "-";
     if (eok >= 10000) {
@@ -108,6 +109,7 @@
     // 첫 진입 시 초기화 (lazy)
     if (t === "dcm" && !DCM.inited) DCM.init();
     if (t === "ecm" && !ECM.inited) ECM.init();
+    if (t === "mezz" && !MEZZ.inited) MEZZ.init();
   }
   // 이벤트 위임 — 직접 핸들러 미연결 케이스 안전망 (script timing 등)
   const topTabsBar = document.querySelector(".art-top-tabs");
@@ -1012,6 +1014,256 @@
   }
 
   // ════════════════════════════════════════════════════════════════════
+  // 메자닌 섹션 (CB/BW/EB) — mezz_data.json {cb,bw,eb}. ECM 패턴 복제.
+  // ════════════════════════════════════════════════════════════════════
+  const MEZZ = {
+    inited:false, DATA:{cb:[],bw:[],eb:[]}, META:null,
+    tab:"cb", page:1, sort:{key:"bddd",dir:"desc"},
+    issuers:new Set(), dateStart:"", dateEnd:"", market:"", method:"",
+    issuerSet:new Map(), lastList:[],
+  };
+  MEZZ.ABBR = { cb:"CB", bw:"BW", eb:"EB" };
+  MEZZ.convLabels = function (t) {
+    if (t === "cb") return { prc:"전환가액(원)", qty:"전환주식수(주)" };
+    if (t === "bw") return { prc:"행사가액(원)", qty:"행사주식수(주)" };
+    return { prc:"교환가액(원)", qty:"교환주식수(주)" };
+  };
+
+  MEZZ.init = async function () {
+    if (MEZZ.inited) return;
+    MEZZ.inited = true;
+    try {
+      const [data, meta] = await Promise.all([
+        NP_loadData("mezz_data.json"),
+        NP_loadData("mezz_meta.json").catch(() => null),
+      ]);
+      MEZZ.DATA = { cb:(data && data.cb) || [], bw:(data && data.bw) || [], eb:(data && data.eb) || [] };
+      MEZZ.META = meta;
+    } catch (e) {
+      console.error("MEZZ load error", e);
+      $("m-empty").textContent = "데이터 로드 실패";
+      $("m-empty").classList.remove("hidden");
+      return;
+    }
+    MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateIssuers();
+    MEZZ.applyDefaultRange(); MEZZ.bindEvents(); MEZZ.render();
+  };
+
+  MEZZ.cols = function () {
+    const cl = MEZZ.convLabels(MEZZ.tab);
+    return [
+      {id:"_art", label:"기사", cell:r => writeBtnHtml(`${MEZZ.tab}:${r._id}`), num:0, cls:"art-col"},
+      {id:"bddd", label:"이사회결의일", cell:r => esc(r.bddd || "-"), val:r => r.bddd},
+      {id:"issuer", label:"발행사", cell:r => r.rcept
+        ? `<a class="dart-link" href="#" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer), val:r => r.issuer},
+      {id:"bd_tm", label:"회차", num:1, cell:r => fmtN(r.bd_tm), val:r => r.bd_tm},
+      {id:"bdis_mthn", label:"방식", cell:r => esc(r.bdis_mthn || "-"), val:r => r.bdis_mthn},
+      {id:"sbd", label:"청약일", cell:r => esc(r.sbd || "-"), val:r => r.sbd},
+      {id:"pymd", label:"납입일", cell:r => esc(r.pymd || "-"), val:r => r.pymd},
+      {id:"bd_mtd", label:"만기일", cell:r => esc(r.bd_mtd || "-"), val:r => r.bd_mtd},
+      {id:"bd_fta_eok", label:"권면총액(억원)", num:1, cell:r => fmtN(r.bd_fta_eok), val:r => r.bd_fta_eok},
+      {id:"intr_ex", label:"표면금리(%)", num:1, cell:r => fmtRate2(r.intr_ex), val:r => r.intr_ex},
+      {id:"intr_sf", label:"만기금리(%)", num:1, cell:r => fmtRate2(r.intr_sf), val:r => r.intr_sf},
+      {id:"conv_prc", label:cl.prc, num:1, cell:r => fmtN(r.conv_prc), val:r => r.conv_prc},
+      {id:"conv_qty", label:cl.qty, num:1, cell:r => fmtN(r.conv_qty), val:r => r.conv_qty},
+      {id:"market", label:"시장", cell:r => esc(r.market || "-"), val:r => r.market},
+      {id:"rpmcmp", label:"대표주관", cell:r => esc(r.rpmcmp || "-"), val:r => r.rpmcmp},
+    ];
+  };
+
+  MEZZ.filtered = function () {
+    const arr = MEZZ.DATA[MEZZ.tab] || [];
+    let out = arr.filter(r => {
+      if ((MEZZ.dateStart || MEZZ.dateEnd) && r.bddd) {
+        if (MEZZ.dateStart && r.bddd < MEZZ.dateStart) return false;
+        if (MEZZ.dateEnd && r.bddd > MEZZ.dateEnd) return false;
+      }
+      if (MEZZ.issuers.size && !MEZZ.issuers.has(r.issuer)) return false;
+      if (MEZZ.market && (r.market || "") !== MEZZ.market) return false;
+      if (MEZZ.method && (r.bdis_mthn || "") !== MEZZ.method) return false;
+      return true;
+    });
+    const cols = MEZZ.cols();
+    const col = cols.find(c => c.id === MEZZ.sort.key) || cols[1];
+    const sgn = MEZZ.sort.dir === "asc" ? 1 : -1;
+    const dateCols = new Set(["bddd","sbd","pymd","bd_mtd"]);
+    out.sort((a, b) => {
+      let x = col.val ? col.val(a) : "", y = col.val ? col.val(b) : "";
+      if (typeof x === "number" || typeof y === "number") {
+        x = typeof x === "number" ? x : -Infinity; y = typeof y === "number" ? y : -Infinity;
+        return (x - y) * sgn;
+      }
+      const xs = String(x || ""), ys = String(y || "");
+      if (dateCols.has(col.id) && (xs === "" || ys === "")) {
+        if (xs === "" && ys === "") return 0;
+        return (xs === "" ? 1 : -1) * sgn;  // 빈 날짜는 항상 끝으로
+      }
+      return xs.localeCompare(ys) * sgn;
+    });
+    return out;
+  };
+
+  MEZZ.render = function () {
+    const cols = MEZZ.cols();
+    $("m-ghead").innerHTML = "<tr>" + cols.map(c => {
+      const sortCls = MEZZ.sort.key === c.id ? (MEZZ.sort.dir === "asc" ? "sorted-asc" : "sorted-desc") : "";
+      const cls = [c.num ? "num" : "", c.cls || "", sortCls].filter(Boolean).join(" ");
+      const sortable = c.id !== "_art";
+      return `<th${sortable ? ` data-col="${c.id}"` : ""}${cls ? ` class="${cls}"` : ""}>${esc(c.label)}</th>`;
+    }).join("") + "</tr>";
+    $("m-ghead").querySelectorAll("th[data-col]").forEach(th =>
+      th.addEventListener("click", () => {
+        const k = th.dataset.col;
+        if (MEZZ.sort.key === k) MEZZ.sort.dir = MEZZ.sort.dir === "asc" ? "desc" : "asc";
+        else MEZZ.sort = { key:k, dir:["bddd","sbd","pymd","bd_mtd"].includes(k) ? "desc" : "asc" };
+        MEZZ.render();
+      }));
+
+    const list = MEZZ.filtered();
+    const pages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    if (MEZZ.page > pages) MEZZ.page = pages;
+    const slice = list.slice((MEZZ.page - 1) * PAGE_SIZE, MEZZ.page * PAGE_SIZE);
+    slice.forEach((r, i) => { if (r._id == null) r._id = `${MEZZ.tab}-${(MEZZ.page-1)*PAGE_SIZE+i}-${r.rcept || r.issuer || ""}`; });
+    MEZZ.lastList = list;
+    $("m-rows").innerHTML = slice.map(r =>
+      "<tr>" + cols.map(c => {
+        const clsA = (c.num ? "num" : "") + (c.cls ? ` ${c.cls}` : "");
+        return `<td${clsA ? ` class="${clsA.trim()}"` : ""}>${c.cell(r)}</td>`;
+      }).join("") + "</tr>"
+    ).join("");
+    $("m-empty").classList.toggle("hidden", list.length > 0);
+    $("m-result-count").innerHTML = `<strong>${list.length.toLocaleString()}</strong>건`;
+    renderPager("m-pager", pages, MEZZ.page, n => { MEZZ.page = n; MEZZ.render(); });
+    document.querySelectorAll(".mezz-tab").forEach(t => t.classList.toggle("active", t.dataset.mtab === MEZZ.tab));
+  };
+
+  MEZZ.populateMarket = function () {
+    const arr = MEZZ.DATA[MEZZ.tab] || [];
+    const vals = [...new Set(arr.map(r => r.market).filter(Boolean))].sort();
+    $("m-f-market").innerHTML = `<option value="">전체</option>` + vals.map(v => `<option>${esc(v)}</option>`).join("");
+    MEZZ.market = "";
+  };
+  MEZZ.populateMethod = function () {
+    const arr = MEZZ.DATA[MEZZ.tab] || [];
+    const vals = [...new Set(arr.map(r => r.bdis_mthn).filter(Boolean))].sort();
+    $("m-f-method").innerHTML = `<option value="">전체</option>` + vals.map(v => `<option>${esc(v)}</option>`).join("");
+    MEZZ.method = "";
+  };
+  MEZZ.populateIssuers = function () {
+    const arr = MEZZ.DATA[MEZZ.tab] || [];
+    const names = [...new Set(arr.map(r => r.issuer).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+    MEZZ.issuerSet = new Map(names.map(n => [n.toLowerCase(), n]));
+    const dl = $("m-issuers-datalist");
+    if (dl) dl.innerHTML = names.map(n => `<option value="${esc(n)}"></option>`).join("");
+  };
+  MEZZ.dateRange = function () {
+    const ds = (MEZZ.DATA[MEZZ.tab] || []).map(r => r.bddd).filter(Boolean);
+    if (!ds.length) return { min:"", max:"" };
+    return { min:ds.reduce((a, b) => b < a ? b : a), max:ds.reduce((a, b) => b > a ? b : a) };
+  };
+  MEZZ.setPresetActive = function (p) {
+    document.querySelectorAll("[data-m-preset]").forEach(b => b.classList.toggle("active", b.dataset.mPreset === p));
+  };
+  MEZZ.applyDefaultRange = function () {
+    const { max } = MEZZ.dateRange();
+    if (max) {
+      const s = new Date(max); s.setFullYear(s.getFullYear() - 1); s.setDate(s.getDate() + 1);
+      $("m-f-date-start").value = s.toISOString().slice(0, 10); $("m-f-date-end").value = max;
+    } else { $("m-f-date-start").value = ""; $("m-f-date-end").value = ""; }
+    MEZZ.dateStart = $("m-f-date-start").value; MEZZ.dateEnd = $("m-f-date-end").value; MEZZ.page = 1;
+    MEZZ.setPresetActive("1y");
+  };
+  MEZZ.applyFilters = function () {
+    MEZZ.dateStart = $("m-f-date-start").value || ""; MEZZ.dateEnd = $("m-f-date-end").value || "";
+    MEZZ.market = $("m-f-market").value || ""; MEZZ.method = $("m-f-method").value || "";
+    MEZZ.page = 1; MEZZ.render();
+  };
+  MEZZ.switchTab = function (t) {
+    if (t === MEZZ.tab) return;
+    MEZZ.tab = t; MEZZ.page = 1; MEZZ.sort = { key:"bddd", dir:"desc" };
+    MEZZ.issuers.clear(); $("m-f-issuer-chips").innerHTML = ""; $("m-f-issuer").value = "";
+    MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateIssuers(); MEZZ.applyDefaultRange();
+    MEZZ.render();
+  };
+
+  MEZZ.bindEvents = function () {
+    document.querySelectorAll(".mezz-tab").forEach(t =>
+      t.addEventListener("click", () => MEZZ.switchTab(t.dataset.mtab)));
+    $("m-rows").addEventListener("click", (e) => {
+      const link = e.target.closest("a.dart-link");
+      if (link) { e.preventDefault(); const r = link.dataset.rcept;
+        if (r) window.open(`https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${r}`, "dart-viewer", "width=1100,height=800");
+        return; }
+      const wb = e.target.closest(".art-btn-write");
+      if (wb) {
+        e.preventDefault();
+        const key = wb.dataset.key;  // '<type>:_id'
+        const rec = (MEZZ.lastList || []).find(r => `${MEZZ.tab}:${r._id}` === key);
+        if (rec) openArticleModal(MEZZ.tab, rec);
+      }
+    });
+    function commitIssuer(silent) {
+      const v = $("m-f-issuer").value.trim(); if (!v) return false;
+      const canon = MEZZ.issuerSet.get(v.toLowerCase());
+      if (!canon) { if (!silent) alert(`'${v}' 발행사를 찾을 수 없습니다.`); return false; }
+      if (MEZZ.issuers.size >= 10 || MEZZ.issuers.has(canon)) { $("m-f-issuer").value = ""; return false; }
+      MEZZ.issuers.add(canon);
+      renderChips("m-f-issuer-chips", [...MEZZ.issuers], (v) => { MEZZ.issuers.delete(v); });
+      $("m-f-issuer").value = ""; return true;
+    }
+    $("m-f-issuer").addEventListener("keydown", e => {
+      if (e.key === "Enter") { e.preventDefault(); commitIssuer(false); }
+    });
+    document.querySelectorAll("[data-m-preset]").forEach(b =>
+      b.addEventListener("click", () => {
+        const p = b.dataset.mPreset; MEZZ.setPresetActive(p);
+        const { min, max } = MEZZ.dateRange();
+        if (p === "all") { $("m-f-date-start").value = min || ""; $("m-f-date-end").value = max || ""; return; }
+        if (!max) return;
+        const s = new Date(max);
+        if (p === "3m") s.setMonth(s.getMonth() - 3);
+        else if (p === "6m") s.setMonth(s.getMonth() - 6);
+        else if (p === "1y") s.setFullYear(s.getFullYear() - 1);
+        s.setDate(s.getDate() + 1);
+        $("m-f-date-end").value = max;
+        $("m-f-date-start").value = s.toISOString().slice(0, 10);
+      }));
+    ["m-f-date-start", "m-f-date-end"].forEach(id =>
+      $(id).addEventListener("change", () => MEZZ.setPresetActive(null)));
+    $("m-btn-search").addEventListener("click", () => {
+      const btn = $("m-btn-search"); const orig = btn.innerHTML;
+      if (btn.dataset.busy) return;
+      btn.dataset.busy = "1"; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>조회 중';
+      setTimeout(() => { commitIssuer(true); MEZZ.applyFilters(); btn.disabled = false; btn.innerHTML = orig; delete btn.dataset.busy; }, 250);
+    });
+    $("m-btn-reset").addEventListener("click", () => {
+      MEZZ.issuers.clear(); $("m-f-issuer-chips").innerHTML = ""; $("m-f-issuer").value = "";
+      $("m-f-market").value = ""; MEZZ.market = ""; $("m-f-method").value = ""; MEZZ.method = "";
+      MEZZ.applyDefaultRange(); MEZZ.render();
+    });
+    $("m-btn-download").addEventListener("click", MEZZ.downloadExcel);
+  };
+
+  MEZZ.downloadExcel = function () {
+    const list = MEZZ.filtered();
+    if (!list.length) { alert("다운로드할 데이터가 없습니다."); return; }
+    const cl = MEZZ.convLabels(MEZZ.tab);
+    const header = ["이사회결의일","발행사","회차","방식","청약일","납입일","만기일","권면총액(억원)",
+      "표면금리(%)","만기금리(%)", cl.prc, cl.qty, "발행주식총수대비(%)", "청구기간 시작", "청구기간 종료", "시장", "대표주관"];
+    const rows = list.map(r => [r.bddd || "", r.issuer || "", r.bd_tm, r.bdis_mthn || "", r.sbd || "", r.pymd || "",
+      r.bd_mtd || "", r.bd_fta_eok, r.intr_ex, r.intr_sf, r.conv_prc, r.conv_qty, r.conv_vs,
+      r.conv_bgd || "", r.conv_edd || "", r.market || "", r.rpmcmp || ""]);
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws["!cols"] = header.map((h, i) => ({ wch: i === 1 ? 16 : ([0,4,5,6,13,14].includes(i) ? 12 : 11) }));
+    const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
+      fill:{fgColor:{rgb:"F1F5F9"},patternType:"solid"} };
+    for (let c = 0; c < header.length; c++) { const ref = XLSX.utils.encode_cell({ r:0, c }); if (ws[ref]) ws[ref].s = hs; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, MEZZ.ABBR[MEZZ.tab]);
+    XLSX.writeFile(wb, `NumbersPool_메자닌_${MEZZ.ABBR[MEZZ.tab]}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  // ════════════════════════════════════════════════════════════════════
   // 기사 모달 — Edge Function (generate-article) 연동
   // ════════════════════════════════════════════════════════════════════
   let currentArticleCtx = null;  // { kind, data }
@@ -1147,6 +1399,15 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
         `<span class="sep">·</span>${esc(data.type || "")}` +
         `<span class="sep">·</span>${esc(data.date ? `기준일 ${data.date}` : "기준일 미정")}` +
         `<span class="sep">·</span>${fmtBig(data.final_total ?? data.total_1 ?? data.init_total)}`;
+    } else if (kind === "cb" || kind === "bw" || kind === "eb") {
+      const abbr = MEZZ.ABBR[kind];
+      const kor = { cb:"전환사채", bw:"신주인수권부사채", eb:"교환사채" }[kind];
+      title = `${data.issuer} ${abbr}`;
+      metaHtml = `<strong>${esc(data.issuer)}</strong>` +
+        `<span class="sep">·</span>${esc(kor)}` +
+        (data.bdis_mthn ? `<span class="sep">·</span>${esc(data.bdis_mthn)}` : "") +
+        (data.bddd ? `<span class="sep">·</span>결의 ${esc(data.bddd)}` : "") +
+        `<span class="sep">·</span>${fmtBig(data.bd_fta_eok)}`;
     }
     // 기사 창만 연다(공시는 자동으로 띄우지 않고 '원본 공시 보기' 버튼으로 토글). dcm은 rep.rcept.
     const rcept = kind === "dcm" ? (data.rep && data.rep.rcept) : data.rcept;
@@ -1272,6 +1533,24 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
       신주배정기준일: r.date || null, 최초공시일: r.disclosure_date || null,
       유형: r.type, 신주_수량: r.new_qty, 증자비율: ratioPct2Str(r.new_qty, r.existing_qty, r.increase_ratio),
       확정가_원: r.final_price, 확정총액_억: r.final_total,
+    }));
+  }
+
+  // ── 같은 발행사의 직전 메자닌 발행 (CB/BW/EB 통합, 이사회결의일 desc 최대 2건) ──
+  function mezzHistory(kind, cur) {
+    if (!cur || !cur.issuer) return [];
+    const all = [...(MEZZ.DATA.cb || []), ...(MEZZ.DATA.bw || []), ...(MEZZ.DATA.eb || [])];
+    const curD = cur.bddd || "";
+    const past = all
+      .filter(r => r !== cur && r.issuer === cur.issuer && r.bddd && (!curD || r.bddd < curD))
+      .sort((a, b) => (b.bddd || "").localeCompare(a.bddd || ""))
+      .slice(0, 2);
+    return past.map(r => ({
+      이사회결의일: r.bddd || null,
+      종목: MEZZ.ABBR[r.type] || r.type,
+      방식: r.bdis_mthn || null,
+      권면총액_억: r.bd_fta_eok,
+      표면이자율: r.intr_ex, 만기이자율: r.intr_sf,
     }));
   }
 
@@ -1430,6 +1709,53 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
           ...ecmRaiseChange(data),
           ...ecmSyndicate("ipo", data),
           history: ecmHistory("ipo", data),  // 보통 없음
+        },
+      };
+    }
+    if (kind === "cb" || kind === "bw" || kind === "eb") {
+      const kor = { cb:"전환사채", bw:"신주인수권부사채", eb:"교환사채" }[kind];
+      const abbr = MEZZ.ABBR[kind];
+      const act = { cb:"전환", bw:"행사", eb:"교환" }[kind];  // 행위 명사 (BW=신주인수권 행사)
+      // 공시일: rcept 앞 8자리(YYYYMMDD) — 메자닌은 별도 disclosure_date 없음
+      let 공시일 = null;
+      if (data.rcept && /^\d{8}/.test(String(data.rcept))) {
+        const s = String(data.rcept);
+        공시일 = `${s.slice(0, 4)}-${s.slice(4, 6)}-${s.slice(6, 8)}`;
+      }
+      const 만기연수 = maturityYears(data.pymd || data.bddd, data.bd_mtd);
+      // 자금 용도(fdpp): 원 → 억, 0/빈 항목 제외
+      let 자금용도_억 = null;
+      if (data.fdpp && typeof data.fdpp === "object") {
+        const u = {};
+        for (const [k, v] of Object.entries(data.fdpp)) { if (typeof v === "number" && v > 0) u[k] = Math.round(v / 1e8); }
+        if (Object.keys(u).length) 자금용도_억 = u;
+      }
+      const vsPct = (typeof data.conv_vs === "number" && isFinite(data.conv_vs))
+        ? (Math.round(data.conv_vs * 100) / 100) + "%" : null;
+      return {
+        kind,
+        data: {
+          오늘날짜: today, 오늘일,
+          시제: tense(data.pymd, today),  // 납입일 기준 — 메자닌은 납입일이 발행 완료 시점
+          발행사: data.issuer, 종목: abbr, 종목_한글: kor,
+          회차: data.bd_tm,
+          시장: data.market || null,
+          공모사모: data.bdis_mthn || null,
+          최초공시일: 공시일,
+          이사회결의일: data.bddd || null, 이사회결의일_표현: relDate(data.bddd, today),
+          청약일: data.sbd || null, 청약일_표현: relDate(data.sbd, today),
+          납입일: data.pymd || null, 납입일_표현: relDate(data.pymd, today),
+          만기일: data.bd_mtd || null, 만기연수,
+          권면총액_억: data.bd_fta_eok,
+          표면이자율: data.intr_ex, 만기이자율: data.intr_sf,
+          [`${act}가액_원`]: data.conv_prc ?? null,
+          [`${act}가능주식수`]: data.conv_qty ?? null,
+          발행주식총수_대비_비율: vsPct,
+          [`${act}청구기간_시작`]: data.conv_bgd || null,
+          [`${act}청구기간_종료`]: data.conv_edd || null,
+          자금용도_억,
+          대표주관: data.rpmcmp || null,
+          history: mezzHistory(kind, data),
         },
       };
     }

@@ -8,7 +8,7 @@
   let META = null;
   let issuerSet = new Map();
   const state = {
-    tab: "cb", sort: { key: "sbd", dir: "desc" }, page: 1,
+    tab: "cb", sort: { key: "bddd", dir: "desc" }, page: 1,
     issuers: new Set(), market: "", method: "",
     dateStart: "", dateEnd: "", totalMin: 0, totalMax: 0,
   };
@@ -37,7 +37,6 @@
     const lab = CONV_LABEL[tab];
     // 순서 = 표시 순서. hide: true 면 표·정렬에선 숨김(Excel 다운로드에는 포함).
     return [
-      { id: "sbd",       label: "청약일",        cell: r => esc(fmtDate(r.sbd)),      val: r => r.sbd,       xls: r => r.sbd || "" },
       { id: "bddd",      label: "이사회결의일",  cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
       { id: "issuer",    label: "발행사", cls: "issuer",
         cell: r => r.rcept ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer),
@@ -56,6 +55,7 @@
         cell: r => esc(fmtRange(r.conv_bgd, r.conv_edd)),
         val: r => r.conv_bgd || "", xls: r => fmtRange(r.conv_bgd, r.conv_edd) },
       // ─ 표 비공개(웹에선 숨김, Excel 다운로드에는 포함) ─
+      { id: "sbd",       label: "청약일", hide: true, cell: r => esc(fmtDate(r.sbd)),  val: r => r.sbd,       xls: r => r.sbd || "" },
       { id: "market",    label: "시장", hide: true,  cell: r => esc(r.market || "-"),  val: r => r.market,    xls: r => r.market || "" },
       { id: "rpmcmp",    label: "대표주관", hide: true, cell: r => esc(r.rpmcmp || "-"), val: r => r.rpmcmp || "", xls: r => r.rpmcmp || "" },
       { id: "bd_knd",    label: "종류", hide: true, cell: r => esc(r.bd_knd || "-"),   val: r => r.bd_knd || "", xls: r => r.bd_knd || "" },
@@ -200,7 +200,7 @@
   }
   function switchTab(tab) {
     if (tab === state.tab) return;
-    state.tab = tab; state.page = 1; state.sort = { key: "sbd", dir: "desc" };
+    state.tab = tab; state.page = 1; state.sort = { key: "bddd", dir: "desc" };
     state.issuers.clear();
     chipBox("f-issuer-chips", state.issuers);
     $("f-total-min").value = ""; $("f-total-max").value = ""; state.totalMin = state.totalMax = 0;

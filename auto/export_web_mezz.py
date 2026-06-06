@@ -54,6 +54,14 @@ def _eok(v):
         return None
 
 
+def _meaningful(w: dict) -> bool:
+    """페이지 표에 의미 있는 행: 핵심 필드 중 최소 1개라도 채워져 있어야 함.
+    DART 발행결정 API 가 사모 일부 케이스에서 '회차·종류·사모'만 있고 발행조건 전부 빈
+    껍데기 응답을 줌(약 3%). 그 행은 표에서 잡음이라 제외.
+    """
+    return any(w.get(k) is not None for k in ("bddd", "bd_fta_eok", "sbd", "pymd", "bd_mtd", "intr_ex", "conv_prc"))
+
+
 def to_web(r: dict) -> dict:
     """페이지가 쓰는 가벼운 필드 셋. 한국어 컬럼명은 그대로 두고 영문 키로 노출."""
     return {
@@ -95,15 +103,20 @@ def main():
     print(f"  fetched: {len(rows)}건")
 
     buckets = {"cb": [], "bw": [], "eb": []}
+    skipped = {"cb": 0, "bw": 0, "eb": 0}
     for r in rows:
         t = r.get("type")
         if t in buckets:
-            buckets[t].append(to_web(r))
+            w = to_web(r)
+            if _meaningful(w):
+                buckets[t].append(w)
+            else:
+                skipped[t] += 1
 
     # 기본 정렬: 이사회결의일 desc (페이지에서 다시 정렬해도 무관, 초기 렌더 빠르게)
     for k in buckets:
         buckets[k].sort(key=lambda x: x.get("bddd") or "", reverse=True)
-        print(f"  {k.upper()}: {len(buckets[k])}건")
+        print(f"  {k.upper()}: {len(buckets[k])}건 (잡음 제외 {skipped[k]}건)")
 
     data = {"cb": buckets["cb"], "bw": buckets["bw"], "eb": buckets["eb"]}
     out = WEB / "mezz_data.json"

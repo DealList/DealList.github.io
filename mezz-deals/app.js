@@ -86,15 +86,16 @@
     out.sort((a, b) => {
       let x = col.val ? col.val(a) : "", y = col.val ? col.val(b) : "";
       if (typeof x === "number" || typeof y === "number") {
-        x = typeof x === "number" ? x : -Infinity;
-        y = typeof y === "number" ? y : -Infinity;
+        const xn = typeof x === "number", yn = typeof y === "number";
+        // 빈값(숫자 아님)은 asc/desc 무관하게 맨 뒤로
+        if (!xn || !yn) return (!xn && !yn) ? 0 : (!xn ? 1 : -1);
         return (x - y) * sgn;
       }
       const xs = String(x || ""), ys = String(y || "");
-      // 날짜 컬럼 빈값은 가장 과거로 (desc 시 맨 아래)
-      if (["bddd","bd_mtd","sbd","pymd"].includes(col.id) && (xs === "" || ys === "")) {
+      // 빈값은 asc/desc 무관하게 항상 맨 뒤로(잡음을 위로 끌고 오지 않게)
+      if (xs === "" || ys === "") {
         if (xs === "" && ys === "") return 0;
-        return (xs === "" ? -1 : 1) * sgn;
+        return xs === "" ? 1 : -1;
       }
       return xs.localeCompare(ys) * sgn;
     });

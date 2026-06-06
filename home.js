@@ -701,15 +701,95 @@ function setupEcmTrend(svgId, months) {
   }));
 }
 
+/* ═══════════════ 메자닌 랜딩 (CB / BW / EB) ═══════════════ */
+// 데이터: mezz_data.json {cb,bw,eb}. 발행(납입)일 = pymd, 금액 = 권면총액(bd_fta_eok, 억).
+// 최근 발행 = 납입일이 오늘 이전(어제까지) / 다가오는 = 납입일이 오늘 포함 이후.
+let _mezzLoaded = false;
+const MEZZ_TYPES = [['cb', 'CB'], ['bw', 'BW'], ['eb', 'EB']];
+
+async function loadMezz() {
+  if (_mezzLoaded) return;
+  let data;
+  try { data = await NP_loadData('mezz_data.json'); }
+  catch (e) { console.error('Mezz load failed', e); return; }
+  _mezzLoaded = true;
+
+  const buckets = { cb: data.cb || [], bw: data.bw || [], eb: data.eb || [] };
+  const _t = new Date();
+  const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
+
+  // 지난달 발행총액(납입일 기준) — DCM/ECM 위젯과 동일 (매월 1일에 넘어감)
+  const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const prevMonth = new Date(_t.getFullYear(), _t.getMonth() - 1, 1);
+  const prevPrevMonth = new Date(_t.getFullYear(), _t.getMonth() - 2, 1);
+  const prevYM = _ym(prevMonth), prevPrevYM = _ym(prevPrevMonth);
+  const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
+  const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
+  const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
+  const monthAmt = (arr, ym) => arr.filter(r => (r.pymd || '').startsWith(ym)).reduce((s, r) => s + (r.bd_fta_eok || 0), 0);
+
+  // 위젯 3칸: CB / BW / EB 지난달 발행총액
+  $$('mezz-kpi-grid').innerHTML = MEZZ_TYPES.map(([t, lbl]) => {
+    const cur = monthAmt(buckets[t], prevYM), prev = monthAmt(buckets[t], prevPrevYM);
+    return `
+    <a class="v1-kpi" href="mezz-deals/">
+      <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${monthLabel} ${lbl} 발행총액</div>
+      <div class="value">${fmtAmt(cur)}</div>
+      <div class="sub">${fmtPct(pct(cur, prev))} <span class="sub-text">전월 대비</span></div>
+    </a>`;
+  }).join('');
+
+  // 각 유형: 최근 발행(납입일<오늘, 최신순) / 다가오는(납입일>=오늘, 임박순)
+  for (const [t] of MEZZ_TYPES) {
+    const arr = buckets[t];
+    const recent = arr.filter(r => r.pymd && r.pymd < today)
+      .sort((a, b) => (b.pymd || '').localeCompare(a.pymd || '')).slice(0, 8);
+    const upcoming = arr.filter(r => r.pymd && r.pymd >= today)
+      .sort((a, b) => (a.pymd || '').localeCompare(b.pymd || '')).slice(0, 8);
+    renderMezzRows(`mezz-recent-${t}`, recent, false);
+    renderMezzRows(`mezz-upcoming-${t}`, upcoming, true);
+  }
+}
+
+function renderMezzRows(rootId, list, upcoming) {
+  const root = $$(rootId); if (!root) return;
+  const container = root.closest('.v1-deals');
+  if (container) container.classList.add('no-leads');
+  if (!list.length) {
+    root.innerHTML = `<div style="padding:40px 18px;text-align:center;color:var(--muted);font-size:13px;">${upcoming ? '예정된 건이 없습니다.' : '최근 발행 건이 없습니다.'}</div>`;
+    return;
+  }
+  root.innerHTML = list.map(s => {
+    const d = s.pymd || '';
+    const amt = s.bd_fta_eok;
+    const amtHtml = (amt != null && amt > 0) ? `<div class="amt">${fmtAmt(amt)}</div>` : `<div class="amt pending">미정</div>`;
+    const tagTxt = s.bdis_mthn || s.market || '—';
+    const parts = [];
+    if (s.bd_tm != null) parts.push(`${s.bd_tm}회차`);
+    if (s.market) parts.push(s.market);
+    const sub = parts.join(' · ') || '메자닌';
+    return `
+    <a class="v1-deal-row" href="mezz-deals/">
+      <div class="date"><span class="d">${shortDay(d)}</span><span>${shortMonth(d)}</span></div>
+      <div class="issuer"><div class="name">${s.issuer || '—'}</div><div class="series">${sub}</div></div>
+      <div><span class="tag">${tagTxt}</span></div>
+      ${amtHtml}
+    </a>`;
+  }).join('');
+}
+
 function wireSectionTabs() {
   const tabs = document.querySelectorAll('.v1-section-tab');
   if (!tabs.length) return;
+  const dcm = $$('dcm-main'), ecm = $$('ecm-main'), mezz = $$('mezz-main');
   tabs.forEach(tab => tab.addEventListener('click', () => {
     const sec = tab.dataset.section;
     tabs.forEach(t => t.classList.toggle('active', t === tab));
-    const dcm = $$('dcm-main'), ecm = $$('ecm-main');
-    if (sec === 'ecm') { if (dcm) dcm.hidden = true; if (ecm) ecm.hidden = false; loadEcm(); }
-    else { if (ecm) ecm.hidden = true; if (dcm) dcm.hidden = false; }
+    if (dcm) dcm.hidden = sec !== 'dcm';
+    if (ecm) ecm.hidden = sec !== 'ecm';
+    if (mezz) mezz.hidden = sec !== 'mezz';
+    if (sec === 'ecm') loadEcm();
+    else if (sec === 'mezz') loadMezz();
   }));
 }
 

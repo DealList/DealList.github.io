@@ -10,7 +10,7 @@
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <script src="np-loading.js?v=20260602a"></script>
   <link rel="stylesheet" href="deallist.css?v=20260601f" />
-  <link rel="stylesheet" href="landing.css?v=20260601h" />
+  <link rel="stylesheet" href="landing.css?v=20260606a" />
   <!-- Supabase + auth (data-loader 가 NP_loadData 제공) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-client.js?v=20260602g"></script>
@@ -45,6 +45,10 @@
     <div class="v1-section-tab" data-section="ecm">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
       ECM · 주식시장
+    </div>
+    <div class="v1-section-tab" data-section="mezz">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      CB/BW/EB · 메자닌
     </div>
   </div>
 
@@ -287,6 +291,74 @@
 
   </main>
 
+  <!-- ════════ Main (메자닌 CB/BW/EB) ════════ -->
+  <main class="v1-main" id="mezz-main" hidden>
+
+    <!-- 위젯: CB/BW/EB 지난달 발행총액 (filled by home.js) -->
+    <div class="v1-kpis" id="mezz-kpi-grid"></div>
+
+    <!-- CB -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title"><h2>최근 발행 CB</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 기준 · 최근</h3></div><div id="mezz-recent-cb"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2>다가오는 CB 청약</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 도래 전</h3></div><div id="mezz-upcoming-cb"></div></div>
+      </div>
+    </div>
+
+    <!-- BW -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title"><h2>최근 발행 BW</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 기준 · 최근</h3></div><div id="mezz-recent-bw"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2>다가오는 BW 청약</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 도래 전</h3></div><div id="mezz-upcoming-bw"></div></div>
+      </div>
+    </div>
+
+    <!-- EB -->
+    <div class="v1-two-col">
+      <div>
+        <div class="v1-sec-title"><h2>최근 발행 EB</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 기준 · 최근</h3></div><div id="mezz-recent-eb"></div></div>
+      </div>
+      <div>
+        <div class="v1-sec-title"><h2>다가오는 EB 청약</h2><a href="mezz-deals/">전체보기 →</a></div>
+        <div class="v1-deals no-leads"><div class="head"><h3>납입일 도래 전</h3></div><div id="mezz-upcoming-eb"></div></div>
+      </div>
+    </div>
+
+    <!-- Quick links -->
+    <div class="v1-quick-grid">
+      <a class="v1-quick" href="mezz-deals/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">CB·BW·EB 발행 정보</div>
+          <div class="desc">메자닌 발행결정 내역 조회</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+      <a class="v1-quick" href="mezz-charts/">
+        <div class="ic">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg>
+        </div>
+        <div class="body">
+          <div class="ttl">인포그래픽</div>
+          <div class="desc">월별·공모사모·자금용도·금리 차트</div>
+        </div>
+        <div class="arrow">→</div>
+      </a>
+    </div>
+
+  </main>
+
   <footer class="v1-foot">
     <div style="display:flex; flex-direction:column; gap:11px; width:100%;">
       <p style="margin:0; max-width:1080px; font-size:11px; line-height:1.75; color:var(--muted);">
@@ -299,6 +371,6 @@
     </div>
   </footer>
 
-  <script src="home.js?v=20260602e"></script>
+  <script src="home.js?v=20260606a"></script>
 </body>
 </html>

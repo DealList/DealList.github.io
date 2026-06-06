@@ -523,25 +523,46 @@
 
   // ───────── 수동 수집 트리거 ─────────
   function setupTriggers() {
-    wireTrigger('btn-trigger-dart', 'trigger-status', 'trigger_dart_update', 'DCM', 'https://github.com/DealList/DealList.github.io/actions/workflows/data-update.yml');
-    wireTrigger('btn-trigger-ecm', 'trigger-status-ecm', 'trigger_ecm_update', 'ECM', 'https://github.com/DealList/DealList.github.io/actions/workflows/ecm-data-update.yml');
-    wireTrigger('btn-trigger-mezz', 'trigger-status-mezz', 'trigger_mezz_update', '메자닌', 'https://github.com/DealList/DealList.github.io/actions/workflows/mezz-data-update.yml');
+    // 기본 조회기간: 오늘 기준 — DCM/ECM 최근 3일, 메자닌 최근 14일 (정정·철회 추적).
+    wireTrigger('btn-trigger-dart', 'trigger-status', 'trigger_dart_update', 'DCM', 'https://github.com/DealList/DealList.github.io/actions/workflows/data-update.yml', 'td-from-dart', 'td-to-dart', 3);
+    wireTrigger('btn-trigger-ecm', 'trigger-status-ecm', 'trigger_ecm_update', 'ECM', 'https://github.com/DealList/DealList.github.io/actions/workflows/ecm-data-update.yml', 'td-from-ecm', 'td-to-ecm', 3);
+    wireTrigger('btn-trigger-mezz', 'trigger-status-mezz', 'trigger_mezz_update', '메자닌', 'https://github.com/DealList/DealList.github.io/actions/workflows/mezz-data-update.yml', 'td-from-mezz', 'td-to-mezz', 14);
   }
-  function wireTrigger(btnId, statusId, rpc, label, actionsUrl) {
+  function isoDate(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function wireTrigger(btnId, statusId, rpc, label, actionsUrl, fromId, toId, defDays) {
     const btn = $(btnId); if (!btn) return;
+    const fromEl = $(fromId), toEl = $(toId);
+    // 기본값: 오늘 기준 최근 defDays일 (오늘 - defDays ~ 오늘) — 워크플로 수동 기본치와 동일.
+    if (fromEl && toEl) {
+      const today = new Date(), past = new Date();
+      past.setDate(today.getDate() - defDays);
+      toEl.value = isoDate(today);
+      fromEl.value = isoDate(past);
+    }
     btn.addEventListener('click', async () => {
       const box = $(statusId);
-      if (!confirm(`지금 ${label} 데이터 수집을 실행하시겠습니까?\n\n자동 수집과 동일한 작업이며 약 3~5분 후 사이트에 반영됩니다.`)) return;
+      const start = fromEl ? fromEl.value : '', end = toEl ? toEl.value : '';
+      if (start && end && start > end) {
+        alert('시작일이 종료일보다 늦습니다. 기간을 다시 확인해 주세요.');
+        return;
+      }
+      const range = (start || end) ? `${start || '?'} ~ ${end || '?'}` : '기본 기간';
+      if (!confirm(`지금 ${label} 데이터 수집을 실행하시겠습니까?\n\n조회기간: ${range}\n자동 수집과 동일한 작업이며 약 3~5분 후 사이트에 반영됩니다.`)) return;
       btn.disabled = true; btn.textContent = '실행 요청 중...';
       box.hidden = false; box.className = 'trigger-status';
       box.innerHTML = `<div class="ts-title">GitHub Actions 에 요청 보내는 중...</div>`;
       try {
-        const { error } = await sb.rpc(rpc);
+        const params = {};
+        if (start) params.p_start = start;
+        if (end) params.p_end = end;
+        const { error } = await sb.rpc(rpc, params);
         if (error) throw error;
         const now = new Date(), fin = new Date(now.getTime() + 5 * 60 * 1000);
         const fmt = d => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         box.className = 'trigger-status status-success';
-        box.innerHTML = `<div class="ts-title">✅ 실행 요청 완료</div><div>${label} 수집 워크플로우가 시작됐습니다.</div>` +
+        box.innerHTML = `<div class="ts-title">✅ 실행 요청 완료</div><div>${label} 수집 워크플로우가 시작됐습니다. <strong>(${esc(range)})</strong></div>` +
           `<div class="ts-meta" style="margin-top:6px;">• 요청 ${fmt(now)} · 예상 완료 ~${fmt(fin)}<br>• <a href="${actionsUrl}" target="_blank" rel="noopener">진행 상황 확인</a></div>`;
         btn.textContent = '✓ 요청 완료';
         setTimeout(() => { btn.disabled = false; btn.textContent = '지금 실행'; }, 30000);

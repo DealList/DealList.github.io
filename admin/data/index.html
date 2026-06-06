@@ -23,6 +23,10 @@
     .trigger-status .ts-meta { color: var(--muted); font-size: 12px; }
     .trigger-status a { color: var(--accent); text-decoration: none; }
     .trigger-status a:hover { text-decoration: underline; }
+    .trig-dates { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .trig-dates > label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); font-weight: 600; }
+    .trig-dates input[type="date"] { padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12.5px; font-family: inherit; }
+    .trig-dates .dash { color: var(--muted); }
 
     .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
     .seg button { padding: 8px 18px; background: var(--surface); color: var(--muted); border: 0; font-size: 13.5px; font-weight: 700; cursor: pointer; }
@@ -101,6 +105,13 @@
               </div>
               <button id="btn-trigger-dart" class="admin-btn">지금 실행</button>
             </div>
+            <div class="trig-dates">
+              <label>기간
+                <input type="date" id="td-from-dart" />
+                <span class="dash">~</span>
+                <input type="date" id="td-to-dart" />
+              </label>
+            </div>
             <div id="trigger-status" class="trigger-status" hidden></div>
           </div>
           <div class="admin-card" style="margin:0;">
@@ -111,6 +122,13 @@
               </div>
               <button id="btn-trigger-ecm" class="admin-btn">지금 실행</button>
             </div>
+            <div class="trig-dates">
+              <label>기간
+                <input type="date" id="td-from-ecm" />
+                <span class="dash">~</span>
+                <input type="date" id="td-to-ecm" />
+              </label>
+            </div>
             <div id="trigger-status-ecm" class="trigger-status" hidden></div>
           </div>
           <div class="admin-card" style="margin:0;">
@@ -120,6 +138,13 @@
                 <p class="admin-muted" style="margin:0;">자동 수집과 동일 · 약 3~5분 후 사이트 반영</p>
               </div>
               <button id="btn-trigger-mezz" class="admin-btn">지금 실행</button>
+            </div>
+            <div class="trig-dates">
+              <label>기간
+                <input type="date" id="td-from-mezz" />
+                <span class="dash">~</span>
+                <input type="date" id="td-to-mezz" />
+              </label>
             </div>
             <div id="trigger-status-mezz" class="trigger-status" hidden></div>
           </div>
@@ -175,7 +200,7 @@
   <script src="../../supabase-client.js?v=20260602g"></script>
   <script src="../../auth-helper.js?v=20260603a"></script>
   <script src="../../data-loader.js?v=20260602g"></script>
-  <script src="app.js?v=20260606a"></script>
+  <script src="app.js?v=20260606b"></script>
 
 </body>
 </html>

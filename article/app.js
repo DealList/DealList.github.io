@@ -20,7 +20,11 @@
     /[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
   const fmtN = (v) => (typeof v === "number" ? v.toLocaleString() : "-");
   const fmtRate = (v) => (v == null ? "" : Number(v).toFixed(3));
-  const fmtRate2 = (v) => (v == null || v === "" ? "-" : Number(v).toFixed(2));  // 메자닌 표면/만기금리 2자리
+  const fmtRate2 = (v) => (v == null || v === "" ? "-" : Number(v).toFixed(2));  // 메자닌 표면/만기금리 2자리(0 유지)
+  // 메자닌 발행정보 페이지(mezz-deals)와 동일 포매터:
+  const fmtNum1 = (v) => (typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "-");  // 권면총액(억) 1자리
+  const fmtRange = (a, b) => (a || b) ? `${a || "-"} ~ ${b || "-"}` : "-";  // 전환/행사/교환 기간
+  const fmtMezzPct = (v) => (typeof v === "number" && isFinite(v)) ? v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "") : "-";  // 총수대비(%) — 이미 %값(×100 안 함)
   const fmtBig = (eok) => {
     if (!eok || eok < 0) return "-";
     if (eok >= 10000) {
@@ -1023,10 +1027,10 @@
     issuerSet:new Map(), lastList:[],
   };
   MEZZ.ABBR = { cb:"CB", bw:"BW", eb:"EB" };
-  MEZZ.convLabels = function (t) {
-    if (t === "cb") return { prc:"전환가액(원)", qty:"전환주식수(주)" };
-    if (t === "bw") return { prc:"행사가액(원)", qty:"행사주식수(주)" };
-    return { prc:"교환가액(원)", qty:"교환주식수(주)" };
+  MEZZ.convLabels = function (t) {  // mezz-deals(발행정보)와 동일 라벨
+    if (t === "cb") return { prc:"전환가(원)", qty:"전환주식수(만주)", vs:"총수 대비(%)", period:"전환기간" };
+    if (t === "bw") return { prc:"행사가(원)", qty:"행사주식수(만주)", vs:"총수 대비(%)", period:"행사기간" };
+    return { prc:"교환가(원)", qty:"교환주식수(만주)", vs:"총수 대비(%)", period:"교환기간" };
   };
 
   MEZZ.init = async function () {
@@ -1049,25 +1053,26 @@
     MEZZ.applyDefaultRange(); MEZZ.bindEvents(); MEZZ.render();
   };
 
+  // 발행정보 페이지(mezz-deals)와 동일한 표시 컬럼·순서·라벨·포매터 (+ 맨 앞 기사 버튼).
+  // 청약일·시장·대표주관·종류는 발행정보처럼 표에서 숨기고 Excel 에만 포함.
   MEZZ.cols = function () {
-    const cl = MEZZ.convLabels(MEZZ.tab);
+    const lab = MEZZ.convLabels(MEZZ.tab);
     return [
       {id:"_art", label:"기사", cell:r => writeBtnHtml(`${MEZZ.tab}:${r._id}`), num:0, cls:"art-col"},
-      {id:"bddd", label:"이사회결의일", cell:r => esc(r.bddd || "-"), val:r => r.bddd},
+      {id:"bddd", label:"이사회 결의일", cell:r => esc(r.bddd || "-"), val:r => r.bddd},
       {id:"issuer", label:"발행사", cell:r => r.rcept
         ? `<a class="dart-link" href="#" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer), val:r => r.issuer},
       {id:"bd_tm", label:"회차", num:1, cell:r => fmtN(r.bd_tm), val:r => r.bd_tm},
       {id:"bdis_mthn", label:"방식", cell:r => esc(r.bdis_mthn || "-"), val:r => r.bdis_mthn},
-      {id:"sbd", label:"청약일", cell:r => esc(r.sbd || "-"), val:r => r.sbd},
-      {id:"pymd", label:"납입일", cell:r => esc(r.pymd || "-"), val:r => r.pymd},
       {id:"bd_mtd", label:"만기일", cell:r => esc(r.bd_mtd || "-"), val:r => r.bd_mtd},
-      {id:"bd_fta_eok", label:"권면총액(억원)", num:1, cell:r => fmtN(r.bd_fta_eok), val:r => r.bd_fta_eok},
+      {id:"pymd", label:"납입일", cell:r => esc(r.pymd || "-"), val:r => r.pymd},
+      {id:"bd_fta_eok", label:"권면총액(억원)", num:1, cell:r => fmtNum1(r.bd_fta_eok), val:r => r.bd_fta_eok},
       {id:"intr_ex", label:"표면금리(%)", num:1, cell:r => fmtRate2(r.intr_ex), val:r => r.intr_ex},
       {id:"intr_sf", label:"만기금리(%)", num:1, cell:r => fmtRate2(r.intr_sf), val:r => r.intr_sf},
-      {id:"conv_prc", label:cl.prc, num:1, cell:r => fmtN(r.conv_prc), val:r => r.conv_prc},
-      {id:"conv_qty", label:cl.qty, num:1, cell:r => fmtN(r.conv_qty), val:r => r.conv_qty},
-      {id:"market", label:"시장", cell:r => esc(r.market || "-"), val:r => r.market},
-      {id:"rpmcmp", label:"대표주관", cell:r => esc(r.rpmcmp || "-"), val:r => r.rpmcmp},
+      {id:"conv_prc", label:lab.prc, num:1, cell:r => fmtN(r.conv_prc), val:r => r.conv_prc},
+      {id:"conv_qty", label:lab.qty, num:1, cell:r => fmtManN(r.conv_qty), val:r => r.conv_qty},
+      {id:"conv_vs", label:lab.vs, num:1, cell:r => fmtMezzPct(r.conv_vs), val:r => r.conv_vs},
+      {id:"conv_per", label:lab.period, cell:r => esc(fmtRange(r.conv_bgd, r.conv_edd)), val:r => r.conv_bgd || ""},
     ];
   };
 
@@ -1247,14 +1252,15 @@
   MEZZ.downloadExcel = function () {
     const list = MEZZ.filtered();
     if (!list.length) { alert("다운로드할 데이터가 없습니다."); return; }
-    const cl = MEZZ.convLabels(MEZZ.tab);
-    const header = ["이사회결의일","발행사","회차","방식","청약일","납입일","만기일","권면총액(억원)",
-      "표면금리(%)","만기금리(%)", cl.prc, cl.qty, "발행주식총수대비(%)", "청구기간 시작", "청구기간 종료", "시장", "대표주관"];
-    const rows = list.map(r => [r.bddd || "", r.issuer || "", r.bd_tm, r.bdis_mthn || "", r.sbd || "", r.pymd || "",
-      r.bd_mtd || "", r.bd_fta_eok, r.intr_ex, r.intr_sf, r.conv_prc, r.conv_qty, r.conv_vs,
-      r.conv_bgd || "", r.conv_edd || "", r.market || "", r.rpmcmp || ""]);
+    const lab = MEZZ.convLabels(MEZZ.tab);
+    // 발행정보 페이지와 동일 순서 + 숨김 컬럼(청약일·시장·대표주관·종류)을 끝에 포함.
+    const header = ["이사회결의일","발행사","회차","방식","만기일","납입일","권면총액(억원)",
+      "표면금리(%)","만기금리(%)", lab.prc, lab.qty, lab.vs, lab.period, "청약일", "시장", "대표주관", "종류"];
+    const rows = list.map(r => [r.bddd || "", r.issuer || "", r.bd_tm, r.bdis_mthn || "", r.bd_mtd || "", r.pymd || "",
+      r.bd_fta_eok, r.intr_ex, r.intr_sf, r.conv_prc, r.conv_qty, r.conv_vs, fmtRange(r.conv_bgd, r.conv_edd),
+      r.sbd || "", r.market || "", r.rpmcmp || "", r.bd_knd || ""]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-    ws["!cols"] = header.map((h, i) => ({ wch: i === 1 ? 16 : ([0,4,5,6,13,14].includes(i) ? 12 : 11) }));
+    ws["!cols"] = header.map((h, i) => ({ wch: i === 1 ? 16 : (i === 12 ? 18 : ([0,4,5,13].includes(i) ? 12 : 11)) }));
     const hs = { font:{bold:true}, alignment:{horizontal:"center",vertical:"center"},
       fill:{fgColor:{rgb:"F1F5F9"},patternType:"solid"} };
     for (let c = 0; c < header.length; c++) { const ref = XLSX.utils.encode_cell({ r:0, c }); if (ws[ref]) ws[ref].s = hs; }

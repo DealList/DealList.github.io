@@ -18,9 +18,13 @@
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]));
   const fmtN = (v) => (typeof v === "number" ? v.toLocaleString() : "-");
   const fmtNum1 = (v) => (typeof v === "number" ? v.toLocaleString(undefined, { maximumFractionDigits: 1 }) : "-");
-  const fmtPctN = (v) => {  // 소수 2자리까지(불필요한 0 제거)
+  const fmtPctN = (v) => {  // 소수 2자리까지(불필요한 0 제거) — 변환비율·총수대비용
     if (typeof v !== "number" || !isFinite(v)) return "-";
     return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  };
+  const fmtPct2Fixed = (v) => {  // 소수 2자리 고정(0 유지) — 표면금리/만기금리 통일 표시
+    if (typeof v !== "number" || !isFinite(v)) return "-";
+    return v.toFixed(2);
   };
   const fmtManN = (v) => (typeof v === "number" ? Math.round(v / 10000).toLocaleString() : "-");
   const fmtDate = (s) => s || "-";
@@ -37,7 +41,7 @@
     const lab = CONV_LABEL[tab];
     // 순서 = 표시 순서. hide: true 면 표·정렬에선 숨김(Excel 다운로드에는 포함).
     return [
-      { id: "bddd",      label: "이사회결의일",  cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
+      { id: "bddd",      label: "최초 공시일",    cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
       { id: "issuer",    label: "발행사", cls: "issuer",
         cell: r => r.rcept ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer),
         val:  r => r.issuer, xls: r => r.issuer || "" },
@@ -46,8 +50,8 @@
       { id: "bd_mtd",    label: "만기일",        cell: r => esc(fmtDate(r.bd_mtd)),   val: r => r.bd_mtd,    xls: r => r.bd_mtd || "" },
       { id: "pymd",      label: "납입일",        cell: r => esc(fmtDate(r.pymd)),     val: r => r.pymd,      xls: r => r.pymd || "" },
       { id: "bd_fta",    label: "권면총액(억원)", num: 1, cell: r => fmtNum1(r.bd_fta_eok), val: r => r.bd_fta_eok, xls: r => r.bd_fta_eok ?? "" },
-      { id: "intr_ex",   label: "표면금리(%)",   num: 1, cell: r => fmtPctN(r.intr_ex), val: r => r.intr_ex, xls: r => r.intr_ex ?? "" },
-      { id: "intr_sf",   label: "만기금리(%)",   num: 1, cell: r => fmtPctN(r.intr_sf), val: r => r.intr_sf, xls: r => r.intr_sf ?? "" },
+      { id: "intr_ex",   label: "표면금리(%)",   num: 1, cell: r => fmtPct2Fixed(r.intr_ex), val: r => r.intr_ex, xls: r => r.intr_ex ?? "" },
+      { id: "intr_sf",   label: "만기금리(%)",   num: 1, cell: r => fmtPct2Fixed(r.intr_sf), val: r => r.intr_sf, xls: r => r.intr_sf ?? "" },
       { id: "conv_prc",  label: lab.prc, num: 1, cell: r => fmtN(r.conv_prc),         val: r => r.conv_prc,  xls: r => r.conv_prc ?? "" },
       { id: "conv_qty",  label: lab.qty, num: 1, cell: r => fmtManN(r.conv_qty),      val: r => r.conv_qty,  xls: r => r.conv_qty ?? "" },
       { id: "conv_vs",   label: lab.vs,  num: 1, cell: r => fmtPctN(r.conv_vs),       val: r => r.conv_vs,   xls: r => r.conv_vs ?? "" },

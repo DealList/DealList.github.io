@@ -95,7 +95,7 @@
           <div${cls('dd' + (isMezz ? ' active' : ''))}>
             <div class="cat">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-              메자닌 · CB/BW/EB
+              CB/BW/EB · 메자닌시장
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
             <div class="panel">

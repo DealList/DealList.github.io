@@ -50,8 +50,9 @@
     .preview-section .sec-h2 { font-size: 26px; font-weight: 700; text-align: center;
       margin: 0 0 40px; color: var(--text); }
 
-    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 860px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .feature-grid { grid-template-columns: 1fr; } }
     .feature-card { background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 22px; transition: border-color 0.15s; }
     .feature-card:hover { border-color: var(--accent); }
@@ -317,6 +318,13 @@
           </div>
           <div class="ttl">시장 인포그래픽</div>
           <div class="desc">월별·종류·등급·만기별 분포 차트. 이미지로 다운로드 가능.</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          </div>
+          <div class="ttl">AI 기사 초안 생성</div>
+          <div class="desc">선택한 발행 건의 데이터로 스트레이트 기사 초안을 자동 작성 — DCM·ECM·메자닌 모두.</div>
         </div>
       </div>
     </section>

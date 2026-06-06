@@ -48,6 +48,26 @@ class Filing:
         return "initial"
 
 
+def _get_with_retry(url: str, params: dict, *, timeout: int = 30, tries: int = 3):
+    """일시적 네트워크 오류(연결/읽기 타임아웃·연결 끊김)에 한해 백오프 재시도.
+
+    OpenDART 가 매시간 cron 호출 중 가끔 connect timeout 을 내므로, 한 번의 일시적
+    블립으로 run 전체가 죽지 않도록 방어. HTTP 상태 오류(4xx/5xx)는 호출부의
+    raise_for_status / status 검사가 처리하므로 여기서 재시도하지 않는다.
+    """
+    last_err = None
+    for attempt in range(1, tries + 1):
+        try:
+            return requests.get(url, params=params, timeout=timeout, headers=DEFAULT_HEADERS)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            last_err = e
+            if attempt < tries:
+                wait = 3 * attempt  # 3s, 6s
+                log.warning("OpenDART 연결 실패 %s/%s — %ss 후 재시도: %s", attempt, tries, wait, e)
+                time.sleep(wait)
+    raise last_err  # tries 회 모두 실패 → 원래 예외 그대로 올림
+
+
 def _list_filings_chunk(start: date, end: date, corp_code: str = "",
                         pblntf_detail_ty: str = "C002") -> list[Filing]:
     """단일 청크(3개월 이내) 조회. corp_code 지정 시 해당 corp 만 (페이지 ↓ → 속도 ↑).
@@ -71,7 +91,7 @@ def _list_filings_chunk(start: date, end: date, corp_code: str = "",
         }
         if corp_code:
             params["corp_code"] = corp_code
-        r = requests.get(config.OPENDART_LIST_URL, params=params, timeout=30, headers=DEFAULT_HEADERS)
+        r = _get_with_retry(config.OPENDART_LIST_URL, params)
         r.raise_for_status()
         data = r.json()
 

@@ -46,6 +46,20 @@ def _d(s: str) -> date:
     return date(int(s[:4]), int(s[4:6]), int(s[6:8]))
 
 
+def _get(url: str, params: dict):
+    """일시적 네트워크 오류(연결/읽기 타임아웃)에 한해 백오프 재시도.
+    매시간 cron 의 OpenDART connect timeout 한 번으로 run 전체가 죽지 않도록 방어."""
+    last = None
+    for attempt in range(1, 4):
+        try:
+            return requests.get(url, params=params, timeout=30, headers=HEAD)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            last = e
+            if attempt < 3:
+                time.sleep(3 * attempt)  # 3s, 6s
+    raise last
+
+
 def list_major(bgn: str, end: str) -> list[dict]:
     """주요사항보고서(B) 목록. corp_code 미지정이라 90일 청크."""
     out, s, e = [], _d(bgn), _d(end)
@@ -59,7 +73,7 @@ def list_major(bgn: str, end: str) -> list[dict]:
                 "end_de": ce.strftime("%Y%m%d"), "pblntf_ty": "B",
                 "page_no": page, "page_count": 100,
             }
-            r = requests.get(LIST_URL, params=params, timeout=30, headers=HEAD)
+            r = _get(LIST_URL, params)
             r.raise_for_status()
             d = r.json()
             st = d.get("status")
@@ -81,7 +95,7 @@ def fetch_decisions(url: str, corp_code: str, bgn: str, end: str) -> list[dict]:
     """발행결정 API 호출 (corp_code 기준이라 기간 무제한)."""
     # API 가 일자 필터 받지만 정정 통합 응답을 위해 넓게: 회사의 모든 활성 발행결정
     params = {"crtfc_key": KEY, "corp_code": corp_code, "bgn_de": "20180101", "end_de": end}
-    r = requests.get(url, params=params, timeout=30, headers=HEAD)
+    r = _get(url, params)
     r.raise_for_status()
     d = r.json()
     st = d.get("status")

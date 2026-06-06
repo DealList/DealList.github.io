@@ -524,8 +524,8 @@ function stripAbsenceSentences(s: string): string {
     .filter((p) => p.length > 0)
     .join("\n\n");
 }
-// △ 2개짜리 나열 → 쉼표(결정적). 사용자 규칙: △는 3개 이상만, 2개면 쉼표.
-// 한 문장(다. 경계)에 △가 정확히 2개면 그 둘을 쉼표 나열로 바꾼다(3개 이상 문장은 그대로).
+// △ 나열 정규화(결정적). 사용자 규칙: △는 3개 이상 병렬 나열에만 — 영역 불문 전 기사 공통.
+// 한 문장(다. 경계) 안의 △ 개수로 분기: 1개=△ 제거(나열 아님) / 2개=쉼표 나열 / 3개 이상=그대로.
 function fixTwoTriangleLists(s: string): string {
   return String(s || "")
     .split(/\n{2,}/)
@@ -533,13 +533,20 @@ function fixTwoTriangleLists(s: string): string {
       para
         .split(/(?<=다\.)\s+/)
         .map((sent) => {
-          if ((sent.match(/△/g) || []).length !== 2) return sent;
-          let i = 0;
-          return sent
-            .replace(/\s*△\s*/g, () => (++i === 1 ? " " : ", "))
-            .replace(/\s{2,}/g, " ")
-            .replace(/\s+,/g, ",")
-            .trim();
+          const n = (sent.match(/△/g) || []).length;
+          if (n === 1) {
+            // 단일 항목에 △ 금지 — △만 떼고 자연스럽게(예: "△운영자금 90억원" → "운영자금 90억원")
+            return sent.replace(/\s*△\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+          }
+          if (n === 2) {
+            let i = 0;
+            return sent
+              .replace(/\s*△\s*/g, () => (++i === 1 ? " " : ", "))
+              .replace(/\s{2,}/g, " ")
+              .replace(/\s+,/g, ",")
+              .trim();
+          }
+          return sent;  // 0개 또는 3개 이상은 그대로
         })
         .join(" "),
     )

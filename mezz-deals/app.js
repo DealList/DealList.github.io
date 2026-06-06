@@ -41,7 +41,7 @@
     const lab = CONV_LABEL[tab];
     // 순서 = 표시 순서. hide: true 면 표·정렬에선 숨김(Excel 다운로드에는 포함).
     return [
-      { id: "bddd",      label: "최초 공시일",    cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
+      { id: "bddd",      label: "이사회 결의일",  cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
       { id: "issuer",    label: "발행사", cls: "issuer",
         cell: r => r.rcept ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer),
         val:  r => r.issuer, xls: r => r.issuer || "" },

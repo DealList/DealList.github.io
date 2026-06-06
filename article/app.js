@@ -1065,8 +1065,8 @@
         ? `<a class="dart-link" href="#" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer), val:r => r.issuer},
       {id:"bd_tm", label:"회차", num:1, cell:r => fmtN(r.bd_tm), val:r => r.bd_tm},
       {id:"bdis_mthn", label:"방식", cell:r => esc(r.bdis_mthn || "-"), val:r => r.bdis_mthn},
-      {id:"bd_mtd", label:"만기일", cell:r => esc(r.bd_mtd || "-"), val:r => r.bd_mtd},
       {id:"pymd", label:"납입일", cell:r => esc(r.pymd || "-"), val:r => r.pymd},
+      {id:"bd_mtd", label:"만기일", cell:r => esc(r.bd_mtd || "-"), val:r => r.bd_mtd},
       {id:"bd_fta_eok", label:"권면총액(억원)", num:1, cell:r => fmtNum1(r.bd_fta_eok), val:r => r.bd_fta_eok},
       {id:"intr_ex", label:"표면금리(%)", num:1, cell:r => fmtRate2(r.intr_ex), val:r => r.intr_ex},
       {id:"intr_sf", label:"만기금리(%)", num:1, cell:r => fmtRate2(r.intr_sf), val:r => r.intr_sf},
@@ -1269,9 +1269,9 @@
     if (!list.length) { alert("다운로드할 데이터가 없습니다."); return; }
     const lab = MEZZ.convLabels(MEZZ.tab);
     // 발행정보 페이지와 동일 순서 + 숨김 컬럼(청약일·시장·대표주관·종류)을 끝에 포함.
-    const header = ["이사회결의일","발행사","회차","방식","만기일","납입일","권면총액(억원)",
+    const header = ["이사회결의일","발행사","회차","방식","납입일","만기일","권면총액(억원)",
       "표면금리(%)","만기금리(%)", lab.prc, lab.qty, lab.vs, lab.period, "청약일", "시장", "대표주관", "종류"];
-    const rows = list.map(r => [r.bddd || "", r.issuer || "", r.bd_tm, r.bdis_mthn || "", r.bd_mtd || "", r.pymd || "",
+    const rows = list.map(r => [r.bddd || "", r.issuer || "", r.bd_tm, r.bdis_mthn || "", r.pymd || "", r.bd_mtd || "",
       r.bd_fta_eok, r.intr_ex, r.intr_sf, r.conv_prc, r.conv_qty, r.conv_vs, fmtRange(r.conv_bgd, r.conv_edd),
       r.sbd || "", r.market || "", r.rpmcmp || "", r.bd_knd || ""]);
     const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);

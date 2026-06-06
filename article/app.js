@@ -1020,10 +1020,11 @@
   // ════════════════════════════════════════════════════════════════════
   // 메자닌 섹션 (CB/BW/EB) — mezz_data.json {cb,bw,eb}. ECM 패턴 복제.
   // ════════════════════════════════════════════════════════════════════
+  const MEZZ_TOTAL_OPTS = [10, 50, 100, 300, 500, 1000, 3000, 5000, 10000];  // 권면총액(억원) — 발행정보 페이지와 동일
   const MEZZ = {
     inited:false, DATA:{cb:[],bw:[],eb:[]}, META:null,
     tab:"cb", page:1, sort:{key:"bddd",dir:"desc"},
-    issuers:new Set(), dateStart:"", dateEnd:"", market:"", method:"",
+    issuers:new Set(), dateStart:"", dateEnd:"", market:"", method:"", totalMin:0, totalMax:0,
     issuerSet:new Map(), lastList:[],
   };
   MEZZ.ABBR = { cb:"CB", bw:"BW", eb:"EB" };
@@ -1049,7 +1050,7 @@
       $("m-empty").classList.remove("hidden");
       return;
     }
-    MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateIssuers();
+    MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateTotals(); MEZZ.populateIssuers();
     MEZZ.applyDefaultRange(); MEZZ.bindEvents(); MEZZ.render();
   };
 
@@ -1086,6 +1087,12 @@
       if (MEZZ.issuers.size && !MEZZ.issuers.has(r.issuer)) return false;
       if (MEZZ.market && (r.market || "") !== MEZZ.market) return false;
       if (MEZZ.method && (r.bdis_mthn || "") !== MEZZ.method) return false;
+      if (MEZZ.totalMin || MEZZ.totalMax) {
+        const t = r.bd_fta_eok;
+        if (t == null) return false;
+        if (MEZZ.totalMin && t < MEZZ.totalMin) return false;
+        if (MEZZ.totalMax && t > MEZZ.totalMax) return false;
+      }
       return true;
     });
     const cols = MEZZ.cols();
@@ -1154,6 +1161,11 @@
     $("m-f-method").innerHTML = `<option value="">전체</option>` + vals.map(v => `<option>${esc(v)}</option>`).join("");
     MEZZ.method = "";
   };
+  MEZZ.populateTotals = function () {
+    const opt = v => `<option value="${v}">${v.toLocaleString()}</option>`;
+    $("m-f-total-min").innerHTML = `<option value="">하한 없음</option>` + MEZZ_TOTAL_OPTS.map(opt).join("");
+    $("m-f-total-max").innerHTML = `<option value="">상한 없음</option>` + MEZZ_TOTAL_OPTS.map(opt).join("");
+  };
   MEZZ.populateIssuers = function () {
     const arr = MEZZ.DATA[MEZZ.tab] || [];
     const names = [...new Set(arr.map(r => r.issuer).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
@@ -1181,12 +1193,14 @@
   MEZZ.applyFilters = function () {
     MEZZ.dateStart = $("m-f-date-start").value || ""; MEZZ.dateEnd = $("m-f-date-end").value || "";
     MEZZ.market = $("m-f-market").value || ""; MEZZ.method = $("m-f-method").value || "";
+    MEZZ.totalMin = +($("m-f-total-min").value || 0); MEZZ.totalMax = +($("m-f-total-max").value || 0);
     MEZZ.page = 1; MEZZ.render();
   };
   MEZZ.switchTab = function (t) {
     if (t === MEZZ.tab) return;
     MEZZ.tab = t; MEZZ.page = 1; MEZZ.sort = { key:"bddd", dir:"desc" };
     MEZZ.issuers.clear(); $("m-f-issuer-chips").innerHTML = ""; $("m-f-issuer").value = "";
+    $("m-f-total-min").value = ""; $("m-f-total-max").value = ""; MEZZ.totalMin = MEZZ.totalMax = 0;
     MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateIssuers(); MEZZ.applyDefaultRange();
     MEZZ.render();
   };
@@ -1244,6 +1258,7 @@
     $("m-btn-reset").addEventListener("click", () => {
       MEZZ.issuers.clear(); $("m-f-issuer-chips").innerHTML = ""; $("m-f-issuer").value = "";
       $("m-f-market").value = ""; MEZZ.market = ""; $("m-f-method").value = ""; MEZZ.method = "";
+      $("m-f-total-min").value = ""; $("m-f-total-max").value = ""; MEZZ.totalMin = MEZZ.totalMax = 0;
       MEZZ.applyDefaultRange(); MEZZ.render();
     });
     $("m-btn-download").addEventListener("click", MEZZ.downloadExcel);

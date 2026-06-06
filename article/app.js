@@ -1890,10 +1890,22 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
     window.NP_SUPABASE_URL = window.sb.supabaseUrl;
   }
 
-  // dcm-deals / ecm-deals 패턴 — IIFE 끝에서 즉시 호출 (script 가 body 끝이라 DOM 이미 완성)
+  // 초기 탭 = ?top= 파라미터(dcm/ecm/mezz). 상단 nav '기사 생성' 드롭다운에서 진입. 없으면 dcm.
+  function initialTop() {
+    try {
+      const t = new URLSearchParams(location.search).get("top");
+      if (t === "dcm" || t === "ecm" || t === "mezz") return t;
+    } catch (_) {}
+    return "dcm";
+  }
+  function boot() {
+    const t = initialTop();
+    if (t === "dcm") DCM.init();        // dcm 섹션은 기본 표시
+    else switchTop(t);                  // ecm/mezz 면 dcm 숨기고 해당 섹션 표시 + lazy init
+  }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => DCM.init());
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    DCM.init();
+    boot();
   }
 })();

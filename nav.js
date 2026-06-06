@@ -33,6 +33,12 @@
   const dcmSub = isDcm ? active.replace('dcm-', '') : null;
   const ecmSub = isEcm ? active.replace('ecm-', '') : null;
   const mezzSub = isMezz ? active.replace('mezz-', '') : null;
+  // 기사 생성: 단일 페이지지만 ?top= 파라미터로 DCM/ECM/메자닌 하위 선택 → 드롭다운으로 진입
+  let articleSub = null;
+  if (isArticle) {
+    try { const _t = new URLSearchParams(location.search).get('top'); articleSub = (_t === 'ecm' || _t === 'mezz') ? _t : 'dcm'; }
+    catch (_) { articleSub = 'dcm'; }
+  }
   const cls = (c) => c ? ` class="${c}"` : '';
 
   mount.outerHTML = `
@@ -108,10 +114,22 @@
             </div>
           </div>
 
-          <a${cls(isArticle ? 'active' : '')} href="${root}/article/">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
-            기사 생성
-          </a>
+          <div${cls('dd' + (isArticle ? ' active' : ''))}>
+            <div class="cat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+              기사 생성
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="panel">
+              <div class="panel-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                기사 생성
+              </div>
+              <a${cls(articleSub === 'dcm' ? 'active' : '')} href="${root}/article/?top=dcm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> DCM · 회사채</a>
+              <a${cls(articleSub === 'ecm' ? 'active' : '')} href="${root}/article/?top=ecm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg> ECM · 주식</a>
+              <a${cls(articleSub === 'mezz' ? 'active' : '')} href="${root}/article/?top=mezz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg> 메자닌 · CB/BW/EB</a>
+            </div>
+          </div>
           <a${cls(isAbout ? 'active' : '')} href="${root}/about/">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             데이터 안내

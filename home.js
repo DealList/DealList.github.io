@@ -743,9 +743,9 @@ async function loadMezz() {
   for (const [t] of MEZZ_TYPES) {
     const arr = buckets[t];
     const recent = arr.filter(r => r.pymd && r.pymd < today)
-      .sort((a, b) => (b.pymd || '').localeCompare(a.pymd || '')).slice(0, 8);
+      .sort((a, b) => (b.pymd || '').localeCompare(a.pymd || '')).slice(0, 10);
     const upcoming = arr.filter(r => r.pymd && r.pymd >= today)
-      .sort((a, b) => (a.pymd || '').localeCompare(b.pymd || '')).slice(0, 8);
+      .sort((a, b) => (a.pymd || '').localeCompare(b.pymd || '')).slice(0, 10);
     renderMezzRows(`mezz-recent-${t}`, recent, false);
     renderMezzRows(`mezz-upcoming-${t}`, upcoming, true);
   }

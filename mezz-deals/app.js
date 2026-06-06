@@ -8,7 +8,7 @@
   let META = null;
   let issuerSet = new Map();
   const state = {
-    tab: "cb", sort: { key: "bddd", dir: "desc" }, page: 1,
+    tab: "cb", sort: { key: "sbd", dir: "desc" }, page: 1,
     issuers: new Set(), market: "", method: "",
     dateStart: "", dateEnd: "", totalMin: 0, totalMax: 0,
   };
@@ -35,28 +35,30 @@
 
   function buildCols(tab) {
     const lab = CONV_LABEL[tab];
+    // 순서 = 표시 순서. hide: true 면 표·정렬에선 숨김(Excel 다운로드에는 포함).
     return [
+      { id: "sbd",       label: "청약일",        cell: r => esc(fmtDate(r.sbd)),      val: r => r.sbd,       xls: r => r.sbd || "" },
       { id: "bddd",      label: "이사회결의일",  cell: r => esc(fmtDate(r.bddd)),      val: r => r.bddd,      xls: r => r.bddd || "" },
       { id: "issuer",    label: "발행사", cls: "issuer",
         cell: r => r.rcept ? `<a class="dart-link" href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=${esc(r.rcept)}" data-rcept="${esc(r.rcept)}">${esc(r.issuer)}</a>` : esc(r.issuer),
         val:  r => r.issuer, xls: r => r.issuer || "" },
-      { id: "market",    label: "시장",          cell: r => esc(r.market || "-"),     val: r => r.market,    xls: r => r.market || "" },
       { id: "bd_tm",     label: "회차", num: 1,  cell: r => fmtN(r.bd_tm),            val: r => r.bd_tm,     xls: r => r.bd_tm ?? "" },
-      { id: "bdis_mthn", label: "공모/사모",      cell: r => esc(r.bdis_mthn || "-"), val: r => r.bdis_mthn, xls: r => r.bdis_mthn || "" },
+      { id: "bdis_mthn", label: "방식",          cell: r => esc(r.bdis_mthn || "-"), val: r => r.bdis_mthn, xls: r => r.bdis_mthn || "" },
+      { id: "bd_mtd",    label: "만기일",        cell: r => esc(fmtDate(r.bd_mtd)),   val: r => r.bd_mtd,    xls: r => r.bd_mtd || "" },
+      { id: "pymd",      label: "납입일",        cell: r => esc(fmtDate(r.pymd)),     val: r => r.pymd,      xls: r => r.pymd || "" },
       { id: "bd_fta",    label: "권면총액(억원)", num: 1, cell: r => fmtNum1(r.bd_fta_eok), val: r => r.bd_fta_eok, xls: r => r.bd_fta_eok ?? "" },
       { id: "intr_ex",   label: "표면금리(%)",   num: 1, cell: r => fmtPctN(r.intr_ex), val: r => r.intr_ex, xls: r => r.intr_ex ?? "" },
       { id: "intr_sf",   label: "만기금리(%)",   num: 1, cell: r => fmtPctN(r.intr_sf), val: r => r.intr_sf, xls: r => r.intr_sf ?? "" },
-      { id: "bd_mtd",    label: "만기일",        cell: r => esc(fmtDate(r.bd_mtd)),   val: r => r.bd_mtd,    xls: r => r.bd_mtd || "" },
       { id: "conv_prc",  label: lab.prc, num: 1, cell: r => fmtN(r.conv_prc),         val: r => r.conv_prc,  xls: r => r.conv_prc ?? "" },
       { id: "conv_qty",  label: lab.qty, num: 1, cell: r => fmtManN(r.conv_qty),      val: r => r.conv_qty,  xls: r => r.conv_qty ?? "" },
       { id: "conv_vs",   label: lab.vs,  num: 1, cell: r => fmtPctN(r.conv_vs),       val: r => r.conv_vs,   xls: r => r.conv_vs ?? "" },
       { id: "conv_per",  label: lab.period,
         cell: r => esc(fmtRange(r.conv_bgd, r.conv_edd)),
         val: r => r.conv_bgd || "", xls: r => fmtRange(r.conv_bgd, r.conv_edd) },
-      { id: "sbd",       label: "청약일",        cell: r => esc(fmtDate(r.sbd)),      val: r => r.sbd,       xls: r => r.sbd || "" },
-      { id: "pymd",      label: "납입일",        cell: r => esc(fmtDate(r.pymd)),     val: r => r.pymd,      xls: r => r.pymd || "" },
-      { id: "rpmcmp",    label: "대표주관",      cell: r => esc(r.rpmcmp || "-"),     val: r => r.rpmcmp || "", xls: r => r.rpmcmp || "" },
-      { id: "bd_knd",    label: "종류", cls: "type-cell", cell: r => esc(r.bd_knd || "-"), val: r => r.bd_knd || "", xls: r => r.bd_knd || "" },
+      // ─ 표 비공개(웹에선 숨김, Excel 다운로드에는 포함) ─
+      { id: "market",    label: "시장", hide: true,  cell: r => esc(r.market || "-"),  val: r => r.market,    xls: r => r.market || "" },
+      { id: "rpmcmp",    label: "대표주관", hide: true, cell: r => esc(r.rpmcmp || "-"), val: r => r.rpmcmp || "", xls: r => r.rpmcmp || "" },
+      { id: "bd_knd",    label: "종류", hide: true, cell: r => esc(r.bd_knd || "-"),   val: r => r.bd_knd || "", xls: r => r.bd_knd || "" },
     ];
   }
 
@@ -100,7 +102,7 @@
   }
 
   function render() {
-    const cols = buildCols(state.tab);
+    const cols = buildCols(state.tab).filter(c => !c.hide);  // 표·정렬은 hide 제외
     $("ghead").innerHTML = "<tr>" + cols.map(c => {
       const sortCls = state.sort.key === c.id ? (state.sort.dir === "asc" ? "sorted-asc" : "sorted-desc") : "";
       const cls = [c.num ? "num" : "", sortCls].filter(Boolean).join(" ");
@@ -197,7 +199,7 @@
   }
   function switchTab(tab) {
     if (tab === state.tab) return;
-    state.tab = tab; state.page = 1; state.sort = { key: "bddd", dir: "desc" };
+    state.tab = tab; state.page = 1; state.sort = { key: "sbd", dir: "desc" };
     state.issuers.clear();
     chipBox("f-issuer-chips", state.issuers);
     $("f-total-min").value = ""; $("f-total-max").value = ""; state.totalMin = state.totalMax = 0;

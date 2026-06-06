@@ -1,0 +1,104 @@
+name: 메자닌 데이터 자동 수집
+
+# DCM(data-update.yml) / ECM(ecm-data-update.yml) 와 별도 — 실패 격리.
+# 같은 일일 cron 으로 DCM·ECM·메자닌 모두 매일 갱신.
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: '조회 시작일 (YYYY-MM-DD) — 비우면 어제(KST)'
+        required: false
+        default: ''
+      end_date:
+        description: '조회 종료일 (YYYY-MM-DD) — 비우면 어제(KST)'
+        required: false
+        default: ''
+  schedule:
+    # 매일 한국시간 06:23 = UTC 21:23. DCM(06:17 KST)·ECM(05:53 KST) 후순으로
+    # 같은 cron 윈도우 안에서 직렬 실행되게 배치(서로 다른 DART API 한도 공유 회피).
+    - cron: '23 21 * * *'
+
+jobs:
+  update-mezz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - name: Repo checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Python 3.12 setup
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r auto/requirements.txt
+
+      - name: 날짜 정규화 (수동=3일전~오늘 / 자동=어제 1일)
+        id: dates
+        run: |
+          START="${{ github.event.inputs.start_date }}"
+          END="${{ github.event.inputs.end_date }}"
+          EVENT="${{ github.event_name }}"
+          KST_TODAY=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          KST_YESTERDAY=$(TZ=Asia/Seoul date -d "yesterday" +%Y-%m-%d)
+          KST_3DAYS=$(TZ=Asia/Seoul date -d "3 days ago" +%Y-%m-%d)
+          # 자동(schedule)=어제 1일치 / 수동=3일전~오늘 (당일 정정공시 포착 여유)
+          if [ "$EVENT" = "schedule" ]; then
+            DEF_START=$KST_YESTERDAY; DEF_END=$KST_YESTERDAY
+          else
+            DEF_START=$KST_3DAYS; DEF_END=$KST_TODAY
+          fi
+          [ -z "$START" ] && START=$DEF_START
+          [ -z "$END" ] && END=$DEF_END
+          echo "start=$START" >> $GITHUB_OUTPUT
+          echo "end=$END" >> $GITHUB_OUTPUT
+          echo "메자닌 트리거=$EVENT · 조회 범위 (KST): $START ~ $END"
+
+      - name: DART → Supabase upsert + 회사 동기화 (정정/철회 자동 반영)
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python -X utf8 auto/mezz_update.py \
+            "${{ steps.dates.outputs.start }}" "${{ steps.dates.outputs.end }}"
+
+      - name: Supabase → web JSON 빌드
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python -X utf8 auto/export_web_mezz.py
+          ls -la web/mezz_data.json web/mezz_meta.json
+
+      - name: Supabase Storage 업로드 (mezz_data + mezz_meta → site-data 버킷)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # site-data 버킷 RLS 가 status=approved 회원만 signed URL 발급 → 진짜 게이팅.
+          # service_role 키는 RLS 우회 → 업로드 무제한. x-upsert 로 덮어쓰기.
+          for f in mezz_data.json mezz_meta.json; do
+            echo "Uploading web/$f to site-data ..."
+            HTTP_CODE=$(curl --silent --show-error --output /tmp/upload-resp.txt --write-out "%{http_code}" \
+              -X POST "$SUPABASE_URL/storage/v1/object/site-data/$f" \
+              -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+              -H "Content-Type: application/json" \
+              -H "x-upsert: true" \
+              --data-binary "@web/$f")
+            if [ "$HTTP_CODE" != "200" ] && [ "$HTTP_CODE" != "201" ]; then
+              echo "[FAIL] $f upload — HTTP $HTTP_CODE"
+              cat /tmp/upload-resp.txt
+              exit 1
+            fi
+            echo "[ok] $f uploaded (HTTP $HTTP_CODE)"
+          done

@@ -732,7 +732,7 @@ async function loadMezz() {
   const row1 = MEZZ_TYPES.map(([t, lbl]) => {
     const cur = monthAmt(buckets[t], prevYM), prev = monthAmt(buckets[t], yoyYM);
     return `
-    <a class="v1-kpi" href="mezz-deals/">
+    <a class="v1-kpi" href="mezz-deals/?tab=${t}">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${monthLabel} ${lbl} 발행총액</div>
       <div class="value">${fmtAmt(cur)}</div>
       <div class="sub">${fmtPct(pct(cur, prev))} <span class="sub-text">전년 동월 대비</span></div>
@@ -755,7 +755,7 @@ async function loadMezz() {
   const row2 = MEZZ_TYPES.map(([t, lbl]) => {
     const big = bigOf(buckets[t]);
     return `
-    <a class="v1-kpi" href="mezz-deals/">
+    <a class="v1-kpi" href="mezz-deals/?tab=${t}">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg> ${mezzYr} 최대 ${lbl}</div>
       <div class="value compact">${big ? big.issuer : '—'}</div>
       <div class="sub"><span style="font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;">${big ? fmtAmt(big.amount) : ''}</span></div>
@@ -771,12 +771,12 @@ async function loadMezz() {
       .sort((a, b) => (b.pymd || '').localeCompare(a.pymd || '')).slice(0, 10);
     const upcoming = arr.filter(r => r.pymd && r.pymd >= today)
       .sort((a, b) => (a.pymd || '').localeCompare(b.pymd || '')).slice(0, 10);
-    renderMezzRows(`mezz-recent-${t}`, recent, false);
-    renderMezzRows(`mezz-upcoming-${t}`, upcoming, true);
+    renderMezzRows(`mezz-recent-${t}`, recent, false, t);
+    renderMezzRows(`mezz-upcoming-${t}`, upcoming, true, t);
   }
 }
 
-function renderMezzRows(rootId, list, upcoming) {
+function renderMezzRows(rootId, list, upcoming, type) {
   const root = $$(rootId); if (!root) return;
   const container = root.closest('.v1-deals');
   if (container) container.classList.add('no-leads');
@@ -794,7 +794,7 @@ function renderMezzRows(rootId, list, upcoming) {
     if (s.market) parts.push(s.market);
     const sub = parts.join(' · ') || '메자닌';
     return `
-    <a class="v1-deal-row" href="mezz-deals/">
+    <a class="v1-deal-row" href="mezz-deals/?tab=${type}">
       <div class="date"><span class="d">${shortDay(d)}</span><span>${shortMonth(d)}</span></div>
       <div class="issuer"><div class="name">${s.issuer || '—'}</div><div class="series">${sub}</div></div>
       <div><span class="tag">${tagTxt}</span></div>

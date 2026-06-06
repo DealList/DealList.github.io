@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Numbers Pool — 한국 자본시장 데이터</title>
-  <meta name="description" content="한국 자본시장의 공모 회사채·IPO·유상증자 발행 데이터를 한곳에서. DART 공시 기반 회원제 데이터 플랫폼." />
+  <meta name="description" content="한국 자본시장의 공모 회사채·IPO·유상증자·메자닌(CB·BW·EB) 발행 데이터를 한곳에서. DART 공시 기반 회원제 데이터 플랫폼." />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <link rel="stylesheet" href="deallist.css?v=20260601f" />
@@ -151,11 +151,12 @@
     .preview-section .sec-divider .line { flex: 1; height: 1px; background: var(--border); }
 
     /* ─── KPI 그리드 (4·5 col) ─── */
-    .mock-kpi-grid, .mock-kpi-grid-5 { display: grid; gap: 12px; margin: 0 0 22px; }
+    .mock-kpi-grid, .mock-kpi-grid-5, .mock-kpi-grid-3 { display: grid; gap: 12px; margin: 0 0 22px; }
     .mock-kpi-grid   { grid-template-columns: repeat(4, 1fr); }
     .mock-kpi-grid-5 { grid-template-columns: repeat(5, 1fr); }
+    .mock-kpi-grid-3 { grid-template-columns: repeat(3, 1fr); }
     @media (max-width: 980px) {
-      .mock-kpi-grid, .mock-kpi-grid-5 { grid-template-columns: repeat(2, 1fr); }
+      .mock-kpi-grid, .mock-kpi-grid-5, .mock-kpi-grid-3 { grid-template-columns: repeat(2, 1fr); }
     }
     .mock-kpi { background: var(--surface); border: 1px solid var(--border);
       border-radius: 10px; padding: 14px 16px; }
@@ -298,10 +299,17 @@
         </div>
         <div class="feature-card">
           <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+          </div>
+          <div class="ttl">메자닌(CB·BW·EB) 정보</div>
+          <div class="desc">전환사채·신주인수권부사채·교환사채 발행 조건과 전환·행사·교환가액까지 — 매일 갱신.</div>
+        </div>
+        <div class="feature-card">
+          <div class="icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
           </div>
           <div class="ttl">주관·인수 실적 리그</div>
-          <div class="desc">증권사별 주관·인수 금액과 시장점유율 — DCM/ECM 각각.</div>
+          <div class="desc">증권사별 주관·인수 금액과 시장점유율 — DCM·ECM 각각.</div>
         </div>
         <div class="feature-card">
           <div class="icon">
@@ -583,6 +591,69 @@
         </div>
       </div>
 
+      <!-- ══════════ 메자닌 미리보기 ══════════ -->
+      <div class="sec-divider">
+        <span class="badge">메자닌</span>
+        <span class="ttl">CB · BW · EB 발행 정보</span>
+        <span class="line"></span>
+      </div>
+
+      <!-- 메자닌 KPI 6개 (지난달 발행총액 3 + 올해 최대 3) -->
+      <div class="mock-kpi-grid-3">
+        <div class="mock-kpi">
+          <div class="lbl">2026년 5월 CB 발행총액</div>
+          <div class="val">1조 742억</div>
+          <div class="sub"><span class="delta down">▼ 52.0%</span> 전년 동월 대비</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026년 5월 BW 발행총액</div>
+          <div class="val">600억</div>
+          <div class="sub"><span class="delta up">▲ 275.0%</span> 전년 동월 대비</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026년 5월 EB 발행총액</div>
+          <div class="val">2조 4,603억</div>
+          <div class="sub"><span class="delta up">▲ 1,625.9%</span> 전년 동월 대비</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026 최대 CB</div>
+          <div class="val compact">에이비엘바이오</div>
+          <div class="sub">1,500억 · 2026-04-21</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026 최대 BW</div>
+          <div class="val compact">파크시스템스</div>
+          <div class="sub">1,000억 · 2026-05-21</div>
+        </div>
+        <div class="mock-kpi">
+          <div class="lbl">2026 최대 EB</div>
+          <div class="val compact">SK스퀘어</div>
+          <div class="sub">1조 2,000억 · 2026-03-14</div>
+        </div>
+      </div>
+
+      <!-- 메자닌 최근 발행 / 다가오는 -->
+      <div class="mock-2col">
+        <div class="mock-card">
+          <h3 class="mock-ttl">최근 발행 메자닌</h3>
+          <p class="mock-sub">납입일 기준 · CB·BW·EB · 최근 10건</p>
+          <div class="mock-deal-row"><div class="date">06.10</div><div class="issuer">그린리소스 <span class="series">CB · 4회차</span></div><div class="amt">100억</div></div>
+          <div class="mock-deal-row"><div class="date">06.08</div><div class="issuer">파크시스템스 <span class="series">BW · 2회차</span></div><div class="amt">1,000억</div></div>
+          <div class="mock-deal-row"><div class="date">05.28</div><div class="issuer">엔젯 <span class="series">CB · 2회차</span></div><div class="amt">50억</div></div>
+          <div class="mock-deal-row"><div class="date">05.20</div><div class="issuer">아이씨디 <span class="series">CB · 6회차</span></div><div class="amt">250억</div></div>
+          <div class="mock-deal-row"><div class="date">05.20</div><div class="issuer">핑거 <span class="series">CB · 7회차</span></div><div class="amt">300억</div></div>
+        </div>
+        <div class="mock-card">
+          <h3 class="mock-ttl">다가오는 메자닌 청약</h3>
+          <p class="mock-sub">납입일 도래 전</p>
+          <div class="mock-deal-row"><div class="date">06.20</div><div class="issuer">아리바이오 <span class="series">CB · 5회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.18</div><div class="issuer">루닛 <span class="series">EB · 1회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.13</div><div class="issuer">에코프로비엠 <span class="series">CB · 3회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.11</div><div class="issuer">레인보우로보틱스 <span class="series">BW · 1회차</span></div><div class="amt pending">미확정</div></div>
+          <div class="mock-deal-row"><div class="date">06.05</div><div class="issuer">파두 <span class="series">CB · 2회차</span></div><div class="amt pending">미확정</div></div>
+        </div>
+      </div>
+
       <!-- ══════════ Deal List 미리보기 ══════════ -->
       <div class="sec-divider">
         <span class="badge">Deal List</span>
@@ -728,13 +799,67 @@
         </table>
       </div>
 
+      <!-- 메자닌 발행 정보 표 (CB) -->
+      <div class="mock-card mock-table-card">
+        <h3 class="mock-ttl">메자닌 채권(CB·BW·EB) 발행 정보</h3>
+        <p class="mock-sub">CB/BW/EB 탭별 · 전환·행사·교환 조건 컬럼 · 필터·Excel 다운로드</p>
+        <table class="mock-table">
+          <thead>
+            <tr>
+              <th>이사회결의일</th><th>발행사</th><th>회차</th><th>방식</th>
+              <th>납입일</th><th>만기일</th>
+              <th class="num">권면총액(억)</th><th class="num">표면금리(%)</th><th class="num">만기금리(%)</th>
+              <th class="num">전환가(원)</th><th class="num">전환주식수(만주)</th><th class="num">총수 대비(%)</th>
+              <th>전환기간</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>2026-04-21</td><td>에이비엘바이오</td><td>12</td><td>공모</td>
+              <td>2026-05-09</td><td>2031-05-09</td>
+              <td class="num">1,500</td><td class="num">0.00</td><td class="num">2.00</td>
+              <td class="num">28,500</td><td class="num">526</td><td class="num">8.2</td>
+              <td>2027-05-09 ~ 2031-04-09</td>
+            </tr>
+            <tr>
+              <td>2026-05-20</td><td>핑거</td><td>7</td><td>사모</td>
+              <td>2026-05-20</td><td>2029-05-20</td>
+              <td class="num">300</td><td class="num">0.00</td><td class="num">0.00</td>
+              <td class="num">12,509</td><td class="num">240</td><td class="num">12.5</td>
+              <td>2027-05-20 ~ 2029-04-20</td>
+            </tr>
+            <tr>
+              <td>2026-05-19</td><td>아이씨디</td><td>6</td><td>사모</td>
+              <td>2026-05-19</td><td>2031-05-19</td>
+              <td class="num">250</td><td class="num">0.00</td><td class="num">0.00</td>
+              <td class="num">6,246</td><td class="num">400</td><td class="num">9.8</td>
+              <td>2027-05-19 ~ 2031-04-19</td>
+            </tr>
+            <tr>
+              <td>2026-06-02</td><td>그린리소스</td><td>4</td><td>사모</td>
+              <td>2026-06-10</td><td>2031-06-10</td>
+              <td class="num">100</td><td class="num">0.00</td><td class="num">0.00</td>
+              <td class="num">15,912</td><td class="num">63</td><td class="num">5.1</td>
+              <td>2027-06-10 ~ 2031-05-10</td>
+            </tr>
+            <tr>
+              <td>2026-05-20</td><td>엔젯</td><td>2</td><td>사모</td>
+              <td>2026-05-28</td><td>2031-05-28</td>
+              <td class="num">50</td><td class="num">0.00</td><td class="num">1.50</td>
+              <td class="num">5,424</td><td class="num">92</td><td class="num">6.3</td>
+              <td>2027-05-28 ~ 2031-04-28</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
     </section>
 
     <!-- ════════ Bottom CTA ════════ -->
     <section class="bottom-cta">
       <h2>지금 가입하고 전체 데이터를 확인하세요</h2>
       <p>
-        공모채와 IPO·유상증자 등 DCM·ECM 발행 정보, 주관·인수 리그, 시장 인포그래픽을<br/>
+        공모채·IPO·유상증자·메자닌(CB·BW·EB) 등 DCM·ECM·메자닌 발행 정보, 주관·인수 리그, 시장 인포그래픽을<br/>
         매일 자동 갱신되는 데이터로 이용하실 수 있습니다.
       </p>
       <a href="signup/terms/" class="cta-btn">

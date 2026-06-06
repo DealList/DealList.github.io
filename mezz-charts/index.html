@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Numbers Pool — IPO·유상증자 정보</title>
+  <title>Numbers Pool — 메자닌 채권(CB·BW·EB) 인포그래픽</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <script src="../np-loading.js?v=20260602a"></script>
   <link rel="stylesheet" href="../deallist.css?v=20260601e" />
-  <link rel="stylesheet" href="style.css?v=20260526104243" />
-  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <link rel="stylesheet" href="../ecm-charts/style.css?v=20260531a" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js?v=20260602g"></script>
@@ -18,77 +19,44 @@
 </head>
 <body>
 
-  <!-- Nav -->
-  <div id="nav-mount" data-active="ecm-deals" data-root=".."></div>
+  <div id="nav-mount" data-active="mezz-charts" data-root=".."></div>
   <script src="../nav.js?v=20260606d"></script>
 
-  <!-- Sub-header -->
   <header class="v1-subheader">
     <div class="row">
       <div>
-        <div class="kicker">ECM Deal List</div>
-        <h1>IPO·유상증자 정보</h1>
+        <div class="kicker">메자닌 시장 통계</div>
+        <h1>메자닌 채권(CB·BW·EB) 인포그래픽</h1>
       </div>
-      <span id="updated" hidden></span>
-      <span id="count" hidden></span>
+      <div class="meta">
+        <span id="updated" hidden></span>
+        <span id="period-range"></span>
+      </div>
     </div>
   </header>
 
-  <!-- 탭: IPO / 유상증자 -->
+  <!-- 탭: CB / BW / EB -->
   <div class="ecm-tabs">
-    <button class="ecm-tab active" data-tab="ipo">IPO</button>
-    <button class="ecm-tab" data-tab="rights">유상증자</button>
+    <button class="ecm-tab active" data-tab="cb">CB · 전환사채</button>
+    <button class="ecm-tab" data-tab="bw">BW · 신주인수권부사채</button>
+    <button class="ecm-tab" data-tab="eb">EB · 교환사채</button>
   </div>
 
-  <!-- 주요 정보 위젯 (조회 기간 기준) -->
-  <section class="kpi-strip" id="kpi-grid"></section>
-
-  <!-- Filters -->
   <section class="filters">
     <div class="filter-row">
-      <label><span class="lbl-title">기간 (<span id="date-basis">상장일</span> 기준)</span>
+      <label>기간 (이사회결의일 기준)
         <div class="date-range">
           <input type="date" id="f-date-start" />
           <span class="dash">~</span>
           <input type="date" id="f-date-end" />
         </div>
         <div class="date-presets">
-          <button type="button" data-preset="3m">최근 3개월</button>
-          <button type="button" data-preset="6m">최근 6개월</button>
+          <button type="button" data-preset="ytd">올해</button>
           <button type="button" data-preset="1y">최근 1년</button>
+          <button type="button" data-preset="3y">최근 3년</button>
           <button type="button" data-preset="all">전체</button>
         </div>
       </label>
-      <label>발행사 검색
-        <input id="f-issuer" type="search" list="issuers-datalist"
-               placeholder="예: 에코프로 (엔터로 추가)" autocomplete="off" />
-        <datalist id="issuers-datalist"></datalist>
-        <div class="issuer-chips" id="f-issuer-chips"></div>
-        <div class="filter-hint">최대 10개까지 추가 가능</div>
-      </label>
-      <div class="filter-col">
-        <label><span id="cat-name">시장</span>
-          <select id="f-cat"></select>
-        </label>
-        <label id="total-filter">발행 총액(억원)
-          <div class="rating-range">
-            <select id="f-total-min"></select>
-            <span class="dash">~</span>
-            <select id="f-total-max"></select>
-          </div>
-        </label>
-      </div>
-      <div class="filter-col">
-        <label>주관사
-          <select id="f-lead"></select>
-          <div class="issuer-chips" id="f-lead-chips"></div>
-        </label>
-        <label>인수사
-          <select id="f-uw"></select>
-          <div class="issuer-chips" id="f-uw-chips"></div>
-          <div class="filter-hint">최대 5개까지 추가</div>
-        </label>
-      </div>
     </div>
     <div class="filter-actions">
       <button id="btn-search" class="btn primary">
@@ -99,24 +67,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
         초기화
       </button>
-      <button id="btn-download" class="btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Excel로 다운로드
-      </button>
       <span id="result-count" class="result-count"></span>
     </div>
   </section>
 
-  <!-- Table (탭별 재렌더) -->
-  <section class="table-wrap">
-    <table class="grid" id="grid">
-      <thead id="ghead"></thead>
-      <tbody id="rows"></tbody>
-    </table>
-    <div id="empty" class="empty hidden">조건에 맞는 건이 없습니다.</div>
-  </section>
-
-  <nav id="pager" class="pager"></nav>
+  <!-- 차트 그리드는 app.js 가 탭(CB/BW/EB)별로 동적 생성 -->
+  <div class="charts-wrap" id="charts-wrap"></div>
 
   <footer class="v1-foot">
     <div style="display:flex; flex-direction:column; gap:11px; width:100%;">

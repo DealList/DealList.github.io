@@ -141,6 +141,42 @@ def to_row(kind: str, r: dict) -> dict:
     }
 
 
+# ── 불변 필드 보존 ──────────────────────────────────────────────
+def _preserve_existing_bddd(rows: list[dict]) -> int:
+    """upsert 전: 새 응답의 bddd 가 None 이면 DB 의 기존 bddd 값으로 보존.
+
+    이사회결의일은 '결정한 날짜'로 불변 사실. 정정공시에 미기입되면 발행결정 API 가
+    빈값으로 갱신하는데, 그 케이스에 한해 옛 값을 지키기 위함.
+    - 새 응답 bddd 있음 → 그대로 (덮어쓰기)
+    - 새 응답 bddd 빈값 + DB 에 값 있음 → DB 값 유지
+    - 새 응답·DB 모두 빈값 → 그대로 None
+    """
+    none_ids = [r["rcept_no"] for r in rows
+                if r.get("bddd") is None and r.get("rcept_no")]
+    if not none_ids:
+        return 0
+    keep = {}
+    CHUNK = 200  # URL 길이 제한 회피
+    for i in range(0, len(none_ids), CHUNK):
+        batch = none_ids[i:i + CHUNK]
+        existing = sb.select(
+            TABLE, "rcept_no,bddd",
+            filters={"rcept_no": f"in.({','.join(batch)})"},
+            limit=len(batch),
+        )
+        for row in existing or []:
+            if row.get("bddd"):
+                keep[row["rcept_no"]] = row["bddd"]
+    if not keep:
+        return 0
+    n = 0
+    for r in rows:
+        if r.get("bddd") is None and keep.get(r.get("rcept_no")):
+            r["bddd"] = keep[r["rcept_no"]]
+            n += 1
+    return n
+
+
 # ── 메인 ────────────────────────────────────────────────────────
 def load_kind(kind: str) -> int:
     path = BACKFILL_DIR / f"mezz_{kind}.json"
@@ -156,6 +192,9 @@ def load_kind(kind: str) -> int:
             continue
         rows.append(to_row(kind, r))
     print(f"[{kind.upper()}] 원본 {len(records)} → 적재 대상 {len(rows)} (PK 누락 {skip_no_pk})")
+    kept = _preserve_existing_bddd(rows)
+    if kept:
+        print(f"  [bddd 보존] {kept}건 — 정정공시로 빠진 이사회결의일 DB 값 유지")
     total = 0
     for i in range(0, len(rows), BATCH):
         chunk = rows[i:i + BATCH]

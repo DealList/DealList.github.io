@@ -525,6 +525,7 @@
   function setupTriggers() {
     wireTrigger('btn-trigger-dart', 'trigger-status', 'trigger_dart_update', 'DCM', 'https://github.com/DealList/DealList.github.io/actions/workflows/data-update.yml');
     wireTrigger('btn-trigger-ecm', 'trigger-status-ecm', 'trigger_ecm_update', 'ECM', 'https://github.com/DealList/DealList.github.io/actions/workflows/ecm-data-update.yml');
+    wireTrigger('btn-trigger-mezz', 'trigger-status-mezz', 'trigger_mezz_update', '메자닌', 'https://github.com/DealList/DealList.github.io/actions/workflows/mezz-data-update.yml');
   }
   function wireTrigger(btnId, statusId, rpc, label, actionsUrl) {
     const btn = $(btnId); if (!btn) return;

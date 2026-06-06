@@ -55,11 +55,14 @@ def _eok(v):
 
 
 def _meaningful(w: dict) -> bool:
-    """페이지 표에 의미 있는 행: 핵심 필드 중 최소 1개라도 채워져 있어야 함.
-    DART 발행결정 API 가 사모 일부 케이스에서 '회차·종류·사모'만 있고 발행조건 전부 빈
-    껍데기 응답을 줌(약 3%). 그 행은 표에서 잡음이라 제외.
+    """발행철회된 딜 = 페이지에서 제외.
+    판별 기준: 권면총액(bd_fta_eok)이 비어 있으면 발행철회.
+    근거: 발행 의도가 있으면 '얼마 발행할지'는 반드시 기재되므로 권면총액 빈값은 곧
+    철회·취소를 의미. (DART 정정공시 '발행대상자 납입의무 미이행에 따른 철회' 확인)
+    이 한 필드 기준으로 사용자 검증 발행철회 케이스가 깔끔히 걸러짐(농업회사법인그린
+    그래스바이오처럼 청약일만 빈 유효 딜은 권면총액이 있어 통과).
     """
-    return any(w.get(k) is not None for k in ("bddd", "bd_fta_eok", "sbd", "pymd", "bd_mtd", "intr_ex", "conv_prc"))
+    return w.get("bd_fta_eok") is not None
 
 
 def to_web(r: dict) -> dict:

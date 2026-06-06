@@ -273,7 +273,8 @@
     list.forEach(r=>{ const v=r.intr_ex; if(typeof v!=="number")return; const i=RATE_BUCKETS.findIndex(b=>b.test(v)); if(i>=0)rc[i]++; });
     charts.rate = new Chart($(id("rate")), { type:"bar",
       data:{ labels:RATE_BUCKETS.map(b=>b.label), datasets:[{ label:"건수", data:rc, backgroundColor:tc.bar }] },
-      options:{ maintainAspectRatio:false, plugins:{ legend:{display:false} }, scales:{ y:{ title:{display:true,text:"건수"} } } } });
+      options:{ maintainAspectRatio:false, layout:{ padding:{ top:28 } }, plugins:{ legend:{display:false} },
+        scales:{ y:{ beginAtZero:true, grace:"15%", title:{display:true,text:"건수"} } } } });
 
     attachDownloadButtons();
   }

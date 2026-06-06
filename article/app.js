@@ -102,6 +102,17 @@
   // 1차 탭 전환 (DCM / ECM)
   // ════════════════════════════════════════════════════════════════════
   let topTab = "dcm";
+  // nav '최종 업데이트' — 현재 1차 탭(DCM/ECM/메자닌)의 데이터 메타 갱신시각 표시.
+  // DCM/ECM 메타는 .updated, 메자닌 메타는 .updated_at (export 스크립트 필드 차이).
+  function setNavUpdated() {
+    const el = document.getElementById("nav-updated");
+    if (!el) return;
+    let t = null;
+    if (topTab === "dcm") t = DCM.META && DCM.META.updated;
+    else if (topTab === "ecm") t = ECM.META && ECM.META.updated;
+    else if (topTab === "mezz") t = MEZZ.META && MEZZ.META.updated_at;
+    el.textContent = t ? `최종 업데이트 ${t}` : "최종 업데이트 —";
+  }
   function switchTop(t) {
     if (!t) return;
     if (t === topTab) return;
@@ -114,6 +125,7 @@
     if (t === "dcm" && !DCM.inited) DCM.init();
     if (t === "ecm" && !ECM.inited) ECM.init();
     if (t === "mezz" && !MEZZ.inited) MEZZ.init();
+    setNavUpdated();  // 이미 로드된 섹션이면 즉시 반영; 첫 로드면 init 끝에서 다시 호출
   }
   // 이벤트 위임 — 직접 핸들러 미연결 케이스 안전망 (script timing 등)
   const topTabsBar = document.querySelector(".art-top-tabs");
@@ -152,6 +164,7 @@
     }
     DCM.initFilters();
     DCM.applyFilters();
+    setNavUpdated();
   };
 
   DCM.initFilters = function () {
@@ -610,6 +623,7 @@
     ECM.applyDefaultRange();
     ECM.bindEvents();
     ECM.render();
+    setNavUpdated();
   };
 
   // ECM 표 컬럼 정의 — 첫 컬럼이 [기사 쓰기]
@@ -1052,6 +1066,7 @@
     }
     MEZZ.populateMarket(); MEZZ.populateMethod(); MEZZ.populateTotals(); MEZZ.populateIssuers();
     MEZZ.applyDefaultRange(); MEZZ.bindEvents(); MEZZ.render();
+    setNavUpdated();
   };
 
   // 발행정보 페이지(mezz-deals)와 동일한 표시 컬럼·순서·라벨·포매터 (+ 맨 앞 기사 버튼).

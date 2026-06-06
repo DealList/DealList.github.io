@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Numbers Pool — 공모 회사채 발행 정보</title>
+  <title>Numbers Pool — 메자닌(CB·BW·EB) 발행정보</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
   <script>(function(){var k=localStorage.getItem('deallist-theme');if(k!=='light')document.documentElement.setAttribute('data-theme','dark');})();</script>
   <script src="../np-loading.js?v=20260602a"></script>
   <link rel="stylesheet" href="../deallist.css?v=20260601e" />
-  <link rel="stylesheet" href="style.css?v=20260530" />
+  <link rel="stylesheet" href="../ecm-deals/style.css?v=20260526104243" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
-  <!-- Supabase + auth + data-loader (signed-URL JSON fetch) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-client.js?v=20260602g"></script>
   <script src="../auth-helper.js?v=20260602c"></script>
@@ -19,30 +18,32 @@
 <body>
 
   <!-- Nav -->
-  <div id="nav-mount" data-active="dcm-deals" data-root=".."></div>
+  <div id="nav-mount" data-active="mezz-deals" data-root=".."></div>
   <script src="../nav.js?v=20260606b"></script>
 
   <!-- Sub-header -->
   <header class="v1-subheader">
     <div class="row">
       <div>
-        <div class="kicker">DCM Deal List</div>
-        <h1>공모 회사채 발행 정보</h1>
+        <div class="kicker">Mezzanine Deal List</div>
+        <h1>메자닌(CB·BW·EB) 발행정보</h1>
       </div>
-      <!-- 최종 업데이트 + 전체 건수: 모두 nav (#nav-updated) 로 통합.
-           #count 는 hidden 상태로만 유지 (app.js 호환). 표시는 nav. -->
       <span id="updated" hidden></span>
       <span id="count" hidden></span>
     </div>
   </header>
 
-  <!-- KPI strip (filled by app.js — see README for new HTML template) -->
-  <section class="kpi-strip" id="kpi-grid"></section>
+  <!-- 탭: CB / BW / EB -->
+  <div class="ecm-tabs">
+    <button class="ecm-tab active" data-tab="cb">CB · 전환사채</button>
+    <button class="ecm-tab" data-tab="bw">BW · 신주인수권부사채</button>
+    <button class="ecm-tab" data-tab="eb">EB · 교환사채</button>
+  </div>
 
   <!-- Filters -->
   <section class="filters">
     <div class="filter-row">
-      <label>기간 (청약일 기준)
+      <label><span class="lbl-title">기간 (이사회결의일 기준)</span>
         <div class="date-range">
           <input type="date" id="f-date-start" />
           <span class="dash">~</span>
@@ -57,33 +58,26 @@
       </label>
       <label>발행사 검색
         <input id="f-issuer" type="search" list="issuers-datalist"
-               placeholder="예: 미래에셋증권 (엔터로 추가)"
-               autocomplete="off" />
+               placeholder="예: 아리바이오 (엔터로 추가)" autocomplete="off" />
         <datalist id="issuers-datalist"></datalist>
         <div class="issuer-chips" id="f-issuer-chips"></div>
         <div class="filter-hint">최대 10개까지 추가 가능</div>
       </label>
       <div class="filter-col">
-        <label>종류
-          <select id="f-type"></select>
+        <label>시장
+          <select id="f-market"></select>
         </label>
-        <label>신용등급
-          <div class="rating-range">
-            <select id="f-rating-min"></select>
-            <span class="dash">~</span>
-            <select id="f-rating-max"></select>
-          </div>
+        <label>공모/사모
+          <select id="f-method"></select>
         </label>
       </div>
       <div class="filter-col">
-        <label>주관사
-          <select id="f-lead-select"></select>
-          <div class="issuer-chips" id="f-lead-chips"></div>
-        </label>
-        <label>인수사
-          <select id="f-uw-select"></select>
-          <div class="issuer-chips" id="f-uw-chips"></div>
-          <div class="filter-hint">각각 최대 5개까지 추가 가능</div>
+        <label>권면총액(억원)
+          <div class="rating-range">
+            <select id="f-total-min"></select>
+            <span class="dash">~</span>
+            <select id="f-total-max"></select>
+          </div>
         </label>
       </div>
     </div>
@@ -94,7 +88,7 @@
       </button>
       <button id="btn-reset" class="btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
-        검색 조건 초기화
+        초기화
       </button>
       <button id="btn-download" class="btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -106,32 +100,11 @@
 
   <!-- Table -->
   <section class="table-wrap">
-    <table id="grid">
-      <thead>
-        <tr>
-          <th data-sort="disclosure_date">최초 공시일</th>
-          <th data-sort="date">청약일</th>
-          <th data-sort="issuer">발행사</th>
-          <th data-sort="series">회차</th>
-          <th data-sort="type">종류</th>
-          <th data-sort="rating">신용등급</th>
-          <th data-sort="maturity">만기일</th>
-          <th data-sort="init" class="num">최초 모집(억원)</th>
-          <th data-sort="limit" class="num">발행 한도(억원)</th>
-          <th data-sort="demand" class="num">수요 예측(억원)</th>
-          <th data-sort="final" class="num">최종 발행(억원)</th>
-          <th data-sort="series_total" class="num">회차 합산(억원)</th>
-          <th data-sort="ratio" class="num">경쟁률</th>
-          <th data-sort="r_target">희망 금리</th>
-          <th data-sort="r_demand">수요 금리</th>
-          <th data-sort="r_final" class="num">최종 금리(%)</th>
-          <th>주관사</th>
-          <th>인수사</th>
-        </tr>
-      </thead>
+    <table class="grid" id="grid">
+      <thead id="ghead"></thead>
       <tbody id="rows"></tbody>
     </table>
-    <div id="empty" class="empty hidden">조건에 맞는 발행 건이 없습니다.</div>
+    <div id="empty" class="empty hidden">조건에 맞는 건이 없습니다.</div>
   </section>
 
   <nav id="pager" class="pager"></nav>

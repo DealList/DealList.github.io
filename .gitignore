@@ -34,3 +34,9 @@ Thumbs.db
 /ecm_data.json
 /ecm_meta.json
 /ecm_summary.json
+/web/
+
+# 로컬 백필·캐시 산출물 (Supabase 가 master)
+/auto/mezz_backfill/
+/auto/poc_cb_2025q2.json
+/DCM Table.meta.json

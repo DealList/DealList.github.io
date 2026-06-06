@@ -29,8 +29,10 @@
   const isArticle = active === 'article';
   const isDcm = active.startsWith('dcm-');
   const isEcm = active.startsWith('ecm-');
+  const isMezz = active.startsWith('mezz-');
   const dcmSub = isDcm ? active.replace('dcm-', '') : null;
   const ecmSub = isEcm ? active.replace('ecm-', '') : null;
+  const mezzSub = isMezz ? active.replace('mezz-', '') : null;
   const cls = (c) => c ? ` class="${c}"` : '';
 
   mount.outerHTML = `
@@ -87,6 +89,21 @@
               <a${cls(ecmSub === 'deals' ? 'active' : '')} href="${root}/ecm-deals/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발행 정보</a>
               <a${cls(ecmSub === 'brokers' ? 'active' : '')} href="${root}/ecm-brokers/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="20" x2="6" y2="14"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="10"/></svg> 주관·인수 실적</a>
               <a${cls(ecmSub === 'charts' ? 'active' : '')} href="${root}/ecm-charts/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2v10l6.5 3.5"/></svg> 인포그래픽</a>
+            </div>
+          </div>
+
+          <div${cls('dd' + (isMezz ? ' active' : ''))}>
+            <div class="cat">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+              메자닌 · CB/BW/EB
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="panel">
+              <div class="panel-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+                메자닌
+              </div>
+              <a${cls(mezzSub === 'deals' ? 'active' : '')} href="${root}/mezz-deals/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발행 정보</a>
             </div>
           </div>
 

@@ -57,9 +57,9 @@ async function fillKPI() {
     const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     const today = new Date();
     const prevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const prevPrevMonth = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const yoyMonth = new Date(prevMonth.getFullYear() - 1, prevMonth.getMonth(), 1);  // 전년 동월
     const prevYM = _ym(prevMonth);
-    const prevPrevYM = _ym(prevPrevMonth);
+    const yoyYM = _ym(yoyMonth);
 
     const records = (dataRaw && dataRaw.records) ? dataRaw.records : (dataRaw || []);
     function aggMonth(targetYM) {
@@ -75,10 +75,10 @@ async function fillKPI() {
       return { count, amount };
     }
     const prev = aggMonth(prevYM);
-    const prevPrev = aggMonth(prevPrevYM);
+    const yoy = aggMonth(yoyYM);
     const pct = (curr, base) => base > 0 ? ((curr - base) / base * 100) : null;
-    const countChange = pct(prev.count, prevPrev.count);
-    const amountChange = pct(prev.amount, prevPrev.amount);
+    const countChange = pct(prev.count, yoy.count);
+    const amountChange = pct(prev.amount, yoy.amount);
 
     const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
     const fmtPct = (v) => v == null ? '—' :
@@ -93,7 +93,7 @@ async function fillKPI() {
         <div class="value">${prev.count}<small>건</small></div>
         <div class="sub">
           ${fmtPct(countChange)}
-          <span class="sub-text">전월 대비</span>
+          <span class="sub-text">전년 동월 대비</span>
         </div>
       </a>
       <a class="v1-kpi" href="dcm-deals/">
@@ -104,7 +104,7 @@ async function fillKPI() {
         <div class="value">${fmtAmt(prev.amount)}</div>
         <div class="sub">
           ${fmtPct(amountChange)}
-          <span class="sub-text">전월 대비</span>
+          <span class="sub-text">전년 동월 대비</span>
         </div>
       </a>
       <a class="v1-kpi" href="dcm-brokers/">
@@ -473,17 +473,17 @@ async function loadEcm() {
   const rightsDone = (r) => typeof r.price_1 === 'number' || typeof r.final_price === 'number';
   const amt = (r) => r.final_total ?? r.total_1 ?? r.init_total ?? 0;
 
-  // 지난 달 (오늘 기준 직전 월) — DCM 메인 위젯과 동일 (매월 1일에 넘어감)
+  // 지난달 + 전년 동월(지난달의 1년 전) — DCM 메인 위젯과 동일 (매월 1일에 넘어감)
   const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const prevMonth = new Date(_t.getFullYear(), _t.getMonth() - 1, 1);
-  const prevPrevMonth = new Date(_t.getFullYear(), _t.getMonth() - 2, 1);
-  const prevYM = _ym(prevMonth), prevPrevYM = _ym(prevPrevMonth);
+  const yoyMonth = new Date(prevMonth.getFullYear() - 1, prevMonth.getMonth(), 1);
+  const prevYM = _ym(prevMonth), yoyYM = _ym(yoyMonth);
   const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
   const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
   const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
   const monthAmt = (arr, done, ym) => arr.filter(r => done(r) && (r.date || '').startsWith(ym)).reduce((s, r) => s + amt(r), 0);
-  const ipoPrev = monthAmt(ipo, ipoDone, prevYM), ipoPrev2 = monthAmt(ipo, ipoDone, prevPrevYM);
-  const rtPrev = monthAmt(rights, rightsDone, prevYM), rtPrev2 = monthAmt(rights, rightsDone, prevPrevYM);
+  const ipoPrev = monthAmt(ipo, ipoDone, prevYM), ipoPrev2 = monthAmt(ipo, ipoDone, yoyYM);
+  const rtPrev = monthAmt(rights, rightsDone, prevYM), rtPrev2 = monthAmt(rights, rightsDone, yoyYM);
 
   // 올해 주관 리그(완료 딜만) — 통합 / IPO / 유증 + 최대 IPO / 최대 유상증자
   const aggAll = {}, aggIpo = {}, aggRt = {};
@@ -510,12 +510,12 @@ async function loadEcm() {
     <a class="v1-kpi" href="ecm-deals/?tab=ipo">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} IPO</div>
       <div class="value">${fmtAmt(ipoPrev)}</div>
-      <div class="sub">${fmtPct(pct(ipoPrev, ipoPrev2))} <span class="sub-text">전월 대비</span></div>
+      <div class="sub">${fmtPct(pct(ipoPrev, ipoPrev2))} <span class="sub-text">전년 동월 대비</span></div>
     </a>
     <a class="v1-kpi" href="ecm-deals/?tab=rights">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> ${monthLabel} 유상증자</div>
       <div class="value">${fmtAmt(rtPrev)}</div>
-      <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전월 대비</span></div>
+      <div class="sub">${fmtPct(pct(rtPrev, rtPrev2))} <span class="sub-text">전년 동월 대비</span></div>
     </a>
     <a class="v1-kpi" href="ecm-brokers/">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9a6 6 0 0 0 12 0V3H6v6z"/><path d="M4 22h16M9 17l-2 5M15 17l2 5"/></svg> ${yr} ECM 통합 주관 1위</div>
@@ -718,11 +718,11 @@ async function loadMezz() {
   const _t = new Date();
   const today = `${_t.getFullYear()}-${String(_t.getMonth() + 1).padStart(2, '0')}-${String(_t.getDate()).padStart(2, '0')}`;
 
-  // 지난달 발행총액(납입일 기준) — DCM/ECM 위젯과 동일 (매월 1일에 넘어감)
+  // 지난달 발행총액(납입일 기준) + 전년 동월 비교 — DCM/ECM 위젯과 동일 (매월 1일에 넘어감)
   const _ym = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   const prevMonth = new Date(_t.getFullYear(), _t.getMonth() - 1, 1);
-  const prevPrevMonth = new Date(_t.getFullYear(), _t.getMonth() - 2, 1);
-  const prevYM = _ym(prevMonth), prevPrevYM = _ym(prevPrevMonth);
+  const yoyMonth = new Date(prevMonth.getFullYear() - 1, prevMonth.getMonth(), 1);
+  const prevYM = _ym(prevMonth), yoyYM = _ym(yoyMonth);
   const monthLabel = `${prevMonth.getFullYear()}년 ${prevMonth.getMonth() + 1}월`;
   const pct = (c, b) => b > 0 ? ((c - b) / b * 100) : null;
   const fmtPct = (v) => v == null ? '—' : `<span class="delta ${v < 0 ? 'down' : 'up'}">${v < 0 ? '▼' : '▲'} ${Math.abs(v).toFixed(1)}%</span>`;
@@ -730,12 +730,12 @@ async function loadMezz() {
 
   // 위젯 3칸: CB / BW / EB 지난달 발행총액
   $$('mezz-kpi-grid').innerHTML = MEZZ_TYPES.map(([t, lbl]) => {
-    const cur = monthAmt(buckets[t], prevYM), prev = monthAmt(buckets[t], prevPrevYM);
+    const cur = monthAmt(buckets[t], prevYM), prev = monthAmt(buckets[t], yoyYM);
     return `
     <a class="v1-kpi" href="mezz-deals/">
       <div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${monthLabel} ${lbl} 발행총액</div>
       <div class="value">${fmtAmt(cur)}</div>
-      <div class="sub">${fmtPct(pct(cur, prev))} <span class="sub-text">전월 대비</span></div>
+      <div class="sub">${fmtPct(pct(cur, prev))} <span class="sub-text">전년 동월 대비</span></div>
     </a>`;
   }).join('');
 

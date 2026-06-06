@@ -177,6 +177,47 @@ def _preserve_existing_bddd(rows: list[dict]) -> int:
     return n
 
 
+def _preserve_locked(rows: list[dict]) -> int:
+    """upsert 전: 관리자가 수기 잠금한 칸은 DB 의 locked_values 값으로 복원.
+
+    관리자페이지(/admin/data/)에서 어떤 칸을 수정·저장하면 그 칸이 locked_fields 에
+    기록되고 수정값이 locked_values 에 보관된다. 자동수집(DART)은 매시간 같은 회차를
+    재upsert 하므로, 잠근 칸을 새 API 값으로 덮어쓰지 않도록 여기서 DB 보관값으로
+    되돌린다. (잠그지 않은 칸은 정상적으로 최신 공시값으로 갱신.)
+    locked_fields/locked_values 컬럼 자체는 to_row 에 없어 upsert SET 대상이 아니므로
+    DB 값이 그대로 유지된다(별도 보존 불필요).
+    """
+    ids = [r["rcept_no"] for r in rows if r.get("rcept_no")]
+    if not ids:
+        return 0
+    locks = {}
+    CHUNK = 200
+    for i in range(0, len(ids), CHUNK):
+        batch = ids[i:i + CHUNK]
+        existing = sb.select(
+            TABLE, "rcept_no,locked_fields,locked_values",
+            filters={"rcept_no": f"in.({','.join(batch)})"},
+            limit=len(batch),
+        )
+        for row in existing or []:
+            lf = row.get("locked_fields") or []
+            if lf:
+                locks[row["rcept_no"]] = (lf, row.get("locked_values") or {})
+    if not locks:
+        return 0
+    n = 0
+    for r in rows:
+        lock = locks.get(r.get("rcept_no"))
+        if not lock:
+            continue
+        lf, lv = lock
+        for k in lf:
+            if k in lv:            # 잠근 칸을 관리자 보관값으로 복원
+                r[k] = lv[k]
+                n += 1
+    return n
+
+
 # ── 메인 ────────────────────────────────────────────────────────
 def load_kind(kind: str) -> int:
     path = BACKFILL_DIR / f"mezz_{kind}.json"
@@ -195,6 +236,9 @@ def load_kind(kind: str) -> int:
     kept = _preserve_existing_bddd(rows)
     if kept:
         print(f"  [bddd 보존] {kept}건 — 정정공시로 빠진 이사회결의일 DB 값 유지")
+    locked = _preserve_locked(rows)
+    if locked:
+        print(f"  [잠금 보존] {locked}칸 — 관리자 수정값 유지")
     total = 0
     for i in range(0, len(rows), BATCH):
         chunk = rows[i:i + BATCH]

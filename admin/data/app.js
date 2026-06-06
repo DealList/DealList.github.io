@@ -72,8 +72,44 @@
     { comp: true,          label: '확정총액', from: ['new_qty', 'final_price'], calc: 'eok' },
   ];
 
+  // ── 메자닌(CB/BW/EB) — 단일 테이블 mezz_issuances, type 으로 분기 ──
+  // tk = 테이블 컬럼명 (변환 통합 컬럼은 한국어 컬럼명 그대로). raw/fdpp 는 편집 제외.
+  const MEZZ_COLS = ['rcept_no', 'type', 'corp_code', 'corp_name', 'corp_cls', 'bddd', 'sbd', 'pymd', 'bd_mtd',
+    'bd_tm', 'bd_knd', 'bd_fta', 'bdis_mthn', 'bd_intr_ex', 'bd_intr_sf', 'rpmcmp', 'fdpp',
+    '변환가', '변환비율', '변환기간_시작', '변환기간_종료', '변환주식수', '변환주식_총수_대비_비율',
+    'locked_fields', 'locked_values'];
+  const MEZZ_SELECT = MEZZ_COLS.join(',');
+  function mezzConvLabels(type) {
+    if (type === 'cb') return { prc: '전환가', rt: '전환비율', qty: '전환주식수', vs: '총수대비%', bgd: '전환시작', edd: '전환종료' };
+    if (type === 'bw') return { prc: '행사가', rt: '행사비율', qty: '행사주식수', vs: '총수대비%', bgd: '행사시작', edd: '행사종료' };
+    return { prc: '교환가', rt: '교환비율', qty: '교환주식수', vs: '총수대비%', bgd: '교환시작', edd: '교환종료' };
+  }
+  function mezzFields(type) {
+    const c = mezzConvLabels(type);
+    return [
+      { tk: 'corp_name',   label: '발행사',       ro: true },
+      { tk: 'bd_tm',       label: '회차',         type: 'numf' },
+      { tk: 'bddd',        label: '이사회결의일', type: 'text' },
+      { tk: 'sbd',         label: '청약일',       type: 'text' },
+      { tk: 'pymd',        label: '납입일',       type: 'text' },
+      { tk: 'bd_mtd',      label: '만기일',       type: 'text' },
+      { tk: 'bd_knd',      label: '종류',         type: 'text' },
+      { tk: 'bd_fta',      label: '권면총액',     type: 'won' },
+      { tk: 'bdis_mthn',   label: '공모/사모',    type: 'text' },
+      { tk: 'bd_intr_ex',  label: '표면금리',     type: 'numf' },
+      { tk: 'bd_intr_sf',  label: '만기금리',     type: 'numf' },
+      { tk: 'rpmcmp',      label: '대표주관',     type: 'text' },
+      { tk: '변환가',                  label: c.prc, type: 'numf' },
+      { tk: '변환비율',                label: c.rt,  type: 'numf' },
+      { tk: '변환주식수',              label: c.qty, type: 'numf' },
+      { tk: '변환주식_총수_대비_비율', label: c.vs,  type: 'numf' },
+      { tk: '변환기간_시작',           label: c.bgd, type: 'text' },
+      { tk: '변환기간_종료',           label: c.edd, type: 'text' },
+    ];
+  }
+
   let market = 'dcm';
-  let origMap = {};  // key → 원본 행 (DCM key=PK문자열, ECM key=id)
+  let origMap = {};  // key → 원본 행 (DCM key=PK문자열, ECM key=id, 메자닌 key='mezz:'+rcept_no)
 
   // ───────── 테마 ─────────
   const rootEl = document.documentElement;
@@ -101,12 +137,14 @@
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
   const qEl = $('q'), results = $('results'), countEl = $('count'), pagerEl = $('pager');
   let dcmRows = [], ipoRows = [], rtRows = [], ecmTab = 'ipo', page = 1; const PAGE = 50;
+  let cbRows = [], bwRows = [], ebRows = [], mezzTab = 'cb';
 
   // ───────── 시장 토글 ─────────
   function setMarket(m) {
     market = m;
     $('seg-dcm').classList.toggle('active', m === 'dcm');
     $('seg-ecm').classList.toggle('active', m === 'ecm');
+    $('seg-mezz').classList.toggle('active', m === 'mezz');
     $('f-type').style.display = (m === 'dcm') ? '' : 'none';
     $('f-rating').style.display = (m === 'dcm') ? '' : 'none';
     results.innerHTML = ''; countEl.textContent = ''; pagerEl.innerHTML = '';
@@ -117,8 +155,9 @@
   }
   $('seg-dcm').addEventListener('click', () => setMarket('dcm'));
   $('seg-ecm').addEventListener('click', () => setMarket('ecm'));
+  $('seg-mezz').addEventListener('click', () => setMarket('mezz'));
 
-  function load() { return market === 'ecm' ? loadEcm() : loadDcm(); }
+  function load() { return market === 'mezz' ? loadMezz() : market === 'ecm' ? loadEcm() : loadDcm(); }
 
   function readFilters() {
     return { from: $('f-from').value || '', to: $('f-to').value || '', issuer: qEl.value.trim(), type: $('f-type').value || '', rating: $('f-rating').value || '' };
@@ -410,6 +449,120 @@
   function eok(q, p) { return (typeof q === 'number' && typeof p === 'number') ? Math.round(q * p / 1e8) : null; }
   function ratio(n, d) { return (typeof n === 'number' && typeof d === 'number' && d) ? Math.round(n / d * 100) / 100 : null; }
   function latestRcept() { const xs = Array.prototype.slice.call(arguments).filter(Boolean).map(String); return xs.length ? xs.reduce((a, b) => a > b ? a : b) : ''; }
+
+  // ═══════════════════ 메자닌 (CB/BW/EB) ═══════════════════
+  async function loadMezz() {
+    msg('조회 중...'); pagerEl.innerHTML = '';
+    const f = readFilters();
+    let qb = sb.from('mezz_issuances').select(MEZZ_SELECT)
+      .order('bddd', { ascending: false, nullsFirst: false }).limit(2000);
+    if (f.issuer) qb = qb.ilike('corp_name', `%${f.issuer}%`);
+    qb = applyEcmDate(qb, 'bddd', f);  // 기간 + bddd 미정(null) 행 포함 (편집해 채울 수 있게)
+    const { data, error } = await qb;
+    if (error) { msg('조회 실패: ' + esc(error.message)); return; }
+    const rows = data || [];
+    cbRows = []; bwRows = []; ebRows = []; origMap = {};
+    rows.forEach(r => {
+      const b = r.type === 'cb' ? cbRows : r.type === 'bw' ? bwRows : r.type === 'eb' ? ebRows : null;
+      if (!b) return;
+      b.push(r); origMap['mezz:' + r.rcept_no] = r;
+    });
+    mezzTab = 'cb'; page = 1;
+    renderMezzTab();
+  }
+
+  function renderMezzTab() {
+    const total = cbRows.length + bwRows.length + ebRows.length;
+    countEl.textContent = total ? `CB ${cbRows.length} · BW ${bwRows.length} · EB ${ebRows.length}` : '';
+    const tabs = `<div class="ecm-tabs">
+      <button class="etab ${mezzTab === 'cb' ? 'on' : ''}" data-tab="cb">CB (${cbRows.length})</button>
+      <button class="etab ${mezzTab === 'bw' ? 'on' : ''}" data-tab="bw">BW (${bwRows.length})</button>
+      <button class="etab ${mezzTab === 'eb' ? 'on' : ''}" data-tab="eb">EB (${ebRows.length})</button>
+    </div>`;
+    const rows = mezzTab === 'cb' ? cbRows : mezzTab === 'bw' ? bwRows : ebRows;
+    const fields = mezzFields(mezzTab);
+    if (!rows.length) {
+      results.innerHTML = tabs + `<div class="admin-muted" style="padding:26px;text-align:center;">${total ? '해당 유형 결과가 없습니다.' : '조회 결과가 없습니다.'}</div>`;
+      bindMezzTabs(); pagerEl.innerHTML = ''; return;
+    }
+    const slice = rows.slice((page - 1) * PAGE, (page - 1) * PAGE + PAGE);
+    const head = fields.map(f => `<th>${f.label}</th>`).join('') + '<th></th>';
+    results.innerHTML = tabs + `<div class="table-scroll"><table class="admin-table edit-table" data-kind="${mezzTab}" style="min-width:${(fields.length + 1) * 105}px;"><thead><tr>${head}</tr></thead><tbody></tbody></table></div>`;
+    const tbody = results.querySelector('tbody');
+    slice.forEach(r => {
+      const tr = document.createElement('tr'); tr.dataset.rcept = r.rcept_no;
+      tr.innerHTML = rowCells(fields, r) + `<td class="save-cell"><button class="admin-btn btn-save">저장</button></td>`;
+      tbody.appendChild(tr);
+    });
+    bindRows(tbody, fields, (tr) => saveMezzRow(mezzTab, tr.dataset.rcept, tr));
+    bindMezzTabs();
+    renderPager(rows.length, renderMezzTab);
+  }
+  function bindMezzTabs() {
+    results.querySelectorAll('.etab').forEach(b => b.addEventListener('click', () => { mezzTab = b.dataset.tab; page = 1; renderMezzTab(); }));
+  }
+
+  async function saveMezzRow(type, rcept, tr) {
+    const orig = origMap['mezz:' + rcept];
+    if (!orig) return;
+    const fields = mezzFields(type);
+    const patch = collectPatch(tr, fields, orig);
+    const btn = tr.querySelector('.btn-save');
+    if (!patch) { flash(tr, '변경 없음', false); return; }
+    btn.disabled = true; btn.textContent = '저장 중...';
+
+    const prevLf = Array.isArray(orig.locked_fields) ? orig.locked_fields : [];
+    const lockedNow = Array.from(new Set([...prevLf, ...Object.keys(patch)]));
+    const prevLv = (orig.locked_values && typeof orig.locked_values === 'object') ? orig.locked_values : {};
+    const lockedVals = { ...prevLv }; for (const k of Object.keys(patch)) lockedVals[k] = patch[k];
+
+    const { error } = await sb.from('mezz_issuances').update({ ...patch, locked_fields: lockedNow, locked_values: lockedVals }).eq('rcept_no', rcept);
+    if (error) { alert('저장 실패: ' + (error.message || error)); btn.disabled = false; btn.textContent = '저장'; return; }
+    Object.assign(orig, patch); orig.locked_fields = lockedNow; orig.locked_values = lockedVals;
+    markLocked(tr, lockedNow);
+
+    let reflect = '';
+    try { await patchMezzJson(type, orig); reflect = ' · 사이트 반영됨'; }
+    catch (e) { console.warn('[mezz] json', e); reflect = ' · 반영은 다음 수집 때'; }
+    btn.disabled = false; btn.textContent = '저장';
+    flash(tr, '저장됨' + reflect, true);
+  }
+
+  async function patchMezzJson(type, row) {
+    const data = await NP_loadData('mezz_data.json');
+    if (!data || !Array.isArray(data[type])) throw new Error('mezz_data.json 형식 오류');
+    const arr = data[type];
+    const rec = jsMezzRecord(row);
+    const idx = arr.findIndex(x => (x.rcept || '') === (rec.rcept || ''));
+    if (rec.bd_fta_eok == null) {
+      // 권면총액 비면 발행철회 → 페이지에서 제외 (export _meaningful 규칙과 동일)
+      if (idx >= 0) arr.splice(idx, 1);
+    } else if (idx >= 0) {
+      arr[idx] = rec;
+    } else {
+      arr.push(rec);  // 철회→유효 전환 등 새로 표시 대상이 된 경우
+    }
+    await upload('mezz_data.json', data);
+  }
+
+  const MEZZ_MARKET = { Y: '코스피', K: '코스닥', N: '코넥스', E: '기타' };
+  function jsMezzRecord(r) {
+    const fta = numOrNull(r.bd_fta);
+    return {
+      rcept: r.rcept_no || '', type: r.type,
+      corp_code: r.corp_code, issuer: r.corp_name || '',
+      market: MEZZ_MARKET[r.corp_cls] || (r.corp_cls || '-'),
+      bddd: r.bddd, sbd: r.sbd, pymd: r.pymd, bd_mtd: r.bd_mtd,
+      bd_tm: numOrNull(r.bd_tm), bd_knd: r.bd_knd,
+      bd_fta_eok: fta == null ? null : Math.round(fta / 1e8 * 10) / 10,
+      bdis_mthn: r.bdis_mthn, intr_ex: numOrNull(r.bd_intr_ex), intr_sf: numOrNull(r.bd_intr_sf),
+      rpmcmp: r.rpmcmp, fdpp: r.fdpp || null,
+      conv_prc: numOrNull(r['변환가']), conv_rt: numOrNull(r['변환비율']),
+      conv_bgd: r['변환기간_시작'], conv_edd: r['변환기간_종료'],
+      conv_qty: numOrNull(r['변환주식수']), conv_vs: numOrNull(r['변환주식_총수_대비_비율']),
+    };
+  }
+  function numOrNull(v) { if (v == null || v === '') return null; const n = Number(v); return isFinite(n) ? n : null; }
 
   // ═══════════════════ 공통 ═══════════════════
   function rowCells(fields, r) {

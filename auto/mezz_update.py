@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 import config            # noqa: E402
 import supabase_client as sb  # noqa: E402
-from mezz_load import to_row, _preserve_existing_bddd, TABLE  # noqa: E402
+from mezz_load import to_row, _preserve_existing_bddd, _preserve_locked, TABLE  # noqa: E402
 
 KEY = config.DART_API_KEY
 LIST_URL = config.OPENDART_LIST_URL
@@ -160,6 +160,7 @@ def update_range(bgn: str, end: str, dry: bool) -> None:
             if not rows:
                 continue
             _preserve_existing_bddd(rows)
+            _preserve_locked(rows)   # 관리자 수기 잠금 칸은 DB 보관값 유지 (자동수집 덮어쓰기 방지)
             if dry:
                 log(f"    [dry] {cc}: upsert {len(rows)}건 "
                     f"(rcepts: {[r['rcept_no'] for r in rows[:3]]}{'...' if len(rows)>3 else ''})")

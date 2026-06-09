@@ -350,6 +350,7 @@
       if (k === "series") return dCompareSeries(ga.rep.series, gb.rep.series) * dir;
       let va, vb;
       if (k === "ratio") { va = computeRatio(ga.rep); vb = computeRatio(gb.rep); }
+      else if (k === "tranche") { va = maturityYears(ga.rep.date, ga.rep.maturity); vb = maturityYears(gb.rep.date, gb.rep.maturity); }
       else { va = ga.rep[k]; vb = gb.rep[k]; }
       if (va == null && vb == null) return 0;
       if (va == null) return 1; if (vb == null) return -1;
@@ -392,6 +393,7 @@
                 `<td>${esc(r.type)}</td>` +
                 `<td>${esc(r.rating)}</td>` +
                 `<td>${esc(r.maturity)}</td>` +
+                `<td>${esc(maturityLabel(maturityYears(r.date, r.maturity)))}</td>` +
                 `<td class="num">${fmtN(r.init)}</td>`;
         if (isFirst) html += `<td class="num group-cell" rowspan="${N}">${fmtN(r.limit)}</td>`;
         html += `<td class="num">${fmtN(r.demand)}</td>` +
@@ -1513,6 +1515,11 @@ body{background:${c.surface};color:${c.text};font-family:Pretendard,-apple-syste
     if (years <= 0) return null;
     const half = Math.round(years * 2) / 2;
     return half;  // 1, 1.5, 2, 3, 5 등
+  }
+  // 트랜치 표기 — 정수면 "3년물", 소수면 "1.5년물". null 이면 빈값(신종자본증권 등).
+  function maturityLabel(yrs) {
+    if (yrs == null) return "";
+    return (Number.isInteger(yrs) ? yrs : yrs.toFixed(1)) + "년물";
   }
 
   // ── 같은 발행사의 직전 발행 1~2건 (DCM) ── 회차그룹 단위, 청약일 desc 최대 2개

@@ -20,6 +20,7 @@
     { tk: 'bond_type',         jk: 'type',         label: '종류',       type: 'text' },
     { tk: 'credit_rating',     jk: 'rating',       label: '등급',       type: 'text' },
     { tk: 'maturity',          jk: 'maturity',     label: '만기',       type: 'text' },
+    { comp: true, label: '트랜치', from: ['subscription_date', 'maturity'], calc: 'tranche' },
     { tk: 'initial_amount',    jk: 'init',         label: '최초모집',   type: 'won' },
     { tk: 'issue_limit',       jk: 'limit',        label: '발행한도',   type: 'won' },
     { tk: 'demand_amount',     jk: 'demand',       label: '수요예측',   type: 'won' },
@@ -568,6 +569,10 @@
   function rowCells(fields, r) {
     return fields.map((f, i) => {
       if (f.comp) {
+        // 트랜치는 날짜 두 개라 num() 우회 — raw 문자열 전달
+        if (f.calc === 'tranche') {
+          return `<td class="comp-cell" data-comp="${i}">${compCalc('tranche', r[f.from[0]], r[f.from[1]])}</td>`;
+        }
         return `<td class="comp-cell" data-comp="${i}">${compCalc(f.calc, num(r[f.from[0]]), num(r[f.from[1]]))}</td>`;
       }
       const v = r[f.tk];
@@ -588,6 +593,13 @@
       const recompute = () => fields.forEach((f, i) => {
         if (!f.comp) return;
         const cell = tr.querySelector('.comp-cell[data-comp="' + i + '"]'); if (!cell) return;
+        if (f.calc === 'tranche') {
+          // 트랜치: input 의 value(날짜 문자열) 그대로 사용
+          const aEl = tr.querySelector(`input[data-tk="${f.from[0]}"]`);
+          const bEl = tr.querySelector(`input[data-tk="${f.from[1]}"]`);
+          cell.textContent = compCalc('tranche', aEl ? aEl.value : '', bEl ? bEl.value : '');
+          return;
+        }
         cell.textContent = compCalc(f.calc, getInputNum(tr, f.from[0]), getInputNum(tr, f.from[1]));
       });
       tr.querySelectorAll('input[data-tk]').forEach(inp => {
@@ -610,6 +622,17 @@
   }
   // 자동계산 표기: eok(억) · x(경쟁률 배) · x2(소수2자리 배) · pct(%)
   function compCalc(calc, a, b) {
+    if (calc === 'tranche') {
+      // a, b 는 날짜 문자열(YYYY-MM-DD 등). 청약일↔만기일 차이를 0.5년 단위 반올림.
+      if (!a || !b) return '';
+      const s = new Date(String(a).slice(0, 10));
+      const m = new Date(String(b).slice(0, 10));
+      if (isNaN(s.getTime()) || isNaN(m.getTime())) return '';
+      const yrs = (m - s) / (1000 * 60 * 60 * 24 * 365.25);
+      if (yrs <= 0) return '';
+      const half = Math.round(yrs * 2) / 2;
+      return (Number.isInteger(half) ? half : half.toFixed(1)) + '년물';
+    }
     if (typeof a !== 'number' || typeof b !== 'number') return '—';
     if (calc === 'eok') return Math.round(a * b / 1e8).toLocaleString() + '억';
     if (!b) return '—';

@@ -616,6 +616,10 @@
       if (k === "ratio") {
         va = computeRatio(ga.rep);
         vb = computeRatio(gb.rep);
+      } else if (k === "tranche") {
+        // 그룹 첫 트랜치 만기연수(숫자) 기준 정렬 — 만기 없으면 null로 뒤로
+        va = maturityYears(ga.rep.date, ga.rep.maturity);
+        vb = maturityYears(gb.rep.date, gb.rep.maturity);
       } else {
         va = ga.rep[k];
         vb = gb.rep[k];
@@ -639,6 +643,23 @@
   function fmtNum(v) {
     if (v == null) return "";
     return Number(v).toLocaleString();
+  }
+
+  // 청약일↔만기일 차이로 트랜치 만기 자동 산정(0.5년 단위 반올림 → 요일·연휴 ±며칠 흡수).
+  // 결과: 1, 1.5, 2, 3, 5, 10 등 / 둘 중 하나 없거나(신종자본증권 만기 없음) 잘못된 날짜면 null.
+  function maturityYears(subDate, maturityDate) {
+    if (!subDate || !maturityDate) return null;
+    const s = new Date(String(subDate).slice(0, 10));
+    const m = new Date(String(maturityDate).slice(0, 10));
+    if (isNaN(s.getTime()) || isNaN(m.getTime())) return null;
+    const years = (m - s) / (1000 * 60 * 60 * 24 * 365.25);
+    if (years <= 0) return null;
+    return Math.round(years * 2) / 2;
+  }
+  // 숫자 → 표기. 정수면 "3년물", 소수면 "1.5년물".
+  function maturityLabel(yrs) {
+    if (yrs == null) return "";
+    return (Number.isInteger(yrs) ? yrs : yrs.toFixed(1)) + "년물";
   }
 
   function fmtRate(v) {
@@ -699,6 +720,7 @@
           "<td>" + esc(r.type) + "</td>" +
           "<td>" + esc(r.rating) + "</td>" +
           "<td>" + esc(r.maturity) + "</td>" +
+          "<td>" + esc(maturityLabel(maturityYears(r.date, r.maturity))) + "</td>" +
           '<td class="num">' + fmtNum(r.init) + "</td>";
 
         // 발행한도 — 그룹 공통

@@ -40,3 +40,6 @@ Thumbs.db
 /auto/mezz_backfill/
 /auto/poc_cb_2025q2.json
 /DCM Table.meta.json
+
+# Supabase CLI 로컬 캐시 (supabase link 시 자동 생성, 커밋 X)
+/supabase/.temp/
